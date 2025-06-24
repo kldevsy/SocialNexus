@@ -22,49 +22,88 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
   const [isMemberSidebarOpen, setIsMemberSidebarOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartX, setDragStartX] = useState(0);
+  const [dragStartY, setDragStartY] = useState(0);
   const containerRef = useRef<HTMLDivElement>(null);
 
-  // Sistema de drag para sidebars
+  // Sistema de drag para sidebars com touch e mouse
   useEffect(() => {
-    const handleMouseMove = (e: MouseEvent) => {
+    const handleMove = (clientX: number, clientY: number) => {
       if (!isDragging) return;
       
-      const deltaX = e.clientX - dragStartX;
+      const deltaX = clientX - dragStartX;
+      const deltaY = Math.abs(clientY - dragStartY);
+      
+      // Verificar se é um movimento horizontal (não vertical)
+      if (deltaY > 50) {
+        setIsDragging(false);
+        return;
+      }
       
       // Arrastar da esquerda para direita abre sidebar de canais
-      if (deltaX > 50 && !isChannelSidebarOpen && e.clientX < window.innerWidth / 2) {
+      if (deltaX > 100 && !isChannelSidebarOpen) {
         setIsChannelSidebarOpen(true);
         setIsDragging(false);
       }
       // Arrastar da direita para esquerda abre sidebar de membros  
-      else if (deltaX < -50 && !isMemberSidebarOpen && e.clientX > window.innerWidth / 2) {
+      else if (deltaX < -100 && !isMemberSidebarOpen) {
         setIsMemberSidebarOpen(true);
         setIsDragging(false);
       }
     };
 
-    const handleMouseUp = () => {
+    const handleMouseMove = (e: MouseEvent) => {
+      handleMove(e.clientX, e.clientY);
+    };
+
+    const handleTouchMove = (e: TouchEvent) => {
+      if (e.touches.length === 1) {
+        handleMove(e.touches[0].clientX, e.touches[0].clientY);
+      }
+    };
+
+    const handleEnd = () => {
       setIsDragging(false);
     };
 
     if (isDragging) {
       document.addEventListener('mousemove', handleMouseMove);
-      document.addEventListener('mouseup', handleMouseUp);
+      document.addEventListener('mouseup', handleEnd);
+      document.addEventListener('touchmove', handleTouchMove);
+      document.addEventListener('touchend', handleEnd);
     }
 
     return () => {
       document.removeEventListener('mousemove', handleMouseMove);
-      document.removeEventListener('mouseup', handleMouseUp);
+      document.removeEventListener('mouseup', handleEnd);
+      document.removeEventListener('touchmove', handleTouchMove);
+      document.removeEventListener('touchend', handleEnd);
     };
-  }, [isDragging, dragStartX, isChannelSidebarOpen, isMemberSidebarOpen]);
+  }, [isDragging, dragStartX, dragStartY, isChannelSidebarOpen, isMemberSidebarOpen]);
 
-  const handleMouseDown = (e: React.MouseEvent) => {
+  const handleStart = (clientX: number, clientY: number, target: EventTarget | null) => {
     // Apenas inicia drag se não estiver clicando em botões ou elementos interativos
-    if ((e.target as HTMLElement).closest('button, input, textarea, select')) {
+    if ((target as HTMLElement)?.closest('button, input, textarea, select, a')) {
       return;
     }
+    
+    // Só permitir drag nas bordas da tela (primeiros/últimos 50px)
+    if (clientX > 50 && clientX < window.innerWidth - 50) {
+      return;
+    }
+    
     setIsDragging(true);
-    setDragStartX(e.clientX);
+    setDragStartX(clientX);
+    setDragStartY(clientY);
+  };
+
+  const handleMouseDown = (e: React.MouseEvent) => {
+    handleStart(e.clientX, e.clientY, e.target);
+  };
+
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (e.touches.length === 1) {
+      handleStart(e.touches[0].clientX, e.touches[0].clientY, e.target);
+    }
   };
 
   const { data: server, isLoading: serverLoading } = useQuery<ServerWithOwner>({
@@ -119,30 +158,49 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
       ref={containerRef}
       className="h-screen flex bg-gray-100 relative"
       onMouseDown={handleMouseDown}
+      onTouchStart={handleTouchStart}
     >
       {/* Drag zone esquerda sempre visível */}
       <div 
-        className="absolute left-0 top-0 w-4 h-full bg-transparent cursor-ew-resize z-50"
+        className="absolute left-0 top-0 w-6 h-full bg-transparent z-50 flex items-center justify-center"
         onMouseDown={(e) => {
           if (!isChannelSidebarOpen) {
             e.stopPropagation();
-            setIsDragging(true);
-            setDragStartX(e.clientX);
+            handleStart(e.clientX, e.clientY, e.target);
           }
         }}
-      />
+        onTouchStart={(e) => {
+          if (!isChannelSidebarOpen && e.touches.length === 1) {
+            e.stopPropagation();
+            handleStart(e.touches[0].clientX, e.touches[0].clientY, e.target);
+          }
+        }}
+      >
+        {!isChannelSidebarOpen && (
+          <div className="w-1 h-12 bg-gray-300 rounded-full opacity-30 hover:opacity-60 transition-opacity" />
+        )}
+      </div>
 
       {/* Drag zone direita sempre visível */}
       <div 
-        className="absolute right-0 top-0 w-4 h-full bg-transparent cursor-ew-resize z-50"
+        className="absolute right-0 top-0 w-6 h-full bg-transparent z-50 flex items-center justify-center"
         onMouseDown={(e) => {
           if (!isMemberSidebarOpen) {
             e.stopPropagation();
-            setIsDragging(true);
-            setDragStartX(e.clientX);
+            handleStart(e.clientX, e.clientY, e.target);
           }
         }}
-      />
+        onTouchStart={(e) => {
+          if (!isMemberSidebarOpen && e.touches.length === 1) {
+            e.stopPropagation();
+            handleStart(e.touches[0].clientX, e.touches[0].clientY, e.target);
+          }
+        }}
+      >
+        {!isMemberSidebarOpen && (
+          <div className="w-1 h-12 bg-gray-300 rounded-full opacity-30 hover:opacity-60 transition-opacity" />
+        )}
+      </div>
 
       {/* Channel Sidebar */}
       <motion.div 

@@ -104,6 +104,7 @@ CommunityHub is a modern full-stack web application that provides a Discord-styl
 
 ## Recent Changes
 
+- **Sistema de arraste aprimorado** (24/06/2025): Gestos de arrastar das bordas para abrir menus laterais com suporte touch
 - **Sistema de autenticação Replit OAuth restaurado** (24/06/2025): Autenticação completa funcionando
 - **Correções de bugs na visualização de servidores** (24/06/2025): Erros de propriedades undefined resolvidos
 - **Banco de dados limpo** (24/06/2025): Dados de teste removidos, aplicação pronta para produção
