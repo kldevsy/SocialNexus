@@ -2,11 +2,12 @@ import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
-import type { ServerWithOwner, User } from "@shared/schema";
+import type { ServerWithOwner, User, Channel, ServerWithChannels } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { ArrowLeft, Hash, Volume2, VolumeX, Headphones, Mic, MicOff, Settings, Crown, Users, UserPlus, Menu, X, Plus } from "lucide-react";
+import { ArrowLeft, Hash, Volume2, VolumeX, Headphones, Mic, MicOff, Settings, Crown, Users, UserPlus, Menu, X, Plus, Trash2 } from "lucide-react";
+import { CreateChannelModal } from "@/components/create-channel-modal";
 
 interface ServerViewProps {
   serverId: number;
@@ -248,46 +249,60 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
                   </h3>
                 </div>
                 <div className="space-y-2">
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    whileHover={{ scale: 1.02, x: 6 }}
-                    className="flex items-center space-x-3 p-2 rounded-lg cursor-pointer transition-all duration-200 group bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 hover:from-blue-100 hover:to-indigo-100 hover:border-blue-300 shadow-sm hover:shadow-md"
-                  >
-                    <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-blue-600 rounded-md flex items-center justify-center shadow-sm">
-                      <Hash className="h-3 w-3 text-white" />
-                    </div>
-                    <span className="text-sm font-medium text-gray-800 group-hover:text-blue-700 flex-1">geral</span>
-                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                  </motion.div>
+                  {textChannels.map((channel, index) => (
+                    <motion.div
+                      key={channel.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: index * 0.05 }}
+                      whileHover={{ scale: 1.02, x: 6 }}
+                      onClick={() => setSelectedChannelId(channel.id)}
+                      className={`flex items-center space-x-3 p-2 rounded-lg cursor-pointer transition-all duration-200 group shadow-sm hover:shadow-md ${
+                        selectedChannelId === channel.id
+                          ? "bg-gradient-to-r from-blue-100 to-indigo-100 border border-blue-300"
+                          : "bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 hover:from-blue-50 hover:to-indigo-50 hover:border-blue-200"
+                      }`}
+                    >
+                      <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-blue-600 rounded-md flex items-center justify-center shadow-sm">
+                        <Hash className="h-3 w-3 text-white" />
+                      </div>
+                      <span className="text-sm font-medium text-gray-800 group-hover:text-blue-700 flex-1">
+                        {channel.name}
+                      </span>
+                      {isOwner && (
+                        <Button
+                          variant="ghost"
+                          size="sm"
+                          className="opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 p-0"
+                          onClick={(e) => {
+                            e.stopPropagation();
+                            handleDeleteChannel(channel.id);
+                          }}
+                        >
+                          <Trash2 className="h-3 w-3 text-red-500" />
+                        </Button>
+                      )}
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    </motion.div>
+                  ))}
                   
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.1 }}
-                    whileHover={{ scale: 1.02, x: 6 }}
-                    className="flex items-center space-x-3 p-2 rounded-lg cursor-pointer transition-all duration-200 group bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 hover:from-yellow-100 hover:to-orange-100 hover:border-yellow-300 shadow-sm hover:shadow-md"
-                  >
-                    <div className="w-6 h-6 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-md flex items-center justify-center shadow-sm">
-                      <Hash className="h-3 w-3 text-white" />
-                    </div>
-                    <span className="text-sm font-medium text-gray-800 group-hover:text-orange-700 flex-1">anúncios</span>
-                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
-                  </motion.div>
-                  
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.2 }}
-                    whileHover={{ scale: 1.02, x: 6 }}
-                    className="flex items-center space-x-3 p-2 rounded-lg cursor-pointer transition-all duration-200 group bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 hover:from-green-100 hover:to-emerald-100 hover:border-green-300 shadow-sm hover:shadow-md"
-                  >
-                    <div className="w-6 h-6 bg-gradient-to-br from-green-500 to-emerald-500 rounded-md flex items-center justify-center shadow-sm">
-                      <Hash className="h-3 w-3 text-white" />
-                    </div>
-                    <span className="text-sm font-medium text-gray-800 group-hover:text-green-700 flex-1">random</span>
-                    <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                  </motion.div>
+                  {isOwner && (
+                    <motion.div
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: textChannels.length * 0.05 }}
+                      whileHover={{ scale: 1.02, x: 6 }}
+                      onClick={() => setIsCreateChannelModalOpen(true)}
+                      className="flex items-center space-x-3 p-2 rounded-lg cursor-pointer transition-all duration-200 group bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 hover:from-green-100 hover:to-emerald-100 hover:border-green-300 shadow-sm hover:shadow-md border-dashed"
+                    >
+                      <div className="w-6 h-6 bg-gradient-to-br from-green-500 to-emerald-500 rounded-md flex items-center justify-center shadow-sm">
+                        <Plus className="h-3 w-3 text-white" />
+                      </div>
+                      <span className="text-sm font-medium text-gray-600 group-hover:text-green-700 flex-1">
+                        Criar Canal
+                      </span>
+                    </motion.div>
+                  )}
                 </div>
               </div>
 
@@ -302,45 +317,47 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
                   </h3>
                 </div>
                 <div className="space-y-2">
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.3 }}
-                    whileHover={{ scale: 1.02, x: 6 }}
-                    className="flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-all duration-200 group bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 hover:from-purple-100 hover:to-pink-100 hover:border-purple-300 shadow-sm hover:shadow-md"
-                  >
-                    <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center shadow-sm">
-                      <Volume2 className="h-4 w-4 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <span className="text-sm font-semibold text-gray-800 group-hover:text-purple-700">Sala Geral</span>
-                      <p className="text-xs text-gray-500 group-hover:text-purple-500">Bate-papo por voz</p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                      <span className="text-xs text-gray-500 font-medium">0/10</span>
-                    </div>
-                  </motion.div>
-                  
-                  <motion.div
-                    initial={{ opacity: 0, x: -20 }}
-                    animate={{ opacity: 1, x: 0 }}
-                    transition={{ delay: 0.4 }}
-                    whileHover={{ scale: 1.02, x: 6 }}
-                    className="flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-all duration-200 group bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 hover:from-indigo-100 hover:to-blue-100 hover:border-indigo-300 shadow-sm hover:shadow-md"
-                  >
-                    <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-blue-500 rounded-lg flex items-center justify-center shadow-sm">
-                      <Volume2 className="h-4 w-4 text-white" />
-                    </div>
-                    <div className="flex-1">
-                      <span className="text-sm font-semibold text-gray-800 group-hover:text-indigo-700">Gaming</span>
-                      <p className="text-xs text-gray-500 group-hover:text-indigo-500">Para jogos online</p>
-                    </div>
-                    <div className="flex items-center space-x-2">
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                      <span className="text-xs text-green-600 font-medium">2/5</span>
-                    </div>
-                  </motion.div>
+                  {voiceChannels.map((channel, index) => (
+                    <motion.div
+                      key={channel.id}
+                      initial={{ opacity: 0, x: -20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: (textChannels.length + index) * 0.05 }}
+                      whileHover={{ scale: 1.02, x: 6 }}
+                      className="flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-all duration-200 group bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 hover:from-purple-100 hover:to-pink-100 hover:border-purple-300 shadow-sm hover:shadow-md"
+                    >
+                      <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center shadow-sm">
+                        <Volume2 className="h-4 w-4 text-white" />
+                      </div>
+                      <div className="flex-1">
+                        <span className="text-sm font-semibold text-gray-800 group-hover:text-purple-700">
+                          {channel.name}
+                        </span>
+                        {channel.description && (
+                          <p className="text-xs text-gray-500 group-hover:text-purple-500">
+                            {channel.description}
+                          </p>
+                        )}
+                      </div>
+                      <div className="flex items-center space-x-2">
+                        {isOwner && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteChannel(channel.id);
+                            }}
+                          >
+                            <Trash2 className="h-3 w-3 text-red-500" />
+                          </Button>
+                        )}
+                        <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                        <span className="text-xs text-gray-500 font-medium">0/{Math.floor(Math.random() * 10) + 5}</span>
+                      </div>
+                    </motion.div>
+                  ))}
                 </div>
               </div>
 
@@ -648,6 +665,13 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
           </motion.div>
         )}
       </motion.div>
+      
+      {/* Create Channel Modal */}
+      <CreateChannelModal
+        open={isCreateChannelModalOpen}
+        onOpenChange={setIsCreateChannelModalOpen}
+        serverId={serverId}
+      />
     </div>
   );
 }

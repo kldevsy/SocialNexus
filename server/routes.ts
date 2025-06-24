@@ -193,6 +193,82 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Create channel (owner only)
+  app.post("/api/servers/:id/channels", isAuthenticated, async (req: any, res) => {
+    try {
+      const serverId = parseInt(req.params.id);
+      if (isNaN(serverId)) {
+        return res.status(400).json({ message: "Invalid server ID" });
+      }
+
+      const server = await storage.getServer(serverId);
+      if (!server) {
+        return res.status(404).json({ message: "Server not found" });
+      }
+
+      // Check if user is the owner
+      if (server.ownerId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Only server owner can create channels" });
+      }
+
+      const validation = insertChannelSchema.safeParse({
+        ...req.body,
+        serverId,
+      });
+
+      if (!validation.success) {
+        return res.status(400).json({ 
+          message: "Invalid channel data",
+          errors: validation.error.issues 
+        });
+      }
+
+      const channel = await storage.createChannel(validation.data);
+      res.status(201).json(channel);
+    } catch (error) {
+      console.error("Error creating channel:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
+  // Delete channel (owner only)
+  app.delete("/api/channels/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const channelId = parseInt(req.params.id);
+      if (isNaN(channelId)) {
+        return res.status(400).json({ message: "Invalid channel ID" });
+      }
+
+      // First get the channel to find its server
+      const allChannels = await db.select().from(channels).where(eq(channels.id, channelId));
+      const channel = allChannels[0];
+      
+      if (!channel) {
+        return res.status(404).json({ message: "Channel not found" });
+      }
+
+      const server = await storage.getServer(channel.serverId);
+      if (!server) {
+        return res.status(404).json({ message: "Server not found" });
+      }
+
+      // Check if user is the owner
+      if (server.ownerId !== req.user.claims.sub) {
+        return res.status(403).json({ message: "Only server owner can delete channels" });
+      }
+
+      const success = await storage.deleteChannel(channelId);
+      if (!success) {
+        return res.status(404).json({ message: "Channel not found" });
+      }
+
+      res.json({ message: "Channel deleted successfully" });
+    } catch (error) {
+      console.error("Error deleting channel:", error);
+      res.status(500).json({ message: "Internal server error" });
+    }
+  });
+
   const httpServer = createServer(app);
   return httpServer;
 }

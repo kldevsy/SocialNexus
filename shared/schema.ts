@@ -63,6 +63,17 @@ export const serverMemberships = pgTable("server_memberships", {
   joinedAt: timestamp("joined_at").defaultNow(),
 });
 
+// Channels table
+export const channels = pgTable("channels", {
+  id: serial("id").primaryKey(),
+  name: text("name").notNull(),
+  description: text("description"),
+  type: text("type", { enum: ["text", "voice"] }).notNull().default("text"),
+  serverId: integer("server_id").notNull().references(() => servers.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   ownedServers: many(servers),
@@ -75,6 +86,7 @@ export const serversRelations = relations(servers, ({ one, many }) => ({
     references: [users.id],
   }),
   memberships: many(serverMemberships),
+  channels: many(channels),
 }));
 
 export const serverMembershipsRelations = relations(serverMemberships, ({ one }) => ({
@@ -85,6 +97,13 @@ export const serverMembershipsRelations = relations(serverMemberships, ({ one })
   user: one(users, {
     fields: [serverMemberships.userId],
     references: [users.id],
+  }),
+}));
+
+export const channelsRelations = relations(channels, ({ one }) => ({
+  server: one(servers, {
+    fields: [channels.serverId],
+    references: [servers.id],
   }),
 }));
 
@@ -106,9 +125,16 @@ export const insertServerMembershipSchema = createInsertSchema(serverMemberships
   joinedAt: true,
 });
 
+export const insertChannelSchema = createInsertSchema(channels).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
 // Update schemas
 export const updateUserSchema = insertUserSchema.partial();
 export const updateServerSchema = insertServerSchema.partial();
+export const updateChannelSchema = insertChannelSchema.partial();
 
 // Types
 export type UpsertUser = z.infer<typeof insertUserSchema>;
@@ -118,3 +144,6 @@ export type Server = typeof servers.$inferSelect;
 export type ServerWithOwner = Server & { owner: User };
 export type InsertServerMembership = z.infer<typeof insertServerMembershipSchema>;
 export type ServerMembership = typeof serverMemberships.$inferSelect;
+export type InsertChannel = z.infer<typeof insertChannelSchema>;
+export type Channel = typeof channels.$inferSelect;
+export type ServerWithChannels = Server & { owner: User; channels: Channel[] };

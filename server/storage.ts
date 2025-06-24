@@ -34,6 +34,13 @@ export interface IStorage {
   getUserMemberships(userId: string): Promise<ServerMembership[]>;
   getServerMembers(serverId: number): Promise<User[]>;
   isUserMember(serverId: number, userId: string): Promise<boolean>;
+
+  // Channel operations
+  createChannel(channel: InsertChannel): Promise<Channel>;
+  getServerChannels(serverId: number): Promise<Channel[]>;
+  getServerWithChannels(id: number): Promise<ServerWithChannels | undefined>;
+  updateChannel(id: number, updates: Partial<Channel>): Promise<Channel | undefined>;
+  deleteChannel(id: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
