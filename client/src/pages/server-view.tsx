@@ -341,14 +341,21 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
         )}
       </motion.div>
 
+      {/* Overlay para fechar menu de membros */}
+      {isMemberSidebarOpen && (
+        <div 
+          className="fixed inset-0 bg-black bg-opacity-50 z-30"
+          onClick={() => setIsMemberSidebarOpen(false)}
+        />
+      )}
+
       {/* Main Content */}
       <div 
         className="flex-1 flex flex-col"
         onClick={() => {
           // Fechar sidebars ao clicar na área principal
-          if (isChannelSidebarOpen || isMemberSidebarOpen) {
+          if (isChannelSidebarOpen) {
             setIsChannelSidebarOpen(false);
-            setIsMemberSidebarOpen(false);
           }
         }}
       >
@@ -465,24 +472,23 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
 
       {/* Members Sidebar */}
       <motion.div 
-        initial={{ width: 0, opacity: 0 }}
+        initial={{ x: 300, opacity: 0 }}
         animate={{ 
-          width: isMemberSidebarOpen ? 280 : 0,
+          x: isMemberSidebarOpen ? 0 : 300,
           opacity: isMemberSidebarOpen ? 1 : 0
         }}
         transition={{ 
-          width: { duration: 0.3, ease: "easeInOut" },
+          x: { duration: 0.3, ease: "easeInOut" },
           opacity: { duration: 0.2, delay: isMemberSidebarOpen ? 0.1 : 0 }
         }}
-        className="bg-gray-50 border-l border-gray-200 overflow-visible relative shadow-lg"
-        style={{ minWidth: isMemberSidebarOpen ? 280 : 0, maxWidth: isMemberSidebarOpen ? 280 : 0 }}
+        className="fixed right-0 top-0 h-full w-80 bg-gray-50 border-l border-gray-200 shadow-xl z-40"
       >
         {isMemberSidebarOpen && (
           <motion.div
             initial={{ opacity: 0, y: 20 }}
             animate={{ opacity: 1, y: 0 }}
             transition={{ duration: 0.2, delay: 0.1 }}
-            className="h-full flex flex-col w-full min-w-[280px]"
+            className="h-full flex flex-col w-full"
           >
             {/* Members Header */}
             <div className="p-4 border-b border-gray-200 bg-white">
