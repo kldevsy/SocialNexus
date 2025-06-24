@@ -137,10 +137,10 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
     refetchOnWindowFocus: false,
     enabled: !!serverData,
     onSuccess: (data) => {
-      console.log('Channels fetched:', data);
+      console.log('📱 Channels fetched on client:', data);
     },
     onError: (error) => {
-      console.error('Error fetching channels:', error);
+      console.error('❌ Error fetching channels on client:', error);
     },
   });
 
@@ -274,6 +274,17 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
   const isOwner = user?.id === server?.ownerId;
   const onlineMembers = members.filter(() => Math.random() > 0.6);
   const displayName = user?.firstName || user?.email?.split('@')[0] || 'Usuário';
+
+  console.log('🏗️ Current state:', {
+    serverId,
+    channelsCount: channels.length,
+    textChannelsCount: textChannels.length,
+    voiceChannelsCount: voiceChannels.length,
+    selectedChannelId,
+    isOwner,
+    userId: user?.id,
+    serverOwnerId: server?.ownerId
+  });
 
   return (
     <div 

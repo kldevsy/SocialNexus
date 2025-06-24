@@ -217,6 +217,22 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Get server channels
+  app.get('/api/servers/:id/channels', isAuthenticated, async (req: any, res) => {
+    try {
+      const serverId = parseInt(req.params.id);
+      console.log(`🔍 Fetching channels for server ${serverId}`);
+      
+      const channels = await storage.getServerChannels(serverId);
+      console.log(`📋 Found ${channels.length} channels for server ${serverId}:`, channels.map(c => ({ id: c.id, name: c.name, type: c.type })));
+      
+      res.json(channels);
+    } catch (error) {
+      console.error("❌ Error fetching server channels:", error);
+      res.status(500).json({ message: "Failed to fetch server channels" });
+    }
+  });
+
   // Create channel (owner only)
   app.post("/api/servers/:id/channels", isAuthenticated, async (req: any, res) => {
     try {
