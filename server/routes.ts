@@ -427,10 +427,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
               if (!targetFound) {
                 console.log(`❌ Target user ${targetUserId} not found in channel ${targetChannelId}`);
-                // Try to relay to all other users as fallback for debugging
+                // Try broadcasting to all users as fallback
                 channelClients.forEach((client: any) => {
                   if (client !== ws && client.readyState === 1) {
-                    console.log(`🔄 Fallback: relaying to user ${client.userId}`);
+                    console.log(`🔄 Broadcasting signal to user ${client.userId} as fallback`);
+                    client.send(JSON.stringify(message));
                   }
                 });
               }

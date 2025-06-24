@@ -33,13 +33,16 @@ export function useVoiceChat() {
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
         { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' }
-      ]
+        { urls: 'stun:stun2.l.google.com:19302' },
+        { urls: 'stun:stun3.l.google.com:19302' },
+        { urls: 'stun:stun4.l.google.com:19302' }
+      ],
+      iceCandidatePoolSize: 10
     });
 
     pc.onicecandidate = (event) => {
       if (event.candidate && ws?.readyState === WebSocket.OPEN) {
-        console.log('🧊 Sending ICE candidate to user:', userId);
+        console.log('🧊 Sending ICE candidate to user:', userId, 'candidate:', event.candidate.candidate);
         ws.send(JSON.stringify({
           type: 'voice-signal',
           signal: {
@@ -50,6 +53,8 @@ export function useVoiceChat() {
           fromUserId: currentUserId.current,
           channelId: connectedChannelId
         }));
+      } else if (!event.candidate) {
+        console.log('🧊 ICE gathering complete for user:', userId);
       }
     };
 
@@ -263,7 +268,8 @@ export function useVoiceChat() {
                     return pc.setLocalDescription(offer);
                   }).then(() => {
                     if (ws?.readyState === WebSocket.OPEN) {
-                      ws.send(JSON.stringify({
+                      console.log('📤 Sending offer to existing user:', user.userId);
+                      const offerMessage = {
                         type: 'voice-signal',
                         signal: {
                           type: 'offer',
@@ -272,7 +278,9 @@ export function useVoiceChat() {
                         targetUserId: user.userId,
                         fromUserId: currentUserId.current,
                         channelId: connectedChannelId
-                      }));
+                      };
+                      console.log('📤 Offer message:', JSON.stringify(offerMessage, null, 2));
+                      ws.send(JSON.stringify(offerMessage));
                     }
                   }).catch(error => {
                     console.error('❌ Error creating offer for existing user:', error);
@@ -352,6 +360,7 @@ export function useVoiceChat() {
             break;
             
           case 'voice-signal':
+            console.log('📨 Received voice signal:', message);
             handleVoiceSignal(message);
             break;
         }
