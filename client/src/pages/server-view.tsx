@@ -17,7 +17,6 @@ interface ServerViewProps {
 }
 
 export default function ServerView({ serverId, onBack }: ServerViewProps) {
-  const { user } = useAuth();
   const { toast } = useToast();
   const queryClient = useQueryClient();
   const containerRef = useRef<HTMLDivElement>(null);
@@ -127,63 +126,44 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
     }
   };
 
-  const { data: server, isLoading: serverLoading, error: serverError } = useQuery({
-    queryKey: ["/api/servers", serverId],
-    queryFn: async () => {
-      const response = await fetch(`/api/servers/${serverId}`, {
-        credentials: "include",
-      });
-      if (!response.ok) {
-        const errorData = await response.json().catch(() => ({}));
-        throw new Error(errorData.message || `HTTP ${response.status}: Failed to fetch server`);
-      }
-      return response.json() as Promise<ServerWithChannels & { members: User[] }>;
-    },
+  const { data: serverData, isLoading: serverLoading, error: serverError } = useQuery({
+    queryKey: [`/api/servers/${serverId}`],
+    refetchOnWindowFocus: false,
   });
 
-  // Prepare data - this must be done before any conditional returns
-  const members = server?.members || [];
-  const channels = server?.channels || [];
-  const textChannels = channels.filter(channel => channel.type === "text");
-  const voiceChannels = channels.filter(channel => channel.type === "voice");
-  const isOwner = user?.id === server?.ownerId;
-  const displayName = user?.firstName && user?.lastName 
-    ? `${user.firstName} ${user.lastName}` 
-    : user?.username || user?.email || 'Usuario';
+  const { data: channels = [], isLoading: channelsLoading } = useQuery({
+    queryKey: [`/api/servers/${serverId}/channels`],
+    refetchOnWindowFocus: false,
+    enabled: !!serverData,
+  });
 
-  // Set default channel if none selected and channels exist
-  useEffect(() => {
-    if (!selectedChannelId && textChannels.length > 0) {
-      setSelectedChannelId(textChannels[0].id);
-    }
-  }, [selectedChannelId, textChannels]);
+  const { data: members = [], isLoading: membersLoading } = useQuery({
+    queryKey: [`/api/servers/${serverId}/members`],
+    refetchOnWindowFocus: false,
+    enabled: !!serverData,
+  });
 
-  // Get the currently selected channel
-  const selectedChannel = selectedChannelId 
-    ? channels.find(ch => ch.id === selectedChannelId)
-    : textChannels[0] || null;
+  // User info
+  const { data: user } = useQuery({
+    queryKey: ["/api/auth/user"],
+    refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000,
+  });
 
-  // All mutations must be defined before any conditional returns
+  const displayName = user?.firstName || user?.email?.split('@')[0] || 'Usuário';
+
   const deleteChannelMutation = useMutation({
     mutationFn: async (channelId: number) => {
-      const response = await fetch(`/api/channels/${channelId}`, {
+      const response = await apiRequest(`/api/channels/${channelId}`, {
         method: "DELETE",
-        credentials: "include",
       });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message);
-      }
-      return response.json();
+      return response;
     },
     onSuccess: () => {
       toast({
         title: "Canal deletado com sucesso!",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/servers", serverId] });
-      // Reset selected channel if it was deleted
-      const remainingChannels = textChannels.filter(c => c.id !== selectedChannelId);
-      setSelectedChannelId(remainingChannels[0]?.id || null);
+      queryClient.invalidateQueries({ queryKey: [`/api/servers/${serverId}/channels`] });
     },
     onError: (error: any) => {
       toast({
@@ -288,7 +268,19 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
     );
   }
 
+  const server = serverData;
+  const textChannels = channels.filter((channel: any) => channel.type === "text");
+  const voiceChannels = channels.filter((channel: any) => channel.type === "voice");
+  const selectedChannel = selectedChannelId ? channels.find((c: any) => c.id === selectedChannelId) : textChannels[0];
+  const isOwner = user?.id === server?.ownerId;
   const onlineMembers = members.filter(() => Math.random() > 0.6); // Simulate online status
+
+  // Set default channel if none selected and channels exist
+  useEffect(() => {
+    if (!selectedChannelId && textChannels.length > 0) {
+      setSelectedChannelId(textChannels[0].id);
+    }
+  }, [selectedChannelId, textChannels]);
 
   return (
     <div 

@@ -183,16 +183,37 @@ export class DatabaseStorage implements IStorage {
     }
 
     const results = await db
-      .select()
+      .select({
+        id: servers.id,
+        name: servers.name,
+        description: servers.description,
+        iconUrl: servers.iconUrl,
+        category: servers.category,
+        isPublic: servers.isPublic,
+        ownerId: servers.ownerId,
+        memberCount: servers.memberCount,
+        createdAt: servers.createdAt,
+        updatedAt: servers.updatedAt,
+        owner: users
+      })
       .from(servers)
       .leftJoin(users, eq(servers.ownerId, users.id))
       .where(and(...conditions))
-      .orderBy(desc(servers.memberCount))
+      .orderBy(desc(servers.createdAt))
       .limit(limit);
 
     return results.map(result => ({
-      ...result.servers,
-      owner: result.users!,
+      id: result.id,
+      name: result.name,
+      description: result.description,
+      iconUrl: result.iconUrl,
+      category: result.category,
+      isPublic: result.isPublic,
+      ownerId: result.ownerId,
+      memberCount: result.memberCount,
+      createdAt: result.createdAt,
+      updatedAt: result.updatedAt,
+      owner: result.owner!,
     }));
   }
 
