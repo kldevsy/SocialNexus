@@ -27,6 +27,8 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
   const [dragStartY, setDragStartY] = useState(0);
   const [selectedChannelId, setSelectedChannelId] = useState<number | null>(null);
   const [isCreateChannelModalOpen, setIsCreateChannelModalOpen] = useState(false);
+  const [isMuted, setIsMuted] = useState(false);
+  const [isDeafened, setIsDeafened] = useState(false);
 
   // Sistema de drag para sidebars com touch e mouse
   useEffect(() => {
