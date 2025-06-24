@@ -14,7 +14,7 @@ export function useDirectVoiceChat() {
   const peerConnectionsRef = useRef(new Map<string, RTCPeerConnection>());
   const pendingCandidatesRef = useRef(new Map<string, RTCIceCandidate[]>());
 
-  // Simple peer connection factory
+  // Simple peer connection factory  
   const createPeerConnection = useCallback((userId: string) => {
     console.log(`Creating peer connection for ${userId}`);
     
@@ -24,22 +24,32 @@ export function useDirectVoiceChat() {
 
     pc.onicecandidate = (event) => {
       if (event.candidate && wsRef.current?.readyState === WebSocket.OPEN) {
+        console.log(`Sending ICE candidate to ${userId}`);
         wsRef.current.send(JSON.stringify({
           type: 'webrtc-signal',
           to: userId,
           from: currentUserIdRef.current,
+          channelId: connectedChannelId,
           signal: { type: 'ice', candidate: event.candidate }
         }));
       }
     };
 
     pc.ontrack = (event) => {
-      console.log(`Received audio from ${userId}`);
+      console.log(`🎵 Received audio from ${userId}`);
       const audio = new Audio();
       audio.srcObject = event.streams[0];
       audio.autoplay = true;
       audio.volume = isDeafened ? 0 : 1;
-      audio.play().catch(console.error);
+      audio.play().then(() => {
+        console.log(`✅ Audio playback started for ${userId}`);
+      }).catch((error) => {
+        console.error(`❌ Error playing audio for ${userId}:`, error);
+        // Try to play again after user interaction
+        document.addEventListener('click', () => {
+          audio.play().catch(console.error);
+        }, { once: true });
+      });
     };
 
     return pc;
@@ -76,6 +86,7 @@ export function useDirectVoiceChat() {
             type: 'webrtc-signal',
             to: from,
             from: currentUserIdRef.current,
+            channelId: connectedChannelId,
             signal: { type: 'answer', answer }
           }));
           
@@ -129,10 +140,12 @@ export function useDirectVoiceChat() {
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
     
+    console.log(`Sending offer to ${userId} in channel ${connectedChannelId}`);
     wsRef.current?.send(JSON.stringify({
       type: 'webrtc-signal',
       to: userId,
       from: currentUserIdRef.current,
+      channelId: connectedChannelId,
       signal: { type: 'offer', offer }
     }));
   }, [localStream, createPeerConnection]);
@@ -213,6 +226,7 @@ export function useDirectVoiceChat() {
             break;
             
           case 'webrtc-signal':
+            console.log('Received WebRTC signal:', data.signal?.type, 'from:', data.from);
             handleSignal(data);
             break;
         }

@@ -431,15 +431,15 @@ export async function registerRoutes(app: Express): Promise<Server> {
           case 'webrtc-signal':
           case 'voice-signal':
             // WebRTC signaling relay
-            const targetChannelId = message.channelId || message.to;
             const targetUserId = message.targetUserId || message.to;
             const fromUserId = message.fromUserId || message.from;
+            const signalChannelId = message.channelId;
             
-            console.log(`🔄 Relaying voice signal from ${fromUserId} to ${targetUserId} in channel ${targetChannelId || userChannelId || 'undefined'}`);
+            console.log(`🔄 Relaying voice signal from ${fromUserId} to ${targetUserId} in channel ${signalChannelId || userChannelId || 'undefined'}`);
             console.log(`🔍 Signal type: ${message.signal?.type}`);
             
             // Find the channel this user is in if channelId is missing
-            let actualChannelId = targetChannelId || userChannelId;
+            let actualChannelId = signalChannelId || userChannelId;
             if (!actualChannelId) {
               // Search for the user in all channels
               for (const [channelId, clients] of voiceChannels.entries()) {
@@ -467,19 +467,9 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
               channelClients.forEach((client: any) => {
                 if (client !== ws && client.readyState === 1 && client.userId === targetUserId) {
-                  // Send both webrtc-signal and voice-signal formats
-                  if (message.type === 'webrtc-signal') {
-                    client.send(JSON.stringify(message));
-                  } else {
-                    client.send(JSON.stringify({
-                      type: 'webrtc-signal',
-                      to: targetUserId,
-                      from: fromUserId,
-                      signal: message.signal
-                    }));
-                  }
-                  targetFound = true;
                   console.log(`✅ Signal relayed to target user ${targetUserId}`);
+                  client.send(JSON.stringify(message));
+                  targetFound = true;
                 }
               });
               
