@@ -126,6 +126,7 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
     }
   };
 
+  // ALL HOOKS MUST BE AT THE TOP - ALWAYS CALLED IN SAME ORDER
   const { data: serverData, isLoading: serverLoading, error: serverError } = useQuery({
     queryKey: [`/api/servers/${serverId}`],
     refetchOnWindowFocus: false,
@@ -143,14 +144,11 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
     enabled: !!serverData,
   });
 
-  // User info
   const { data: user } = useQuery({
     queryKey: ["/api/auth/user"],
     refetchOnWindowFocus: false,
     staleTime: 5 * 60 * 1000,
   });
-
-  const displayName = user?.firstName || user?.email?.split('@')[0] || 'Usuário';
 
   const deleteChannelMutation = useMutation({
     mutationFn: async (channelId: number) => {
@@ -176,22 +174,16 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
 
   const joinServerMutation = useMutation({
     mutationFn: async () => {
-      const response = await fetch(`/api/servers/${serverId}/join`, {
+      const response = await apiRequest(`/api/servers/${serverId}/join`, {
         method: "POST",
-        credentials: "include",
       });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message);
-      }
-      return response.json();
+      return response;
     },
     onSuccess: () => {
       toast({
         title: "Entrou no servidor com sucesso!",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/servers", serverId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/servers"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/servers/${serverId}`] });
     },
     onError: (error: any) => {
       toast({
@@ -274,14 +266,8 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
   const voiceChannels = channels.filter((channel: any) => channel.type === "voice");
   const selectedChannel = selectedChannelId ? channels.find((c: any) => c.id === selectedChannelId) : textChannels[0];
   const isOwner = user?.id === server?.ownerId;
-  const onlineMembers = members.filter(() => Math.random() > 0.6); // Simulate online status
-
-  // Set default channel if none selected and channels exist
-  useEffect(() => {
-    if (!selectedChannelId && textChannels.length > 0) {
-      setSelectedChannelId(textChannels[0].id);
-    }
-  }, [selectedChannelId, textChannels]);
+  const onlineMembers = members.filter(() => Math.random() > 0.6);
+  const displayName = user?.firstName || user?.email?.split('@')[0] || 'Usuário';
 
   return (
     <div 
