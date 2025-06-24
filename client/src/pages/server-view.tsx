@@ -252,15 +252,12 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     whileHover={{ scale: 1.02, x: 6 }}
-                    className="flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-all duration-200 group bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 hover:from-blue-100 hover:to-indigo-100 hover:border-blue-300 shadow-sm hover:shadow-md"
+                    className="flex items-center space-x-3 p-2 rounded-lg cursor-pointer transition-all duration-200 group bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 hover:from-blue-100 hover:to-indigo-100 hover:border-blue-300 shadow-sm hover:shadow-md"
                   >
-                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-sm">
-                      <Hash className="h-4 w-4 text-white" />
+                    <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-blue-600 rounded-md flex items-center justify-center shadow-sm">
+                      <Hash className="h-3 w-3 text-white" />
                     </div>
-                    <div className="flex-1">
-                      <span className="text-sm font-semibold text-gray-800 group-hover:text-blue-700">geral</span>
-                      <p className="text-xs text-gray-500 group-hover:text-blue-500">Canal principal do servidor</p>
-                    </div>
+                    <span className="text-sm font-medium text-gray-800 group-hover:text-blue-700 flex-1">geral</span>
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                   </motion.div>
                   
@@ -269,15 +266,12 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.1 }}
                     whileHover={{ scale: 1.02, x: 6 }}
-                    className="flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-all duration-200 group bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 hover:from-yellow-100 hover:to-orange-100 hover:border-yellow-300 shadow-sm hover:shadow-md"
+                    className="flex items-center space-x-3 p-2 rounded-lg cursor-pointer transition-all duration-200 group bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 hover:from-yellow-100 hover:to-orange-100 hover:border-yellow-300 shadow-sm hover:shadow-md"
                   >
-                    <div className="w-8 h-8 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-lg flex items-center justify-center shadow-sm">
-                      <Hash className="h-4 w-4 text-white" />
+                    <div className="w-6 h-6 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-md flex items-center justify-center shadow-sm">
+                      <Hash className="h-3 w-3 text-white" />
                     </div>
-                    <div className="flex-1">
-                      <span className="text-sm font-semibold text-gray-800 group-hover:text-orange-700">anúncios</span>
-                      <p className="text-xs text-gray-500 group-hover:text-orange-500">Informações importantes</p>
-                    </div>
+                    <span className="text-sm font-medium text-gray-800 group-hover:text-orange-700 flex-1">anúncios</span>
                     <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                   </motion.div>
                   
@@ -286,15 +280,12 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.2 }}
                     whileHover={{ scale: 1.02, x: 6 }}
-                    className="flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-all duration-200 group bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 hover:from-green-100 hover:to-emerald-100 hover:border-green-300 shadow-sm hover:shadow-md"
+                    className="flex items-center space-x-3 p-2 rounded-lg cursor-pointer transition-all duration-200 group bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 hover:from-green-100 hover:to-emerald-100 hover:border-green-300 shadow-sm hover:shadow-md"
                   >
-                    <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center shadow-sm">
-                      <Hash className="h-4 w-4 text-white" />
+                    <div className="w-6 h-6 bg-gradient-to-br from-green-500 to-emerald-500 rounded-md flex items-center justify-center shadow-sm">
+                      <Hash className="h-3 w-3 text-white" />
                     </div>
-                    <div className="flex-1">
-                      <span className="text-sm font-semibold text-gray-800 group-hover:text-green-700">random</span>
-                      <p className="text-xs text-gray-500 group-hover:text-green-500">Conversas casuais</p>
-                    </div>
+                    <span className="text-sm font-medium text-gray-800 group-hover:text-green-700 flex-1">random</span>
                     <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
                   </motion.div>
                 </div>
