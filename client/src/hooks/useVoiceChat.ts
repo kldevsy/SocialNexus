@@ -236,6 +236,50 @@ export function useVoiceChat() {
           case 'channel-users':
             console.log('👥 Updated user count:', message.userCount);
             setUserCount(message.userCount);
+            
+            // If we have a list of current users, initiate connections with them
+            if (message.users && Array.isArray(message.users)) {
+              console.log('👥 Initiating connections with existing users:', message.users);
+              message.users.forEach((user: any) => {
+                if (user.userId !== currentUserId.current && !peerConnections.current.has(user.userId)) {
+                  console.log('🤝 Creating peer connection with existing user:', user.userId);
+                  const pc = createPeerConnection(user.userId);
+                  peerConnections.current.set(user.userId, pc);
+
+                  // Add local stream tracks
+                  if (localStream) {
+                    localStream.getTracks().forEach(track => {
+                      console.log('📤 Adding local track to peer connection for existing user:', user.userId);
+                      pc.addTrack(track, localStream);
+                    });
+                  }
+                  
+                  // Create and send offer
+                  pc.createOffer({
+                    offerToReceiveAudio: true,
+                    offerToReceiveVideo: false
+                  }).then(offer => {
+                    console.log('📤 Setting local description and sending offer to existing user:', user.userId);
+                    return pc.setLocalDescription(offer);
+                  }).then(() => {
+                    if (ws?.readyState === WebSocket.OPEN) {
+                      ws.send(JSON.stringify({
+                        type: 'voice-signal',
+                        signal: {
+                          type: 'offer',
+                          offer: pc.localDescription
+                        },
+                        targetUserId: user.userId,
+                        fromUserId: currentUserId.current,
+                        channelId: connectedChannelId
+                      }));
+                    }
+                  }).catch(error => {
+                    console.error('❌ Error creating offer for existing user:', error);
+                  });
+                }
+              });
+            }
             break;
             
           case 'user-joined':
@@ -248,16 +292,16 @@ export function useVoiceChat() {
             }]);
             
             // Create peer connection for new user (only if it's not ourselves)
-            if (message.userId !== currentUserId.current) {
-              console.log('🤝 Initiating peer connection with:', message.userId);
+            if (message.userId !== currentUserId.current && !peerConnections.current.has(message.userId)) {
+              console.log('🤝 Initiating peer connection with new user:', message.userId);
               const pc = createPeerConnection(message.userId);
               peerConnections.current.set(message.userId, pc);
 
               // Add local stream tracks
-              if (stream) {
-                stream.getTracks().forEach(track => {
-                  console.log('📤 Adding local track to peer connection for user:', message.userId);
-                  pc.addTrack(track, stream);
+              if (localStream) {
+                localStream.getTracks().forEach(track => {
+                  console.log('📤 Adding local track to peer connection for new user:', message.userId);
+                  pc.addTrack(track, localStream);
                 });
               }
               
@@ -266,11 +310,11 @@ export function useVoiceChat() {
                 offerToReceiveAudio: true,
                 offerToReceiveVideo: false
               }).then(offer => {
-                console.log('📤 Setting local description and sending offer to:', message.userId);
+                console.log('📤 Setting local description and sending offer to new user:', message.userId);
                 return pc.setLocalDescription(offer);
               }).then(() => {
-                if (websocket.readyState === WebSocket.OPEN) {
-                  websocket.send(JSON.stringify({
+                if (ws?.readyState === WebSocket.OPEN) {
+                  ws.send(JSON.stringify({
                     type: 'voice-signal',
                     signal: {
                       type: 'offer',
@@ -278,11 +322,11 @@ export function useVoiceChat() {
                     },
                     targetUserId: message.userId,
                     fromUserId: currentUserId.current,
-                    channelId: channelId
+                    channelId: connectedChannelId
                   }));
                 }
               }).catch(error => {
-                console.error('❌ Error creating offer:', error);
+                console.error('❌ Error creating offer for new user:', error);
               });
             }
             break;

@@ -318,7 +318,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Store voice channel connections
   const voiceChannels = new Map<number, Set<any>>();
   
-  wss.on('connection', (ws, req) => {
+  wss.on('connection', (ws: any, req) => {
     console.log('WebSocket connection established');
     let userChannelId: number | null = null;
     let userId: string | null = null;
@@ -332,6 +332,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const channelId = message.channelId;
             userChannelId = channelId;
             userId = message.userId;
+            
+            // Store userId in the WebSocket object for later reference
+            ws.userId = userId;
+            ws.userName = message.userName;
             
             if (!voiceChannels.has(channelId)) {
               voiceChannels.set(channelId, new Set());
@@ -352,11 +356,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             });
             
-            // Send current users to the new connection
+            // Send current users list to the new connection
+            const currentUsers = Array.from(voiceChannels.get(channelId) || []).map((client: any) => ({
+              userId: client.userId,
+              userName: client.userName
+            })).filter(user => user.userId && user.userId !== userId);
+            
             ws.send(JSON.stringify({
               type: 'channel-users',
               channelId,
-              userCount: voiceChannels.get(channelId)?.size || 0
+              userCount: voiceChannels.get(channelId)?.size || 0,
+              users: currentUsers
             }));
             
             // Broadcast updated user count to all users in channel
@@ -395,11 +405,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const targetUserId = message.targetUserId;
             
             console.log(`🔄 Relaying voice signal from ${message.fromUserId} to ${targetUserId} in channel ${targetChannelId}`);
+            console.log(`🔍 Signal type: ${message.signal?.type}`);
             
             if (voiceChannels.has(targetChannelId)) {
               // Find the specific target user's WebSocket connection
               let targetFound = false;
-              voiceChannels.get(targetChannelId)?.forEach((client: any) => {
+              const channelClients = Array.from(voiceChannels.get(targetChannelId) || []);
+              
+              console.log(`🧮 Total clients in channel ${targetChannelId}: ${channelClients.length}`);
+              channelClients.forEach((client: any, index) => {
+                console.log(`👤 Client ${index}: userId=${client.userId}, readyState=${client.readyState}`);
+              });
+              
+              channelClients.forEach((client: any) => {
                 if (client !== ws && client.readyState === 1 && client.userId === targetUserId) {
                   client.send(JSON.stringify(message));
                   targetFound = true;
@@ -409,6 +427,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
               if (!targetFound) {
                 console.log(`❌ Target user ${targetUserId} not found in channel ${targetChannelId}`);
+                // Try to relay to all other users as fallback for debugging
+                channelClients.forEach((client: any) => {
+                  if (client !== ws && client.readyState === 1) {
+                    console.log(`🔄 Fallback: relaying to user ${client.userId}`);
+                  }
+                });
               }
             }
             break;
