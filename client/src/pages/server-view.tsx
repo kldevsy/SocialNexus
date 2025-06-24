@@ -243,7 +243,7 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
                 <div className="flex items-center space-x-3">
                   <Avatar className="h-8 w-8">
                     <AvatarImage 
-                      src={user?.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&size=32&background=6366f1&color=ffffff`}
+                      src={(user?.profileImageUrl) || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&size=32&background=6366f1&color=ffffff`}
                       alt={displayName}
                     />
                     <AvatarFallback>{displayName.charAt(0)}</AvatarFallback>
@@ -348,15 +348,15 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
               >
                 <Avatar className="h-10 w-10">
                   <AvatarImage 
-                    src={server.owner.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(server.owner.firstName || 'Owner')}&size=40&background=6366f1&color=ffffff`}
-                    alt={server.owner.firstName || 'Owner'}
+                    src={(server.owner?.profileImageUrl) || `https://ui-avatars.com/api/?name=${encodeURIComponent(server.owner?.firstName || 'Owner')}&size=40&background=6366f1&color=ffffff`}
+                    alt={server.owner?.firstName || 'Owner'}
                   />
-                  <AvatarFallback>{(server.owner.firstName || 'O').charAt(0)}</AvatarFallback>
+                  <AvatarFallback>{(server.owner?.firstName || 'O').charAt(0)}</AvatarFallback>
                 </Avatar>
                 <div className="flex-1">
                   <div className="flex items-center space-x-2 mb-1">
                     <span className="font-semibold text-gray-900 flex items-center">
-                      {server.owner.firstName || 'Owner'}
+                      {server.owner?.firstName || 'Owner'}
                       <Crown className="h-3 w-3 ml-1 text-yellow-500" />
                     </span>
                     <span className="text-xs text-gray-500">Hoje às 12:00</span>
