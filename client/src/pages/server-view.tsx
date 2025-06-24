@@ -135,6 +135,11 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
     setSelectedChannelId(textChannels[0].id);
   }
 
+  // Get the currently selected channel
+  const selectedChannel = selectedChannelId 
+    ? channels.find(ch => ch.id === selectedChannelId)
+    : textChannels[0] || null;
+
   const deleteChannelMutation = useMutation({
     mutationFn: async (channelId: number) => {
       const response = await fetch(`/api/channels/${channelId}`, {
@@ -514,8 +519,19 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
                 <Menu className="h-5 w-5" />
               </Button>
             )}
-            <Hash className="h-5 w-5 text-gray-500" />
-            <h3 className="font-semibold text-gray-900">geral</h3>
+            {selectedChannel?.type === "voice" ? (
+              <Volume2 className="h-5 w-5 text-gray-500" />
+            ) : (
+              <Hash className="h-5 w-5 text-gray-500" />
+            )}
+            <h3 className="font-semibold text-gray-900">
+              {selectedChannel?.name || "Selecione um canal"}
+            </h3>
+            {selectedChannel?.description && (
+              <span className="text-sm text-gray-500 ml-2">
+                - {selectedChannel.description}
+              </span>
+            )}
           </div>
           <div className="flex items-center space-x-2">
             <Button variant="ghost" size="sm">
@@ -542,71 +558,171 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
         {/* Chat Content */}
         <div className="flex-1 p-6 overflow-y-auto">
           <div className="max-w-4xl mx-auto">
-            <div className="text-center py-12">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                className="space-y-4"
-              >
-                <div className="w-16 h-16 bg-gradient-to-br from-primary to-purple-600 rounded-xl mx-auto flex items-center justify-center">
-                  <Hash className="h-8 w-8 text-white" />
+            {selectedChannel ? (
+              <>
+                <div className="text-center py-12">
+                  <motion.div
+                    initial={{ opacity: 0, y: 20 }}
+                    animate={{ opacity: 1, y: 0 }}
+                    className="space-y-4"
+                    key={selectedChannel.id}
+                  >
+                    <div className="w-16 h-16 bg-gradient-to-br from-primary to-purple-600 rounded-xl mx-auto flex items-center justify-center">
+                      {selectedChannel.type === "voice" ? (
+                        <Volume2 className="h-8 w-8 text-white" />
+                      ) : (
+                        <Hash className="h-8 w-8 text-white" />
+                      )}
+                    </div>
+                    <div>
+                      <h2 className="text-2xl font-bold text-gray-900 mb-2">
+                        Bem-vindo ao #{selectedChannel.name}!
+                      </h2>
+                      <p className="text-gray-600">
+                        {selectedChannel.description || `Este é o início do canal #${selectedChannel.name}.`}
+                      </p>
+                      {selectedChannel.type === "voice" && (
+                        <p className="text-sm text-purple-600 mt-2">
+                          🎤 Canal de voz - Clique para entrar na conversa
+                        </p>
+                      )}
+                    </div>
+                  </motion.div>
                 </div>
-                <div>
-                  <h2 className="text-2xl font-bold text-gray-900 mb-2">
-                    Bem-vindo ao #{server.name}!
-                  </h2>
-                  <p className="text-gray-600">
-                    Este é o início do canal #{server.name}. 
-                  </p>
+              </>
+            ) : (
+              <div className="text-center py-12">
+                <div className="w-16 h-16 bg-gray-300 rounded-xl mx-auto flex items-center justify-center mb-4">
+                  <Hash className="h-8 w-8 text-gray-500" />
                 </div>
-              </motion.div>
-            </div>
+                <h2 className="text-xl font-bold text-gray-500 mb-2">
+                  Nenhum canal selecionado
+                </h2>
+                <p className="text-gray-400">
+                  Abra o menu lateral e selecione um canal para começar
+                </p>
+              </div>
+            )}
 
             {/* Sample Messages */}
-            <div className="space-y-6">
-              <motion.div
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: 0.5 }}
-                className="flex items-start space-x-4"
-              >
-                <Avatar className="h-10 w-10">
-                  <AvatarImage 
-                    src={(server.owner?.profileImageUrl) || `https://ui-avatars.com/api/?name=${encodeURIComponent(server.owner?.firstName || 'Owner')}&size=40&background=6366f1&color=ffffff`}
-                    alt={server.owner?.firstName || 'Owner'}
-                  />
-                  <AvatarFallback>{(server.owner?.firstName || 'O').charAt(0)}</AvatarFallback>
-                </Avatar>
-                <div className="flex-1">
-                  <div className="flex items-center space-x-2 mb-1">
-                    <span className="font-semibold text-gray-900 flex items-center">
-                      {server.owner?.firstName || 'Owner'}
-                      <Crown className="h-3 w-3 ml-1 text-yellow-500" />
-                    </span>
-                    <span className="text-xs text-gray-500">Hoje às 12:00</span>
+            {selectedChannel && selectedChannel.type === "text" && (
+              <div className="space-y-6">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="flex items-start space-x-4"
+                  key={`${selectedChannel.id}-welcome`}
+                >
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage 
+                      src={(server.owner?.profileImageUrl) || `https://ui-avatars.com/api/?name=${encodeURIComponent(server.owner?.firstName || 'Owner')}&size=40&background=6366f1&color=ffffff`}
+                      alt={server.owner?.firstName || 'Owner'}
+                    />
+                    <AvatarFallback>{(server.owner?.firstName || 'O').charAt(0)}</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <span className="font-semibold text-gray-900 flex items-center">
+                        {server.owner?.firstName || 'Owner'}
+                        <Crown className="h-3 w-3 ml-1 text-yellow-500" />
+                      </span>
+                      <span className="text-xs text-gray-500">Hoje às 12:00</span>
+                    </div>
+                    <p className="text-gray-700">
+                      Bem-vindos ao canal #{selectedChannel.name}! 
+                      {selectedChannel.name === textChannels[0]?.name 
+                        ? " 🎉 Sintam-se à vontade para conversar e se divertir!" 
+                        : " Este é um ótimo lugar para conversas!"
+                      }
+                    </p>
                   </div>
-                  <p className="text-gray-700">
-                    Bem-vindos ao nosso servidor! 🎉 Sintam-se à vontade para conversar e se divertir!
+                </motion.div>
+
+                {/* Sample channel-specific message */}
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.7 }}
+                  className="flex items-start space-x-4"
+                  key={`${selectedChannel.id}-sample`}
+                >
+                  <Avatar className="h-10 w-10">
+                    <AvatarImage 
+                      src={`https://ui-avatars.com/api/?name=Bot&size=40&background=22c55e&color=ffffff`}
+                      alt="Bot"
+                    />
+                    <AvatarFallback>🤖</AvatarFallback>
+                  </Avatar>
+                  <div className="flex-1">
+                    <div className="flex items-center space-x-2 mb-1">
+                      <span className="font-semibold text-gray-900">CommunityBot</span>
+                      <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded font-medium">BOT</span>
+                      <span className="text-xs text-gray-500">Hoje às 12:01</span>
+                    </div>
+                    <p className="text-gray-700">
+                      📝 Você está agora no canal <strong>#{selectedChannel.name}</strong>
+                      {selectedChannel.description && (
+                        <><br />📋 <em>{selectedChannel.description}</em></>
+                      )}
+                    </p>
+                  </div>
+                </motion.div>
+              </div>
+            )}
+
+            {/* Voice Channel UI */}
+            {selectedChannel && selectedChannel.type === "voice" && (
+              <div className="space-y-6">
+                <motion.div
+                  initial={{ opacity: 0, y: 20 }}
+                  animate={{ opacity: 1, y: 0 }}
+                  transition={{ delay: 0.5 }}
+                  className="bg-purple-50 border border-purple-200 rounded-xl p-6 text-center"
+                  key={`${selectedChannel.id}-voice`}
+                >
+                  <Volume2 className="h-12 w-12 text-purple-600 mx-auto mb-4" />
+                  <h3 className="text-xl font-bold text-purple-900 mb-2">
+                    Canal de Voz: {selectedChannel.name}
+                  </h3>
+                  <p className="text-purple-700 mb-4">
+                    {selectedChannel.description || "Conecte-se para conversar por voz com outros membros"}
                   </p>
-                </div>
-              </motion.div>
-            </div>
+                  <Button 
+                    className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2"
+                    onClick={() => {
+                      toast({
+                        title: "Recurso em desenvolvimento",
+                        description: "A funcionalidade de voz estará disponível em breve!",
+                      });
+                    }}
+                  >
+                    <Headphones className="h-4 w-4 mr-2" />
+                    Conectar ao Canal
+                  </Button>
+                </motion.div>
+              </div>
+            )}
           </div>
         </div>
 
         {/* Message Input */}
-        <div className="p-6 bg-white border-t border-gray-200">
-          <div className="max-w-4xl mx-auto">
-            <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-              <input
-                type="text"
-                placeholder={`Enviar mensagem para #geral`}
-                className="flex-1 bg-transparent outline-none text-gray-900 placeholder-gray-500"
-              />
-              <Button size="sm">Enviar</Button>
+        {selectedChannel && selectedChannel.type === "text" && (
+          <div className="p-6 bg-white border-t border-gray-200">
+            <div className="max-w-4xl mx-auto">
+              <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
+                <input
+                  type="text"
+                  placeholder={`Enviar mensagem para #${selectedChannel.name}`}
+                  className="flex-1 bg-transparent border-none outline-none text-gray-700 placeholder-gray-500"
+                />
+                <Button size="sm" className="bg-primary hover:bg-primary/90">
+                  Enviar
+                </Button>
+              </div>
             </div>
           </div>
-        </div>
+        )}
       </div>
 
       {/* Members Sidebar */}
