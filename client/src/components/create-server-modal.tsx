@@ -1,6 +1,6 @@
 import { useState } from "react";
 import { motion } from "framer-motion";
-import { Plus, Camera, X } from "lucide-react";
+import { Plus, Camera, X, Upload } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
@@ -25,6 +25,7 @@ export function CreateServerModal({ open, onOpenChange }: CreateServerModalProps
     category: "",
     isPublic: true,
   });
+  const [imagePreview, setImagePreview] = useState<string | null>(null);
 
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -36,28 +37,41 @@ export function CreateServerModal({ open, onOpenChange }: CreateServerModalProps
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/servers"] });
+      queryClient.invalidateQueries({ queryKey: ["/api/servers/discover"] });
       toast({
-        title: "Success",
-        description: "Server created successfully!",
+        title: "Sucesso",
+        description: "Servidor criado com sucesso!",
       });
       onOpenChange(false);
       setFormData({ name: "", description: "", category: "", isPublic: true });
+      setImagePreview(null);
     },
     onError: (error) => {
       toast({
-        title: "Error",
-        description: error.message || "Failed to create server",
+        title: "Erro",
+        description: error.message || "Falha ao criar servidor",
         variant: "destructive",
       });
     },
   });
 
+  const handleImageChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const file = e.target.files?.[0];
+    if (file) {
+      const reader = new FileReader();
+      reader.onload = (e) => {
+        setImagePreview(e.target?.result as string);
+      };
+      reader.readAsDataURL(file);
+    }
+  };
+
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
     if (!formData.name || !formData.category) {
       toast({
-        title: "Error",
-        description: "Please fill in all required fields",
+        title: "Erro",
+        description: "Preencha todos os campos obrigatórios",
         variant: "destructive",
       });
       return;
@@ -67,7 +81,7 @@ export function CreateServerModal({ open, onOpenChange }: CreateServerModalProps
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-lg">
+      <DialogContent className="max-w-[95vw] w-full sm:max-w-lg max-h-[90vh] overflow-y-auto">
         <DialogHeader>
           <DialogTitle className="text-center">
             <div className="flex flex-col items-center space-y-4">
@@ -98,13 +112,18 @@ export function CreateServerModal({ open, onOpenChange }: CreateServerModalProps
             <div className="relative inline-block">
               <motion.div
                 whileHover={{ scale: 1.05 }}
-                className="w-28 h-28 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center border-3 border-dashed border-gray-300 hover:border-primary transition-all duration-300 cursor-pointer shadow-lg hover:shadow-xl"
+                className="w-28 h-28 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center border-3 border-dashed border-gray-300 hover:border-primary transition-all duration-300 cursor-pointer shadow-lg hover:shadow-xl overflow-hidden"
               >
-                <Camera className="text-gray-400 w-10 h-10" />
+                {imagePreview ? (
+                  <img src={imagePreview} alt="Preview" className="w-full h-full object-cover" />
+                ) : (
+                  <Upload className="text-gray-400 w-10 h-10" />
+                )}
               </motion.div>
               <input 
                 type="file" 
                 accept="image/*"
+                onChange={handleImageChange}
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />
             </div>
@@ -113,10 +132,10 @@ export function CreateServerModal({ open, onOpenChange }: CreateServerModalProps
 
           <div className="space-y-4">
             <div>
-              <Label htmlFor="name">Server Name *</Label>
+              <Label htmlFor="name">Nome do Servidor *</Label>
               <Input
                 id="name"
-                placeholder="Enter server name"
+                placeholder="Digite o nome do servidor"
                 value={formData.name}
                 onChange={(e) => setFormData({ ...formData, name: e.target.value })}
                 required
@@ -124,11 +143,11 @@ export function CreateServerModal({ open, onOpenChange }: CreateServerModalProps
             </div>
             
             <div>
-              <Label htmlFor="description">Description</Label>
+              <Label htmlFor="description">Descrição</Label>
               <Textarea
                 id="description"
-                placeholder="Describe your server..."
-                rows={4}
+                placeholder="Descreva seu servidor..."
+                rows={3}
                 value={formData.description}
                 onChange={(e) => setFormData({ ...formData, description: e.target.value })}
                 className="resize-none"
@@ -136,26 +155,26 @@ export function CreateServerModal({ open, onOpenChange }: CreateServerModalProps
             </div>
             
             <div>
-              <Label htmlFor="category">Category *</Label>
+              <Label htmlFor="category">Categoria *</Label>
               <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
                 <SelectTrigger>
-                  <SelectValue placeholder="Select a category" />
+                  <SelectValue placeholder="Selecione uma categoria" />
                 </SelectTrigger>
                 <SelectContent>
-                  <SelectItem value="Gaming">Gaming</SelectItem>
-                  <SelectItem value="Technology">Technology</SelectItem>
-                  <SelectItem value="Art & Design">Art & Design</SelectItem>
-                  <SelectItem value="Music">Music</SelectItem>
-                  <SelectItem value="Education">Education</SelectItem>
-                  <SelectItem value="Sports">Sports</SelectItem>
-                  <SelectItem value="Business">Business</SelectItem>
-                  <SelectItem value="Other">Other</SelectItem>
+                  <SelectItem value="gaming">Gaming</SelectItem>
+                  <SelectItem value="technology">Tecnologia</SelectItem>
+                  <SelectItem value="art">Arte</SelectItem>
+                  <SelectItem value="music">Música</SelectItem>
+                  <SelectItem value="education">Educação</SelectItem>
+                  <SelectItem value="sports">Esportes</SelectItem>
+                  <SelectItem value="entertainment">Entretenimento</SelectItem>
+                  <SelectItem value="other">Outros</SelectItem>
                 </SelectContent>
               </Select>
             </div>
             
             <div>
-              <Label>Privacy</Label>
+              <Label>Privacidade</Label>
               <RadioGroup 
                 value={formData.isPublic ? "public" : "private"} 
                 onValueChange={(value) => setFormData({ ...formData, isPublic: value === "public" })}
@@ -164,36 +183,36 @@ export function CreateServerModal({ open, onOpenChange }: CreateServerModalProps
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="public" id="public" />
                   <Label htmlFor="public" className="flex-1">
-                    <span className="font-medium">Public</span>
-                    <span className="block text-sm text-gray-500">Anyone can find and join this server</span>
+                    <span className="font-medium">Público</span>
+                    <span className="block text-sm text-gray-500">Qualquer pessoa pode encontrar e entrar</span>
                   </Label>
                 </div>
                 <div className="flex items-center space-x-2">
                   <RadioGroupItem value="private" id="private" />
                   <Label htmlFor="private" className="flex-1">
-                    <span className="font-medium">Private</span>
-                    <span className="block text-sm text-gray-500">Only invited members can join</span>
+                    <span className="font-medium">Privado</span>
+                    <span className="block text-sm text-gray-500">Apenas membros convidados podem entrar</span>
                   </Label>
                 </div>
               </RadioGroup>
             </div>
           </div>
           
-          <div className="flex space-x-4">
+          <div className="flex flex-col sm:flex-row space-y-2 sm:space-y-0 sm:space-x-4">
             <Button 
               type="button" 
               variant="outline" 
               onClick={() => onOpenChange(false)}
               className="flex-1"
             >
-              Cancel
+              Cancelar
             </Button>
             <Button 
               type="submit" 
               disabled={createServerMutation.isPending}
               className="flex-1"
             >
-              {createServerMutation.isPending ? "Creating..." : "Create Server"}
+              {createServerMutation.isPending ? "Criando..." : "Criar Servidor"}
             </Button>
           </div>
         </form>

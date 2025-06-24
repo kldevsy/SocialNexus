@@ -102,11 +102,19 @@ CommunityHub is a modern full-stack web application that provides a Discord-styl
 - `REPLIT_DOMAINS`: Allowed domains for OAuth
 - `ISSUER_URL`: OAuth issuer URL (defaults to Replit)
 
+## Recent Changes
+
+- **Sidebar retrátil implementado** (24/06/2025): Sistema completo de sidebars que abrem/fecham com botões e drag-to-open
+- **Modal responsivo corrigido** (24/06/2025): Layout mobile otimizado para criação de servidores  
+- **Upload de imagem funcional** (24/06/2025): Preview de imagem no modal de criar servidor
+- **Interface em português** (24/06/2025): Todas as strings traduzidas e categorias localizadas
+
 ## Changelog
 
 ```
 Changelog:
 - June 24, 2025. Initial setup
+- June 24, 2025. Retractable sidebar system, mobile-responsive modals, image upload preview
 ```
 
 ## User Preferences
