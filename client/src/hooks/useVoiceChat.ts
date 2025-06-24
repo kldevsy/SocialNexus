@@ -16,6 +16,7 @@ export function useVoiceChat() {
   const [isMuted, setIsMuted] = useState(false);
   const [isDeafened, setIsDeafened] = useState(false);
   const [userCount, setUserCount] = useState(0);
+  const [showControlPanel, setShowControlPanel] = useState(false);
   
   const wsRef = useRef<WebSocket | null>(null);
   const streamRef = useRef<MediaStream | null>(null);
@@ -171,6 +172,7 @@ export function useVoiceChat() {
       
       streamRef.current = stream;
       setCurrentChannelId(channelId);
+      setShowControlPanel(true);
       
       // Connect WebSocket and join channel
       connectWebSocket();
@@ -229,6 +231,7 @@ export function useVoiceChat() {
     setVoiceUsers([]);
     setUserCount(0);
     setIsConnected(false);
+    setShowControlPanel(false);
   }, [currentChannelId, user]);
   
   // Toggle mute
@@ -271,9 +274,12 @@ export function useVoiceChat() {
     userCount,
     isMuted,
     isDeafened,
+    showControlPanel,
+    stream: streamRef.current,
     joinVoiceChannel,
     leaveVoiceChannel,
     toggleMute,
-    toggleDeafen
+    toggleDeafen,
+    setShowControlPanel
   };
 }

@@ -342,7 +342,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               
               // Notify others
               voiceChannels.get(leaveChannelId)?.forEach(client => {
-                if (client.readyState === ws.OPEN) {
+                if (client.readyState === 1) { // WebSocket.OPEN = 1
                   client.send(JSON.stringify({
                     type: 'user-left',
                     channelId: leaveChannelId,
@@ -358,7 +358,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             const targetChannelId = message.channelId;
             if (voiceChannels.has(targetChannelId)) {
               voiceChannels.get(targetChannelId)?.forEach(client => {
-                if (client !== ws && client.readyState === ws.OPEN) {
+                if (client !== ws && client.readyState === 1) { // WebSocket.OPEN = 1
                   client.send(JSON.stringify(message));
                 }
               });

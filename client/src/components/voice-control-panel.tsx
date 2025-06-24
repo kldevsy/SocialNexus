@@ -1,0 +1,263 @@
+import { useState, useEffect, useRef } from "react";
+import { motion, AnimatePresence } from "framer-motion";
+import { Button } from "@/components/ui/button";
+import { Slider } from "@/components/ui/slider";
+import { Card } from "@/components/ui/card";
+import { 
+  Mic, 
+  MicOff, 
+  Headphones, 
+  VolumeX, 
+  Volume2, 
+  PhoneOff, 
+  Settings, 
+  Minimize2, 
+  Maximize2,
+  Activity
+} from "lucide-react";
+
+interface VoiceControlPanelProps {
+  isConnected: boolean;
+  channelName: string;
+  userCount: number;
+  isMuted: boolean;
+  isDeafened: boolean;
+  onToggleMute: () => void;
+  onToggleDeafen: () => void;
+  onDisconnect: () => void;
+  onClose: () => void;
+  stream: MediaStream | null;
+}
+
+export function VoiceControlPanel({
+  isConnected,
+  channelName,
+  userCount,
+  isMuted,
+  isDeafened,
+  onToggleMute,
+  onToggleDeafen,
+  onDisconnect,
+  onClose,
+  stream
+}: VoiceControlPanelProps) {
+  const [isMinimized, setIsMinimized] = useState(false);
+  const [volume, setVolume] = useState([75]);
+  const [micSensitivity, setMicSensitivity] = useState([50]);
+  const [voiceLevel, setVoiceLevel] = useState(0);
+  const [isVoiceActive, setIsVoiceActive] = useState(false);
+  
+  const audioContextRef = useRef<AudioContext | null>(null);
+  const analyserRef = useRef<AnalyserNode | null>(null);
+  const animationFrameRef = useRef<number>();
+
+  // Voice activity detection
+  useEffect(() => {
+    if (!stream || isMuted) {
+      setVoiceLevel(0);
+      setIsVoiceActive(false);
+      return;
+    }
+
+    try {
+      audioContextRef.current = new AudioContext();
+      analyserRef.current = audioContextRef.current.createAnalyser();
+      const source = audioContextRef.current.createMediaStreamSource(stream);
+      
+      analyserRef.current.fftSize = 256;
+      source.connect(analyserRef.current);
+      
+      const dataArray = new Uint8Array(analyserRef.current.frequencyBinCount);
+      
+      const analyzeAudio = () => {
+        if (!analyserRef.current) return;
+        
+        analyserRef.current.getByteFrequencyData(dataArray);
+        
+        // Calculate average volume
+        const average = dataArray.reduce((sum, value) => sum + value, 0) / dataArray.length;
+        const normalizedLevel = Math.min(100, (average / 128) * 100);
+        
+        setVoiceLevel(normalizedLevel);
+        setIsVoiceActive(normalizedLevel > micSensitivity[0]);
+        
+        animationFrameRef.current = requestAnimationFrame(analyzeAudio);
+      };
+      
+      analyzeAudio();
+    } catch (error) {
+      console.error('Error setting up voice detection:', error);
+    }
+
+    return () => {
+      if (animationFrameRef.current) {
+        cancelAnimationFrame(animationFrameRef.current);
+      }
+      if (audioContextRef.current) {
+        audioContextRef.current.close();
+      }
+    };
+  }, [stream, isMuted, micSensitivity]);
+
+  if (!isConnected) return null;
+
+  return (
+    <AnimatePresence>
+      <motion.div
+        initial={{ opacity: 0, y: 100, scale: 0.8 }}
+        animate={{ opacity: 1, y: 0, scale: 1 }}
+        exit={{ opacity: 0, y: 100, scale: 0.8 }}
+        transition={{ type: "spring", damping: 25, stiffness: 300 }}
+        className="fixed bottom-6 right-6 z-50"
+      >
+        <Card className="bg-gray-900/95 backdrop-blur-lg border-gray-700 text-white shadow-2xl overflow-hidden">
+          <motion.div
+            animate={{ height: isMinimized ? "auto" : "auto" }}
+            transition={{ duration: 0.3 }}
+          >
+            {/* Header */}
+            <div className="flex items-center justify-between p-4 border-b border-gray-700">
+              <div className="flex items-center space-x-3">
+                <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
+                <div>
+                  <h3 className="font-semibold text-sm">#{channelName}</h3>
+                  <p className="text-xs text-gray-400">{userCount} usuário{userCount !== 1 ? 's' : ''}</p>
+                </div>
+              </div>
+              <div className="flex items-center space-x-1">
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={() => setIsMinimized(!isMinimized)}
+                  className="text-gray-400 hover:text-white w-8 h-8 p-0"
+                >
+                  {isMinimized ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
+                </Button>
+                <Button
+                  variant="ghost"
+                  size="sm"
+                  onClick={onClose}
+                  className="text-gray-400 hover:text-red-400 w-8 h-8 p-0"
+                >
+                  ×
+                </Button>
+              </div>
+            </div>
+
+            {/* Controls */}
+            {!isMinimized && (
+              <motion.div
+                initial={{ opacity: 0, height: 0 }}
+                animate={{ opacity: 1, height: "auto" }}
+                exit={{ opacity: 0, height: 0 }}
+                transition={{ duration: 0.3 }}
+                className="p-4 space-y-4"
+              >
+                {/* Voice Activity Indicator */}
+                <div className="space-y-2">
+                  <div className="flex items-center justify-between">
+                    <span className="text-xs text-gray-400">Atividade de Voz</span>
+                    <div className="flex items-center space-x-2">
+                      <Activity className={`h-3 w-3 ${isVoiceActive ? 'text-green-400' : 'text-gray-500'}`} />
+                      <span className="text-xs text-gray-400">{Math.round(voiceLevel)}%</span>
+                    </div>
+                  </div>
+                  <div className="w-full bg-gray-700 rounded-full h-2">
+                    <motion.div
+                      className={`h-2 rounded-full ${isVoiceActive ? 'bg-green-500' : 'bg-blue-500'}`}
+                      style={{ width: `${voiceLevel}%` }}
+                      animate={{ scale: isVoiceActive ? [1, 1.1, 1] : 1 }}
+                      transition={{ duration: 0.3, repeat: isVoiceActive ? Infinity : 0 }}
+                    />
+                  </div>
+                </div>
+
+                {/* Main Controls */}
+                <div className="flex items-center justify-center space-x-2">
+                  <Button
+                    variant={isMuted ? "destructive" : "secondary"}
+                    size="sm"
+                    onClick={onToggleMute}
+                    className="w-12 h-12 rounded-full relative"
+                  >
+                    {isMuted ? <MicOff className="h-5 w-5" /> : <Mic className="h-5 w-5" />}
+                    {isVoiceActive && !isMuted && (
+                      <motion.div
+                        className="absolute inset-0 border-2 border-green-400 rounded-full"
+                        animate={{ scale: [1, 1.2, 1] }}
+                        transition={{ duration: 0.5, repeat: Infinity }}
+                      />
+                    )}
+                  </Button>
+                  
+                  <Button
+                    variant={isDeafened ? "destructive" : "secondary"}
+                    size="sm"
+                    onClick={onToggleDeafen}
+                    className="w-12 h-12 rounded-full"
+                  >
+                    {isDeafened ? <VolumeX className="h-5 w-5" /> : <Headphones className="h-5 w-5" />}
+                  </Button>
+                  
+                  <Button
+                    variant="destructive"
+                    size="sm"
+                    onClick={onDisconnect}
+                    className="w-12 h-12 rounded-full"
+                  >
+                    <PhoneOff className="h-5 w-5" />
+                  </Button>
+                </div>
+
+                {/* Volume Controls */}
+                <div className="space-y-3">
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-gray-400 flex items-center">
+                        <Volume2 className="h-3 w-3 mr-1" />
+                        Volume
+                      </span>
+                      <span className="text-xs text-gray-400">{volume[0]}%</span>
+                    </div>
+                    <Slider
+                      value={volume}
+                      onValueChange={setVolume}
+                      max={100}
+                      step={1}
+                      className="w-full"
+                    />
+                  </div>
+                  
+                  <div>
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-xs text-gray-400 flex items-center">
+                        <Mic className="h-3 w-3 mr-1" />
+                        Sensibilidade
+                      </span>
+                      <span className="text-xs text-gray-400">{micSensitivity[0]}%</span>
+                    </div>
+                    <Slider
+                      value={micSensitivity}
+                      onValueChange={setMicSensitivity}
+                      max={100}
+                      step={1}
+                      className="w-full"
+                    />
+                  </div>
+                </div>
+
+                {/* Status */}
+                <div className="text-center pt-2 border-t border-gray-700">
+                  <div className="flex items-center justify-center space-x-2">
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                    <span className="text-xs text-green-400">Conectado</span>
+                  </div>
+                </div>
+              </motion.div>
+            )}
+          </motion.div>
+        </Card>
+      </motion.div>
+    </AnimatePresence>
+  );
+}

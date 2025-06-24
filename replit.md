@@ -104,14 +104,14 @@ CommunityHub is a modern full-stack web application that provides a Discord-styl
 
 ## Recent Changes
 
+- **Sistema de chat de voz profissional** (24/06/2025): Painel de controle flutuante com detecção de voz em tempo real, controles de volume e sensibilidade
+- **WebSocket otimizado para voz** (24/06/2025): Conexões únicas por usuário, contador de usuários corrigido e logs detalhados
+- **Navegação entre canais implementada** (24/06/2025): Sistema completo para alternar entre canais de texto e voz com conteúdo específico
+- **Criação de canais funcionando** (24/06/2025): API completa para criar, deletar e gerenciar canais com validações
 - **Sistema de menus laterais completo** (24/06/2025): Arrastar das bordas, fechar ao clicar fora, animações fluidas e menu de membros funcional
 - **Sistema de autenticação Replit OAuth restaurado** (24/06/2025): Autenticação completa funcionando
 - **Correções de bugs na visualização de servidores** (24/06/2025): Erros de propriedades undefined resolvidos
 - **Banco de dados limpo** (24/06/2025): Dados de teste removidos, aplicação pronta para produção
-- **Sidebar retrátil implementado** (24/06/2025): Sistema completo de sidebars que abrem/fecham com botões e drag-to-open
-- **Modal responsivo corrigido** (24/06/2025): Layout mobile otimizado para criação de servidores  
-- **Upload de imagem funcional** (24/06/2025): Preview de imagem no modal de criar servidor
-- **Interface em português** (24/06/2025): Todas as strings traduzidas e categorias localizadas
 
 ## Changelog
 

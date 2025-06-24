@@ -9,6 +9,7 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { ArrowLeft, Hash, Volume2, VolumeX, Headphones, Mic, MicOff, Settings, Crown, Users, UserPlus, Menu, X, Plus, Trash2, PhoneCall, PhoneOff } from "lucide-react";
 import { CreateChannelModal } from "@/components/create-channel-modal";
+import { VoiceControlPanel } from "@/components/voice-control-panel";
 
 interface ServerViewProps {
   serverId: number;
@@ -39,10 +40,13 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
     userCount: voiceUserCount,
     isMuted: isVoiceMuted,
     isDeafened: isVoiceDeafened,
+    showControlPanel,
+    stream: voiceStream,
     joinVoiceChannel,
     leaveVoiceChannel,
     toggleMute: toggleVoiceMute,
-    toggleDeafen: toggleVoiceDeafen
+    toggleDeafen: toggleVoiceDeafen,
+    setShowControlPanel
   } = useVoiceChat();
 
   // Sistema de drag para sidebars com touch e mouse
@@ -450,7 +454,7 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
                           currentVoiceChannelId === channel.id ? "bg-green-500 animate-pulse" : "bg-gray-400"
                         }`}></div>
                         <span className="text-xs text-gray-500 font-medium">
-                          {currentVoiceChannelId === channel.id ? voiceUserCount : "0"}/{Math.floor(Math.random() * 10) + 5}
+                          {currentVoiceChannelId === channel.id ? voiceUserCount : "0"}/∞
                         </span>
                         {currentVoiceChannelId === channel.id && (
                           <span className="text-xs text-green-600 font-medium">Conectado</span>
@@ -945,6 +949,22 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
         onOpenChange={setIsCreateChannelModalOpen}
         serverId={serverId}
       />
+
+      {/* Voice Control Panel */}
+      {showControlPanel && currentVoiceChannelId && (
+        <VoiceControlPanel
+          isConnected={isVoiceConnected}
+          channelName={channels.find(ch => ch.id === currentVoiceChannelId)?.name || "Canal"}
+          userCount={voiceUserCount}
+          isMuted={isVoiceMuted}
+          isDeafened={isVoiceDeafened}
+          onToggleMute={toggleVoiceMute}
+          onToggleDeafen={toggleVoiceDeafen}
+          onDisconnect={leaveVoiceChannel}
+          onClose={() => setShowControlPanel(false)}
+          stream={voiceStream}
+        />
+      )}
     </div>
   );
 }
