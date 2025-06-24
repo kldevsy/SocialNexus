@@ -69,32 +69,47 @@ export function CreateServerModal({ open, onOpenChange }: CreateServerModalProps
     <Dialog open={open} onOpenChange={onOpenChange}>
       <DialogContent className="max-w-lg">
         <DialogHeader>
-          <DialogTitle className="text-center flex items-center justify-center space-x-2">
-            <div className="w-12 h-12 bg-primary rounded-full flex items-center justify-center">
-              <Plus className="text-white" />
-            </div>
-            <div>
-              <h2 className="text-2xl font-bold">Create Your Server</h2>
-              <p className="text-gray-600 text-sm font-normal">Build a community around your interests</p>
+          <DialogTitle className="text-center">
+            <div className="flex flex-col items-center space-y-4">
+              <motion.div
+                initial={{ scale: 0.8, opacity: 0 }}
+                animate={{ scale: 1, opacity: 1 }}
+                transition={{ duration: 0.3 }}
+                className="w-20 h-20 bg-gradient-to-br from-primary to-purple-600 rounded-2xl flex items-center justify-center shadow-lg"
+              >
+                <Plus className="text-white w-10 h-10" />
+              </motion.div>
+              <div>
+                <h2 className="text-3xl font-bold text-gray-900 mb-2">Criar Seu Servidor</h2>
+                <p className="text-gray-600 text-base">Construa uma comunidade em torno dos seus interesses</p>
+              </div>
             </div>
           </DialogTitle>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
           {/* Server Icon Upload */}
-          <div className="text-center">
+          <motion.div
+            initial={{ opacity: 0, y: 10 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ delay: 0.1 }}
+            className="text-center"
+          >
             <div className="relative inline-block">
-              <div className="w-24 h-24 bg-gray-200 rounded-full flex items-center justify-center border-4 border-dashed border-gray-300 hover:border-primary transition-colors cursor-pointer">
-                <Camera className="text-gray-400 w-8 h-8" />
-              </div>
+              <motion.div
+                whileHover={{ scale: 1.05 }}
+                className="w-28 h-28 bg-gradient-to-br from-gray-100 to-gray-200 rounded-2xl flex items-center justify-center border-3 border-dashed border-gray-300 hover:border-primary transition-all duration-300 cursor-pointer shadow-lg hover:shadow-xl"
+              >
+                <Camera className="text-gray-400 w-10 h-10" />
+              </motion.div>
               <input 
                 type="file" 
                 accept="image/*"
                 className="absolute inset-0 w-full h-full opacity-0 cursor-pointer"
               />
             </div>
-            <p className="text-sm text-gray-500 mt-2">Upload server icon (optional)</p>
-          </div>
+            <p className="text-sm text-gray-600 mt-3 font-medium">Ícone do servidor (opcional)</p>
+          </motion.div>
 
           <div className="space-y-4">
             <div>

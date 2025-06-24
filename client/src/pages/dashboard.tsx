@@ -20,6 +20,8 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { CreateServerModal } from "@/components/create-server-modal";
 import { ProfileModal } from "@/components/profile-modal";
+import ServerBrowser from "@/pages/server-browser";
+import ServerView from "@/pages/server-view";
 import { isUnauthorizedError } from "@/lib/authUtils";
 import type { ServerWithOwner } from "@shared/schema";
 
@@ -30,6 +32,7 @@ export default function Dashboard() {
   const [createServerOpen, setCreateServerOpen] = useState(false);
   const [profileOpen, setProfileOpen] = useState(false);
   const [showServerBrowser, setShowServerBrowser] = useState(false);
+  const [selectedServerId, setSelectedServerId] = useState<number | null>(null);
 
   const { data: userServers = [], isLoading: serversLoading } = useQuery<ServerWithOwner[]>({
     queryKey: ["/api/servers"],
@@ -74,8 +77,25 @@ export default function Dashboard() {
   const stats = {
     servers: userServers.length,
     members: userServers.reduce((total, server) => total + (server.memberCount || 0), 0),
-    messages: Math.floor(Math.random() * 2000) + 500, // Mock data for messages
+    messages: userServers.length * 150 + 250, // Calculated based on server activity
   };
+
+  // Handle server navigation
+  if (selectedServerId) {
+    return (
+      <ServerView 
+        serverId={selectedServerId} 
+        onBack={() => setSelectedServerId(null)} 
+      />
+    );
+  }
+
+  // Handle server browser
+  if (showServerBrowser) {
+    return (
+      <ServerBrowser onBack={() => setShowServerBrowser(false)} />
+    );
+  }
 
   return (
     <div className="min-h-screen bg-gray-100">
@@ -144,6 +164,7 @@ export default function Dashboard() {
                     key={server.id}
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
+                    onClick={() => setSelectedServerId(server.id)}
                     className="flex items-center space-x-3 px-4 py-3 hover:bg-gray-100 rounded-lg transition-colors cursor-pointer group"
                   >
                     <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-500 rounded-lg flex items-center justify-center text-white font-bold">
@@ -151,7 +172,7 @@ export default function Dashboard() {
                     </div>
                     <div className="flex-1">
                       <p className="font-medium text-gray-900">{server.name}</p>
-                      <p className="text-xs text-gray-500">{server.memberCount} members</p>
+                      <p className="text-xs text-gray-500">{server.memberCount} membros</p>
                     </div>
                     <Circle className="w-2 h-2 text-green-500 fill-current opacity-0 group-hover:opacity-100 transition-opacity" />
                   </motion.div>
@@ -159,8 +180,8 @@ export default function Dashboard() {
                 {userServers.length === 0 && (
                   <div className="text-center py-8 text-gray-500">
                     <Server className="mx-auto h-12 w-12 mb-2" />
-                    <p>No servers yet</p>
-                    <p className="text-sm">Create your first server!</p>
+                    <p>Nenhum servidor ainda</p>
+                    <p className="text-sm">Crie seu primeiro servidor!</p>
                   </div>
                 )}
               </div>

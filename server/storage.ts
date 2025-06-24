@@ -46,11 +46,30 @@ export class DatabaseStorage implements IStorage {
   async upsertUser(userData: UpsertUser): Promise<User> {
     const [user] = await db
       .insert(users)
-      .values(userData)
+      .values({
+        id: (userData as any).id || '',
+        email: userData.email,
+        firstName: userData.firstName,
+        lastName: userData.lastName,
+        profileImageUrl: userData.profileImageUrl,
+        username: userData.username,
+        bio: userData.bio,
+        status: userData.status,
+        customStatus: userData.customStatus,
+        theme: userData.theme,
+      })
       .onConflictDoUpdate({
         target: users.id,
         set: {
-          ...userData,
+          email: userData.email,
+          firstName: userData.firstName,
+          lastName: userData.lastName,
+          profileImageUrl: userData.profileImageUrl,
+          username: userData.username,
+          bio: userData.bio,
+          status: userData.status,
+          customStatus: userData.customStatus,
+          theme: userData.theme,
           updatedAt: new Date(),
         },
       })
@@ -165,7 +184,7 @@ export class DatabaseStorage implements IStorage {
     
     // Delete server
     const result = await db.delete(servers).where(eq(servers.id, id));
-    return result.rowCount > 0;
+    return (result.rowCount || 0) > 0;
   }
 
   // Membership operations
@@ -199,7 +218,7 @@ export class DatabaseStorage implements IStorage {
       .delete(serverMemberships)
       .where(and(eq(serverMemberships.serverId, serverId), eq(serverMemberships.userId, userId)));
 
-    if (result.rowCount > 0) {
+    if ((result.rowCount || 0) > 0) {
       // Update server member count
       await db
         .update(servers)
