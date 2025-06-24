@@ -20,7 +20,11 @@ export function useDirectVoiceChat() {
     console.log(`Creating peer connection for ${userId}`);
     
     const pc = new RTCPeerConnection({
-      iceServers: [{ urls: 'stun:stun.l.google.com:19302' }]
+      iceServers: [
+        { urls: 'stun:stun.l.google.com:19302' },
+        { urls: 'stun:stun1.l.google.com:19302' },
+        { urls: 'stun:stun2.l.google.com:19302' }
+      ]
     });
 
     pc.onicecandidate = (event) => {
@@ -30,27 +34,62 @@ export function useDirectVoiceChat() {
           type: 'webrtc-signal',
           to: userId,
           from: currentUserIdRef.current,
-          channelId: connectedChannelId,
+          channelId: connectedChannelIdRef.current,
           signal: { type: 'ice', candidate: event.candidate }
         }));
       }
     };
 
     pc.ontrack = (event) => {
-      console.log(`🎵 Received audio from ${userId}`);
-      const audio = new Audio();
-      audio.srcObject = event.streams[0];
-      audio.autoplay = true;
-      audio.volume = isDeafened ? 0 : 1;
-      audio.play().then(() => {
-        console.log(`✅ Audio playback started for ${userId}`);
-      }).catch((error) => {
-        console.error(`❌ Error playing audio for ${userId}:`, error);
-        // Try to play again after user interaction
-        document.addEventListener('click', () => {
-          audio.play().catch(console.error);
-        }, { once: true });
-      });
+      console.log(`🎵 Received audio track from ${userId}`, event.streams[0]);
+      const remoteStream = event.streams[0];
+      
+      if (remoteStream && remoteStream.getAudioTracks().length > 0) {
+        console.log(`🔊 Creating audio element for ${userId}`);
+        const audio = new Audio();
+        audio.srcObject = remoteStream;
+        audio.autoplay = true;
+        audio.playsInline = true;
+        audio.volume = isDeafened ? 0 : 1;
+        
+        // Store audio element for cleanup
+        const existingAudio = document.querySelector(`[data-user-id="${userId}"]`);
+        if (existingAudio) {
+          existingAudio.remove();
+        }
+        
+        audio.setAttribute('data-user-id', userId);
+        document.body.appendChild(audio);
+        
+        audio.play().then(() => {
+          console.log(`✅ Audio playback started for ${userId}`);
+        }).catch((error) => {
+          console.error(`❌ Error playing audio for ${userId}:`, error);
+          // Try to enable autoplay
+          const playAudio = () => {
+            audio.play().catch(console.error);
+            document.removeEventListener('click', playAudio);
+          };
+          document.addEventListener('click', playAudio, { once: true });
+        });
+      } else {
+        console.warn(`No audio tracks in stream from ${userId}`);
+      }
+    };
+
+    pc.onconnectionstatechange = () => {
+      console.log(`Connection state for ${userId}: ${pc.connectionState}`);
+      if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
+        // Clean up audio element
+        const audioElement = document.querySelector(`[data-user-id="${userId}"]`);
+        if (audioElement) {
+          audioElement.remove();
+        }
+      }
+    };
+
+    pc.onicecandidateerror = (event) => {
+      console.error(`ICE candidate error for ${userId}:`, event);
     };
 
     return pc;
@@ -73,9 +112,13 @@ export function useDirectVoiceChat() {
             
             // Add local stream
             if (localStream) {
+              console.log(`Adding local tracks to existing peer connection for ${from}`);
               localStream.getTracks().forEach(track => {
+                console.log(`Adding track:`, track.kind, track.enabled);
                 pc!.addTrack(track, localStream);
               });
+            } else {
+              console.warn(`No local stream when handling offer from ${from}`);
             }
           }
           
@@ -130,11 +173,15 @@ export function useDirectVoiceChat() {
     const pc = createPeerConnection(userId);
     peerConnectionsRef.current.set(userId, pc);
     
-    // Add local stream
+    // Add local stream to peer connection
     if (localStream) {
+      console.log(`Adding local stream tracks to peer connection for ${userId}`);
       localStream.getTracks().forEach(track => {
+        console.log(`Adding track:`, track.kind, track.enabled, track.readyState);
         pc.addTrack(track, localStream);
       });
+    } else {
+      console.warn(`No local stream available when creating peer connection for ${userId}`);
     }
     
     // Create and send offer
@@ -158,14 +205,24 @@ export function useDirectVoiceChat() {
     currentUserIdRef.current = userId;
     
     try {
-      // Get audio stream
+      // Get audio stream with better settings
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: { 
           echoCancellation: true, 
           noiseSuppression: true,
-          autoGainControl: true
+          autoGainControl: true,
+          sampleRate: 48000,
+          channelCount: 1
         } 
       });
+      
+      console.log('🎤 Local audio stream acquired:', stream.getAudioTracks().map(t => ({
+        id: t.id,
+        kind: t.kind,
+        enabled: t.enabled,
+        muted: t.muted,
+        readyState: t.readyState
+      })));
       setLocalStream(stream);
       
       // Connect WebSocket
@@ -220,10 +277,16 @@ export function useDirectVoiceChat() {
             break;
             
           case 'user-left-voice':
+          case 'user-left':
             const pc = peerConnectionsRef.current.get(data.userId);
             if (pc) {
               pc.close();
               peerConnectionsRef.current.delete(data.userId);
+            }
+            // Clean up audio element
+            const audioElement = document.querySelector(`[data-user-id="${data.userId}"]`);
+            if (audioElement) {
+              audioElement.remove();
             }
             break;
             
@@ -246,6 +309,17 @@ export function useDirectVoiceChat() {
   };
 
   const disconnect = () => {
+    // Clean up all audio elements
+    document.querySelectorAll('[data-user-id]').forEach(audio => audio.remove());
+    
+    // Close all peer connections
+    peerConnectionsRef.current.forEach((pc, userId) => {
+      console.log(`Closing peer connection for ${userId}`);
+      pc.close();
+    });
+    peerConnectionsRef.current.clear();
+    pendingCandidatesRef.current.clear();
+    
     if (wsRef.current) {
       wsRef.current.send(JSON.stringify({
         type: 'leave-voice',
@@ -255,33 +329,42 @@ export function useDirectVoiceChat() {
       wsRef.current.close();
     }
     
-    // Close all peer connections
-    peerConnectionsRef.current.forEach(pc => pc.close());
-    peerConnectionsRef.current.clear();
-    pendingCandidatesRef.current.clear();
-    
     // Stop local stream
-    localStream?.getTracks().forEach(track => track.stop());
-    setLocalStream(null);
+    if (localStream) {
+      console.log('🛑 Stopping local stream');
+      localStream.getTracks().forEach(track => track.stop());
+      setLocalStream(null);
+    }
     
     setIsConnected(false);
     setConnectedChannelId(null);
     connectedChannelIdRef.current = null;
     setUserCount(0);
+    setIsMuted(false);
+    setIsDeafened(false);
   };
 
   const toggleMute = () => {
     if (localStream) {
       const audioTrack = localStream.getAudioTracks()[0];
       if (audioTrack) {
-        audioTrack.enabled = isMuted;
+        audioTrack.enabled = isMuted; // isMuted is current state, so we flip it
         setIsMuted(!isMuted);
+        console.log(`🎤 Microphone ${!isMuted ? 'muted' : 'unmuted'}`);
       }
     }
   };
 
   const toggleDeafen = () => {
-    setIsDeafened(!isDeafened);
+    const newDeafenState = !isDeafened;
+    setIsDeafened(newDeafenState);
+    
+    // Update volume of all remote audio elements
+    document.querySelectorAll('[data-user-id]').forEach((audio: any) => {
+      audio.volume = newDeafenState ? 0 : 1;
+    });
+    
+    console.log(`🔇 Audio ${newDeafenState ? 'deafened' : 'undeafened'}`);
   };
 
   return {
