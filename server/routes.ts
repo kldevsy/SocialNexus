@@ -328,6 +328,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const message = JSON.parse(data.toString());
         
         switch (message.type) {
+          case 'join-voice':
           case 'join-voice-channel':
             const channelId = message.channelId;
             userChannelId = channelId;
@@ -348,6 +349,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
             voiceChannels.get(channelId)?.forEach(client => {
               if (client !== ws && client.readyState === 1) { // WebSocket.OPEN = 1
                 client.send(JSON.stringify({
+                  type: 'user-joined-voice',
+                  channelId,
+                  userId: message.userId,
+                  userName: message.userName
+                }));
+                // Also send legacy format
+                client.send(JSON.stringify({
                   type: 'user-joined',
                   channelId,
                   userId: message.userId,
@@ -362,6 +370,14 @@ export async function registerRoutes(app: Express): Promise<Server> {
               userName: client.userName
             })).filter(user => user.userId && user.userId !== userId);
             
+            ws.send(JSON.stringify({
+              type: 'voice-users',
+              channelId,
+              count: voiceChannels.get(channelId)?.size || 0,
+              users: currentUsers
+            }));
+            
+            // Also send legacy format
             ws.send(JSON.stringify({
               type: 'channel-users',
               channelId,
@@ -381,6 +397,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             });
             break;
             
+          case 'leave-voice':
           case 'leave-voice-channel':
             const leaveChannelId = message.channelId;
             if (voiceChannels.has(leaveChannelId)) {
@@ -389,6 +406,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
               // Notify others
               voiceChannels.get(leaveChannelId)?.forEach(client => {
                 if (client.readyState === 1) { // WebSocket.OPEN = 1
+                  client.send(JSON.stringify({
+                    type: 'user-left-voice',
+                    channelId: leaveChannelId,
+                    userId: message.userId
+                  }));
+                  // Also send legacy format
                   client.send(JSON.stringify({
                     type: 'user-left',
                     channelId: leaveChannelId,
@@ -399,34 +422,62 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }
             break;
             
+          case 'webrtc-signal':
           case 'voice-signal':
             // WebRTC signaling relay
             const targetChannelId = message.channelId;
             const targetUserId = message.targetUserId;
             
-            console.log(`🔄 Relaying voice signal from ${message.fromUserId} to ${targetUserId} in channel ${targetChannelId}`);
+            console.log(`🔄 Relaying voice signal from ${message.fromUserId} to ${targetUserId} in channel ${targetChannelId || 'undefined'}`);
             console.log(`🔍 Signal type: ${message.signal?.type}`);
             
-            if (voiceChannels.has(targetChannelId)) {
+            // Find the channel this user is in if channelId is missing
+            let actualChannelId = targetChannelId;
+            if (!actualChannelId) {
+              // Search for the user in all channels
+              for (const [channelId, clients] of voiceChannels.entries()) {
+                for (const client of clients) {
+                  if ((client as any).userId === targetUserId || (client as any).userId === message.fromUserId) {
+                    actualChannelId = channelId;
+                    break;
+                  }
+                }
+                if (actualChannelId) break;
+              }
+            }
+            
+            console.log(`🎯 Using channel ID: ${actualChannelId} (original: ${targetChannelId})`);
+            
+            if (actualChannelId && voiceChannels.has(actualChannelId)) {
               // Find the specific target user's WebSocket connection
               let targetFound = false;
-              const channelClients = Array.from(voiceChannels.get(targetChannelId) || []);
+              const channelClients = Array.from(voiceChannels.get(actualChannelId) || []);
               
-              console.log(`🧮 Total clients in channel ${targetChannelId}: ${channelClients.length}`);
+              console.log(`🧮 Total clients in channel ${actualChannelId}: ${channelClients.length}`);
               channelClients.forEach((client: any, index) => {
                 console.log(`👤 Client ${index}: userId=${client.userId}, readyState=${client.readyState}`);
               });
               
               channelClients.forEach((client: any) => {
                 if (client !== ws && client.readyState === 1 && client.userId === targetUserId) {
-                  client.send(JSON.stringify(message));
+                  // Send both webrtc-signal and voice-signal formats
+                  if (message.type === 'webrtc-signal') {
+                    client.send(JSON.stringify(message));
+                  } else {
+                    client.send(JSON.stringify({
+                      type: 'webrtc-signal',
+                      to: targetUserId,
+                      from: message.fromUserId,
+                      signal: message.signal
+                    }));
+                  }
                   targetFound = true;
                   console.log(`✅ Signal relayed to target user ${targetUserId}`);
                 }
               });
               
               if (!targetFound) {
-                console.log(`❌ Target user ${targetUserId} not found in channel ${targetChannelId}`);
+                console.log(`❌ Target user ${targetUserId} not found in channel ${actualChannelId}`);
                 // Try broadcasting to all users as fallback
                 channelClients.forEach((client: any) => {
                   if (client !== ws && client.readyState === 1) {

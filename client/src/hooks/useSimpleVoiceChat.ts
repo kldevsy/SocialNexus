@@ -142,6 +142,7 @@ export function useSimpleVoiceChat() {
         break;
 
       case 'voice-signal':
+        console.log('Received voice signal:', message.signal?.type, 'from:', message.fromUserId);
         await handleVoiceSignal(message);
         break;
     }
