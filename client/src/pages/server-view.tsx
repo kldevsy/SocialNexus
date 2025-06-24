@@ -33,24 +33,19 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
       const deltaX = clientX - dragStartX;
       const deltaY = Math.abs(clientY - dragStartY);
       
-      console.log('Movimento:', { deltaX, deltaY, clientX, dragStartX });
-      
       // Verificar se é um movimento horizontal (não vertical)
       if (deltaY > 50) {
-        console.log('Cancelando por movimento vertical');
         setIsDragging(false);
         return;
       }
       
-      // Arrastar da esquerda para direita abre sidebar de canais (reduzindo threshold)
+      // Arrastar da esquerda para direita abre sidebar de canais
       if (deltaX > 50 && !isChannelSidebarOpen) {
-        console.log('Abrindo sidebar de canais');
         setIsChannelSidebarOpen(true);
         setIsDragging(false);
       }
       // Arrastar da direita para esquerda abre sidebar de membros  
       else if (deltaX < -50 && !isMemberSidebarOpen) {
-        console.log('Abrindo sidebar de membros');
         setIsMemberSidebarOpen(true);
         setIsDragging(false);
       }
@@ -88,11 +83,8 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
   const handleStart = (clientX: number, clientY: number, target: EventTarget | null) => {
     // Apenas inicia drag se não estiver clicando em botões ou elementos interativos
     if ((target as HTMLElement)?.closest('button, input, textarea, select, a')) {
-      console.log('Ignorando drag em elemento interativo');
       return;
     }
-    
-    console.log('Drag iniciado em:', clientX, 'largura da tela:', window.innerWidth);
     
     setIsDragging(true);
     setDragStartX(clientX);
@@ -165,16 +157,14 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
     >
       {/* Drag zone esquerda sempre visível */}
       <div 
-        className="absolute left-0 top-0 w-12 h-full bg-red-500 bg-opacity-20 z-50 flex items-center justify-center cursor-pointer"
+        className="absolute left-0 top-0 w-6 h-full bg-transparent z-50 flex items-center justify-center cursor-pointer"
         onMouseDown={(e) => {
-          console.log('Clique na zona esquerda');
           if (!isChannelSidebarOpen) {
             e.stopPropagation();
             handleStart(e.clientX, e.clientY, e.target);
           }
         }}
         onTouchStart={(e) => {
-          console.log('Touch na zona esquerda');
           if (!isChannelSidebarOpen && e.touches.length === 1) {
             e.stopPropagation();
             handleStart(e.touches[0].clientX, e.touches[0].clientY, e.target);
@@ -182,22 +172,20 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
         }}
       >
         {!isChannelSidebarOpen && (
-          <div className="w-2 h-16 bg-gray-600 rounded-full opacity-50 hover:opacity-80 transition-opacity" />
+          <div className="w-1 h-12 bg-gray-400 rounded-full opacity-40 hover:opacity-70 transition-opacity" />
         )}
       </div>
 
       {/* Drag zone direita sempre visível */}
       <div 
-        className="absolute right-0 top-0 w-12 h-full bg-blue-500 bg-opacity-20 z-50 flex items-center justify-center cursor-pointer"
+        className="absolute right-0 top-0 w-6 h-full bg-transparent z-50 flex items-center justify-center cursor-pointer"
         onMouseDown={(e) => {
-          console.log('Clique na zona direita');
           if (!isMemberSidebarOpen) {
             e.stopPropagation();
             handleStart(e.clientX, e.clientY, e.target);
           }
         }}
         onTouchStart={(e) => {
-          console.log('Touch na zona direita');
           if (!isMemberSidebarOpen && e.touches.length === 1) {
             e.stopPropagation();
             handleStart(e.touches[0].clientX, e.touches[0].clientY, e.target);
@@ -205,16 +193,22 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
         }}
       >
         {!isMemberSidebarOpen && (
-          <div className="w-2 h-16 bg-gray-600 rounded-full opacity-50 hover:opacity-80 transition-opacity" />
+          <div className="w-1 h-12 bg-gray-400 rounded-full opacity-40 hover:opacity-70 transition-opacity" />
         )}
       </div>
 
       {/* Channel Sidebar */}
       <motion.div 
-        initial={{ width: isChannelSidebarOpen ? 240 : 0 }}
-        animate={{ width: isChannelSidebarOpen ? 240 : 0 }}
-        transition={{ duration: 0.3, ease: "easeInOut" }}
-        className="bg-gray-800 flex flex-col overflow-hidden relative"
+        initial={{ width: 0, opacity: 0 }}
+        animate={{ 
+          width: isChannelSidebarOpen ? 240 : 0,
+          opacity: isChannelSidebarOpen ? 1 : 0
+        }}
+        transition={{ 
+          width: { duration: 0.3, ease: "easeInOut" },
+          opacity: { duration: 0.2, delay: isChannelSidebarOpen ? 0.1 : 0 }
+        }}
+        className="bg-gray-800 flex flex-col overflow-hidden relative shadow-lg"
         style={{ minWidth: isChannelSidebarOpen ? 240 : 0 }}
       >
         {isChannelSidebarOpen && (
@@ -346,7 +340,16 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
       </motion.div>
 
       {/* Main Content */}
-      <div className="flex-1 flex flex-col">
+      <div 
+        className="flex-1 flex flex-col"
+        onClick={() => {
+          // Fechar sidebars ao clicar na área principal
+          if (isChannelSidebarOpen || isMemberSidebarOpen) {
+            setIsChannelSidebarOpen(false);
+            setIsMemberSidebarOpen(false);
+          }
+        }}
+      >
         {/* Chat Header */}
         <div className="h-16 bg-white shadow-sm border-b border-gray-200 flex items-center justify-between px-6">
           <div className="flex items-center space-x-3">
@@ -452,10 +455,16 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
 
       {/* Members Sidebar */}
       <motion.div 
-        initial={{ width: isMemberSidebarOpen ? 256 : 0 }}
-        animate={{ width: isMemberSidebarOpen ? 256 : 0 }}
-        transition={{ duration: 0.3, ease: "easeInOut" }}
-        className="bg-gray-50 border-l border-gray-200 overflow-hidden relative"
+        initial={{ width: 0, opacity: 0 }}
+        animate={{ 
+          width: isMemberSidebarOpen ? 256 : 0,
+          opacity: isMemberSidebarOpen ? 1 : 0
+        }}
+        transition={{ 
+          width: { duration: 0.3, ease: "easeInOut" },
+          opacity: { duration: 0.2, delay: isMemberSidebarOpen ? 0.1 : 0 }
+        }}
+        className="bg-gray-50 border-l border-gray-200 overflow-hidden relative shadow-lg"
         style={{ minWidth: isMemberSidebarOpen ? 256 : 0 }}
       >
         {isMemberSidebarOpen && (
