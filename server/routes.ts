@@ -2,7 +2,7 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertServerSchema, updateUserSchema, updateServerSchema } from "@shared/schema";
+import { insertServerSchema, updateUserSchema, updateServerSchema, insertChannelSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -91,13 +91,16 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/servers/:id', isAuthenticated, async (req: any, res) => {
     try {
       const serverId = parseInt(req.params.id);
-      const server = await storage.getServer(serverId);
+      const server = await storage.getServerWithChannels(serverId);
       
       if (!server) {
         return res.status(404).json({ message: "Server not found" });
       }
+
+      // Get server members
+      const members = await storage.getServerMembers(serverId);
       
-      res.json(server);
+      res.json({ ...server, members });
     } catch (error) {
       console.error("Error fetching server:", error);
       res.status(500).json({ message: "Failed to fetch server" });
@@ -239,22 +242,23 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ message: "Invalid channel ID" });
       }
 
-      // First get the channel to find its server
-      const allChannels = await db.select().from(channels).where(eq(channels.id, channelId));
-      const channel = allChannels[0];
-      
-      if (!channel) {
-        return res.status(404).json({ message: "Channel not found" });
+      // Get all channels from all servers the user owns to find this channel
+      const userServers = await storage.getUserServers(req.user.claims.sub);
+      let targetServer = null;
+      let targetChannel = null;
+
+      for (const server of userServers) {
+        const serverChannels = await storage.getServerChannels(server.id);
+        const channel = serverChannels.find(c => c.id === channelId);
+        if (channel) {
+          targetServer = server;
+          targetChannel = channel;
+          break;
+        }
       }
 
-      const server = await storage.getServer(channel.serverId);
-      if (!server) {
-        return res.status(404).json({ message: "Server not found" });
-      }
-
-      // Check if user is the owner
-      if (server.ownerId !== req.user.claims.sub) {
-        return res.status(403).json({ message: "Only server owner can delete channels" });
+      if (!targetChannel || !targetServer) {
+        return res.status(404).json({ message: "Channel not found or access denied" });
       }
 
       const success = await storage.deleteChannel(channelId);

@@ -2,6 +2,7 @@ import {
   users,
   servers,
   serverMemberships,
+  channels,
   type User,
   type UpsertUser,
   type InsertServer,
@@ -9,6 +10,9 @@ import {
   type ServerWithOwner,
   type InsertServerMembership,
   type ServerMembership,
+  type InsertChannel,
+  type Channel,
+  type ServerWithChannels,
 } from "@shared/schema";
 import { db } from "./db";
 import { eq, desc, and, or, ilike, sql, count } from "drizzle-orm";
@@ -261,6 +265,51 @@ export class DatabaseStorage implements IStorage {
       .where(and(eq(serverMemberships.serverId, serverId), eq(serverMemberships.userId, userId)));
 
     return !!membership;
+  }
+
+  // Channel operations
+  async createChannel(channelData: InsertChannel): Promise<Channel> {
+    const [channel] = await db
+      .insert(channels)
+      .values(channelData)
+      .returning();
+    return channel;
+  }
+
+  async getServerChannels(serverId: number): Promise<Channel[]> {
+    return await db
+      .select()
+      .from(channels)
+      .where(eq(channels.serverId, serverId))
+      .orderBy(channels.createdAt);
+  }
+
+  async getServerWithChannels(id: number): Promise<ServerWithChannels | undefined> {
+    const server = await this.getServer(id);
+    if (!server) return undefined;
+
+    const serverChannels = await this.getServerChannels(id);
+    
+    return {
+      ...server,
+      channels: serverChannels,
+    };
+  }
+
+  async updateChannel(id: number, updates: Partial<Channel>): Promise<Channel | undefined> {
+    const [channel] = await db
+      .update(channels)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(channels.id, id))
+      .returning();
+    return channel;
+  }
+
+  async deleteChannel(id: number): Promise<boolean> {
+    const result = await db
+      .delete(channels)
+      .where(eq(channels.id, id));
+    return (result.rowCount || 0) > 0;
   }
 }
 
