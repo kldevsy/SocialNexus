@@ -550,13 +550,13 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => currentVoiceChannelId ? toggleVoiceMute() : setIsMuted(!isMuted)}
+                    onClick={() => voiceChat.isConnected ? voiceChat.toggleMute() : setIsMuted(!isMuted)}
                     className={`text-gray-400 hover:text-white ${
-                      currentVoiceChannelId ? (isVoiceMuted ? 'text-red-400' : 'text-green-400') : (isMuted ? 'text-red-400' : '')
+                      voiceChat.isConnected ? (voiceChat.isMuted ? 'text-red-400' : 'text-green-400') : (isMuted ? 'text-red-400' : '')
                     }`}
-                    title={currentVoiceChannelId ? "Controle de voz ativo" : "Controle local"}
+                    title={voiceChat.isConnected ? "Controle de voz ativo" : "Controle local"}
                   >
-                    {currentVoiceChannelId ? (isVoiceMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />) : (isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />)}
+                    {voiceChat.isConnected ? (voiceChat.isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />) : (isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />)}
                   </Button>
                   <Button
                     variant="ghost"
@@ -994,18 +994,18 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
       />
 
       {/* Voice Control Panel */}
-      {showControlPanel && currentVoiceChannelId && (
+      {voiceChat.isConnected && voiceChat.connectedChannelId && (
         <VoiceControlPanel
-          isConnected={isVoiceConnected}
-          channelName={channels.find(ch => ch.id === currentVoiceChannelId)?.name || "Canal"}
-          userCount={voiceUserCount}
-          isMuted={isVoiceMuted}
-          isDeafened={isVoiceDeafened}
-          onToggleMute={toggleVoiceMute}
-          onToggleDeafen={toggleVoiceDeafen}
-          onDisconnect={leaveVoiceChannel}
-          onClose={() => setShowControlPanel(false)}
-          stream={voiceStream}
+          isConnected={voiceChat.isConnected}
+          channelName={channels.find(ch => ch.id === voiceChat.connectedChannelId)?.name || "Canal"}
+          userCount={voiceChat.userCount}
+          isMuted={voiceChat.isMuted}
+          isDeafened={voiceChat.isDeafened}
+          onToggleMute={voiceChat.toggleMute}
+          onToggleDeafen={voiceChat.toggleDeafen}
+          onDisconnect={voiceChat.disconnect}
+          onClose={voiceChat.disconnect}
+          stream={voiceChat.localStream}
         />
       )}
     </div>
