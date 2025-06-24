@@ -111,6 +111,22 @@ export class DatabaseStorage implements IStorage {
       role: "owner",
     });
 
+    // Create default channels
+    await db.insert(channels).values([
+      {
+        name: "geral",
+        description: "Canal geral para conversa",
+        type: "text",
+        serverId: server.id,
+      },
+      {
+        name: "Sala de Voz",
+        description: "Canal de voz principal",
+        type: "voice",
+        serverId: server.id,
+      },
+    ]);
+
     return server;
   }
 

@@ -141,15 +141,6 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
     },
   });
 
-  const members = server?.members || [];
-  const channels = server?.channels || [];
-  const textChannels = channels.filter(channel => channel.type === "text");
-  const voiceChannels = channels.filter(channel => channel.type === "voice");
-  const isOwner = user?.id === server?.ownerId;
-  const displayName = user?.firstName && user?.lastName 
-    ? `${user.firstName} ${user.lastName}` 
-    : user?.username || user?.email || 'Usuario';
-
   // Handle server loading and error states
   if (serverLoading) {
     return (
@@ -201,10 +192,21 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
     );
   }
 
+  const members = server?.members || [];
+  const channels = server?.channels || [];
+  const textChannels = channels.filter(channel => channel.type === "text");
+  const voiceChannels = channels.filter(channel => channel.type === "voice");
+  const isOwner = user?.id === server?.ownerId;
+  const displayName = user?.firstName && user?.lastName 
+    ? `${user.firstName} ${user.lastName}` 
+    : user?.username || user?.email || 'Usuario';
+
   // Set default channel if none selected and channels exist
-  if (!selectedChannelId && textChannels.length > 0) {
-    setSelectedChannelId(textChannels[0].id);
-  }
+  useEffect(() => {
+    if (!selectedChannelId && textChannels.length > 0) {
+      setSelectedChannelId(textChannels[0].id);
+    }
+  }, [selectedChannelId, textChannels]);
 
   // Get the currently selected channel
   const selectedChannel = selectedChannelId 

@@ -32,14 +32,16 @@ export function CreateServerModal({ open, onOpenChange }: CreateServerModalProps
 
   const createServerMutation = useMutation({
     mutationFn: async (data: Omit<InsertServer, "ownerId">) => {
-      const response = await apiRequest("/api/servers", {
-        method: "POST",
-        body: JSON.stringify(data),
-        headers: {
-          'Content-Type': 'application/json',
-        },
-      });
-      return response.json();
+      try {
+        const response = await apiRequest("/api/servers", {
+          method: "POST",
+          body: JSON.stringify(data),
+        });
+        return response;
+      } catch (error: any) {
+        console.error("API request failed:", error);
+        throw new Error(error.message || "Falha na requisição");
+      }
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/servers"] });
@@ -52,10 +54,11 @@ export function CreateServerModal({ open, onOpenChange }: CreateServerModalProps
       setFormData({ name: "", description: "", category: "", isPublic: true });
       setImagePreview(null);
     },
-    onError: (error) => {
+    onError: (error: any) => {
+      console.error("Create server error:", error);
       toast({
         title: "Erro",
-        description: error.message || "Falha ao criar servidor",
+        description: error?.message || "Falha ao criar servidor",
         variant: "destructive",
       });
     },
