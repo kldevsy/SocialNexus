@@ -12,7 +12,11 @@ import {
   Users,
   Crown,
   Shield,
-  MoreVertical
+  MoreVertical,
+  Menu,
+  X,
+  ChevronLeft,
+  ChevronRight
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -31,6 +35,8 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
   const { toast } = useToast();
   const [isMuted, setIsMuted] = useState(false);
   const [isDeafened, setIsDeafened] = useState(false);
+  const [isChannelSidebarOpen, setIsChannelSidebarOpen] = useState(true);
+  const [isMemberSidebarOpen, setIsMemberSidebarOpen] = useState(true);
 
   const { data: server, isLoading: serverLoading } = useQuery<ServerWithOwner>({
     queryKey: ["/api/servers", serverId],
@@ -56,13 +62,27 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
   return (
     <div className="min-h-screen bg-gray-100 flex">
       {/* Server Sidebar */}
-      <div className="w-60 bg-gray-800 flex flex-col">
+      <motion.div 
+        initial={{ width: isChannelSidebarOpen ? 240 : 0 }}
+        animate={{ width: isChannelSidebarOpen ? 240 : 0 }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+        className="bg-gray-800 flex flex-col overflow-hidden"
+        style={{ minWidth: isChannelSidebarOpen ? 240 : 0 }}
+      >
         {/* Server Header */}
         <div className="p-4 border-b border-gray-700">
           <div className="flex items-center justify-between mb-3">
             <Button variant="ghost" size="sm" onClick={onBack} className="text-gray-300 hover:text-white">
               <ArrowLeft className="h-4 w-4 mr-2" />
               Voltar
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm" 
+              onClick={() => setIsChannelSidebarOpen(false)} 
+              className="text-gray-300 hover:text-white"
+            >
+              <ChevronLeft className="h-4 w-4" />
             </Button>
           </div>
           <h2 className="text-white font-bold text-lg truncate">{server.name}</h2>
@@ -162,19 +182,36 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
             </div>
           </div>
         </div>
-      </div>
+      </motion.div>
 
       {/* Main Content */}
       <div className="flex-1 flex flex-col">
         {/* Chat Header */}
         <div className="h-16 bg-white shadow-sm border-b border-gray-200 flex items-center justify-between px-6">
           <div className="flex items-center space-x-3">
+            {!isChannelSidebarOpen && (
+              <Button 
+                variant="ghost" 
+                size="sm" 
+                onClick={() => setIsChannelSidebarOpen(true)}
+                className="mr-3"
+              >
+                <Menu className="h-5 w-5" />
+              </Button>
+            )}
             <Hash className="h-5 w-5 text-gray-500" />
             <h3 className="font-semibold text-gray-900">geral</h3>
           </div>
           <div className="flex items-center space-x-2">
             <Button variant="ghost" size="sm">
               <UserPlus className="h-4 w-4" />
+            </Button>
+            <Button 
+              variant="ghost" 
+              size="sm"
+              onClick={() => setIsMemberSidebarOpen(!isMemberSidebarOpen)}
+            >
+              <Users className="h-4 w-4" />
             </Button>
             <Button variant="ghost" size="sm">
               <Settings className="h-4 w-4" />
@@ -239,7 +276,13 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
       </div>
 
       {/* Members Sidebar */}
-      <div className="w-64 bg-gray-50 border-l border-gray-200">
+      <motion.div 
+        initial={{ width: isMemberSidebarOpen ? 256 : 0 }}
+        animate={{ width: isMemberSidebarOpen ? 256 : 0 }}
+        transition={{ duration: 0.3, ease: "easeInOut" }}
+        className="bg-gray-50 border-l border-gray-200 overflow-hidden"
+        style={{ minWidth: isMemberSidebarOpen ? 256 : 0 }}
+      >
         <div className="p-4">
           <h3 className="font-semibold text-gray-900 mb-4">Membros — {members.length}</h3>
           
@@ -314,7 +357,7 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
             </div>
           )}
         </div>
-      </div>
+      </motion.div>
     </div>
   );
 }

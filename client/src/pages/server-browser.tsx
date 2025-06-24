@@ -22,7 +22,7 @@ export default function ServerBrowser({ onBack }: ServerBrowserProps) {
   const queryClient = useQueryClient();
 
   const { data: servers = [], isLoading } = useQuery<ServerWithOwner[]>({
-    queryKey: ["/api/servers/discover", { category, search, sortBy }],
+    queryKey: ["/api/servers/discover", { category: category === "all" ? "" : category, search, sortBy }],
     refetchOnWindowFocus: false,
   });
 
@@ -90,10 +90,10 @@ export default function ServerBrowser({ onBack }: ServerBrowserProps) {
             </div>
             <Select value={category} onValueChange={setCategory}>
               <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="All Categories" />
+                <SelectValue placeholder="Todas as Categorias" />
               </SelectTrigger>
               <SelectContent>
-                <SelectItem value="">All Categories</SelectItem>
+                <SelectItem value="all">Todas as Categorias</SelectItem>
                 {categories.map((cat) => (
                   <SelectItem key={cat} value={cat}>{cat}</SelectItem>
                 ))}
