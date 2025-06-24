@@ -119,7 +119,7 @@ export function useVoiceChat() {
       
       // Handle ICE candidates
       pc.onicecandidate = (event) => {
-        if (event.candidate && wsRef.current?.readyState === WebSocket.OPEN) {
+        if (event.candidate && wsRef.current?.readyState === 1) { // WebSocket.OPEN = 1
           wsRef.current.send(JSON.stringify({
             type: 'voice-signal',
             channelId: currentChannelId,
@@ -141,7 +141,7 @@ export function useVoiceChat() {
         const answer = await pc.createAnswer();
         await pc.setLocalDescription(answer);
         
-        if (wsRef.current?.readyState === WebSocket.OPEN) {
+        if (wsRef.current?.readyState === 1) { // WebSocket.OPEN = 1
           wsRef.current.send(JSON.stringify({
             type: 'voice-signal',
             channelId: currentChannelId,
@@ -179,7 +179,7 @@ export function useVoiceChat() {
       
       // Wait for connection and then join
       const joinChannel = () => {
-        if (wsRef.current?.readyState === WebSocket.OPEN) {
+        if (wsRef.current?.readyState === 1) { // WebSocket.OPEN = 1
           wsRef.current.send(JSON.stringify({
             type: 'join-voice-channel',
             channelId,
@@ -203,7 +203,7 @@ export function useVoiceChat() {
   
   // Leave voice channel
   const leaveVoiceChannel = useCallback(() => {
-    if (currentChannelId && wsRef.current?.readyState === WebSocket.OPEN) {
+    if (currentChannelId && wsRef.current?.readyState === 1) { // WebSocket.OPEN = 1
       wsRef.current.send(JSON.stringify({
         type: 'leave-voice-channel',
         channelId: currentChannelId,

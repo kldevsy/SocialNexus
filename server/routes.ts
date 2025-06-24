@@ -306,7 +306,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             // Notify others in the channel
             voiceChannels.get(channelId)?.forEach(client => {
-              if (client !== ws && client.readyState === WebSocket.OPEN) {
+              if (client !== ws && client.readyState === 1) { // WebSocket.OPEN = 1
                 client.send(JSON.stringify({
                   type: 'user-joined',
                   channelId,
@@ -325,7 +325,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
             // Broadcast updated user count to all users in channel
             voiceChannels.get(channelId)?.forEach(client => {
-              if (client.readyState === WebSocket.OPEN) {
+              if (client.readyState === 1) { // WebSocket.OPEN = 1
                 client.send(JSON.stringify({
                   type: 'channel-users',
                   channelId,

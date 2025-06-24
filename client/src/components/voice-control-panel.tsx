@@ -13,7 +13,8 @@ import {
   Settings, 
   Minimize2, 
   Maximize2,
-  Activity
+  Activity,
+  Move
 } from "lucide-react";
 
 interface VoiceControlPanelProps {
@@ -46,10 +47,14 @@ export function VoiceControlPanel({
   const [micSensitivity, setMicSensitivity] = useState([50]);
   const [voiceLevel, setVoiceLevel] = useState(0);
   const [isVoiceActive, setIsVoiceActive] = useState(false);
+  const [position, setPosition] = useState({ x: 0, y: 0 });
+  const [isDragging, setIsDragging] = useState(false);
+  const [dragStart, setDragStart] = useState({ x: 0, y: 0 });
   
   const audioContextRef = useRef<AudioContext | null>(null);
   const analyserRef = useRef<AnalyserNode | null>(null);
   const animationFrameRef = useRef<number>();
+  const panelRef = useRef<HTMLDivElement>(null);
 
   // Voice activity detection
   useEffect(() => {
@@ -99,16 +104,74 @@ export function VoiceControlPanel({
     };
   }, [stream, isMuted, micSensitivity]);
 
+  // Drag functionality
+  const handleMouseDown = (e: React.MouseEvent) => {
+    if (isMinimized) return;
+    setIsDragging(true);
+    setDragStart({
+      x: e.clientX - position.x,
+      y: e.clientY - position.y
+    });
+  };
+
+  const handleMouseMove = (e: MouseEvent) => {
+    if (!isDragging) return;
+    
+    const newX = e.clientX - dragStart.x;
+    const newY = e.clientY - dragStart.y;
+    
+    // Keep panel within screen bounds
+    const maxX = window.innerWidth - (panelRef.current?.offsetWidth || 300);
+    const maxY = window.innerHeight - (panelRef.current?.offsetHeight || 400);
+    
+    setPosition({
+      x: Math.max(0, Math.min(newX, maxX)),
+      y: Math.max(0, Math.min(newY, maxY))
+    });
+  };
+
+  const handleMouseUp = () => {
+    setIsDragging(false);
+  };
+
+  useEffect(() => {
+    if (isDragging) {
+      document.addEventListener('mousemove', handleMouseMove);
+      document.addEventListener('mouseup', handleMouseUp);
+      return () => {
+        document.removeEventListener('mousemove', handleMouseMove);
+        document.removeEventListener('mouseup', handleMouseUp);
+      };
+    }
+  }, [isDragging, dragStart, position]);
+
+  // Handle close with disconnect
+  const handleClose = () => {
+    onDisconnect(); // Disconnect from voice channel
+    onClose(); // Close panel
+  };
+
   if (!isConnected) return null;
 
   return (
     <AnimatePresence>
       <motion.div
+        ref={panelRef}
         initial={{ opacity: 0, y: 100, scale: 0.8 }}
-        animate={{ opacity: 1, y: 0, scale: 1 }}
+        animate={{ 
+          opacity: 1, 
+          y: 0, 
+          scale: 1,
+          x: position.x,
+          y: position.y
+        }}
         exit={{ opacity: 0, y: 100, scale: 0.8 }}
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
         className="fixed bottom-6 right-6 z-50"
+        style={{
+          transform: `translate(${position.x}px, ${position.y}px)`,
+          cursor: isDragging ? 'grabbing' : 'default'
+        }}
       >
         <Card className="bg-gray-900/95 backdrop-blur-lg border-gray-700 text-white shadow-2xl overflow-hidden">
           <motion.div
@@ -116,13 +179,20 @@ export function VoiceControlPanel({
             transition={{ duration: 0.3 }}
           >
             {/* Header */}
-            <div className="flex items-center justify-between p-4 border-b border-gray-700">
+            <div 
+              className="flex items-center justify-between p-4 border-b border-gray-700"
+              onMouseDown={handleMouseDown}
+              style={{ cursor: isMinimized ? 'default' : 'grab' }}
+            >
               <div className="flex items-center space-x-3">
                 <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
                 <div>
                   <h3 className="font-semibold text-sm">#{channelName}</h3>
                   <p className="text-xs text-gray-400">{userCount} usuário{userCount !== 1 ? 's' : ''}</p>
                 </div>
+                {!isMinimized && (
+                  <Move className="h-4 w-4 text-gray-500 ml-2" />
+                )}
               </div>
               <div className="flex items-center space-x-1">
                 <Button
@@ -136,7 +206,7 @@ export function VoiceControlPanel({
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={onClose}
+                  onClick={handleClose}
                   className="text-gray-400 hover:text-red-400 w-8 h-8 p-0"
                 >
                   ×
@@ -252,6 +322,9 @@ export function VoiceControlPanel({
                     <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                     <span className="text-xs text-green-400">Conectado</span>
                   </div>
+                  <p className="text-xs text-gray-500 mt-1">
+                    Arraste o painel para mover • Audio WebRTC ativo
+                  </p>
                 </div>
               </motion.div>
             )}
