@@ -112,11 +112,9 @@ export function VoiceControlPanel({
     // Don't start dragging if clicking on buttons or input elements
     const target = e.target as HTMLElement;
     if (target.closest('button') || target.closest('input') || target.closest('slider')) {
-      console.log('Blocked drag on button/input');
       return;
     }
     
-    console.log('Starting drag', { x: e.clientX, y: e.clientY, position });
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(true);
@@ -133,8 +131,6 @@ export function VoiceControlPanel({
     const newX = e.clientX - dragStart.x;
     const newY = e.clientY - dragStart.y;
     
-    console.log('Moving', { newX, newY, clientX: e.clientX, clientY: e.clientY });
-    
     // Keep panel within screen bounds
     const panelWidth = panelRef.current?.offsetWidth || 320;
     const panelHeight = panelRef.current?.offsetHeight || 450;
@@ -146,12 +142,10 @@ export function VoiceControlPanel({
       y: Math.max(0, Math.min(newY, maxY))
     };
     
-    console.log('Setting position', finalPos);
     setPosition(finalPos);
   }, [isDragging, dragStart.x, dragStart.y]);
 
   const handleMouseUp = useCallback(() => {
-    console.log('Drag ended');
     setIsDragging(false);
   }, []);
 

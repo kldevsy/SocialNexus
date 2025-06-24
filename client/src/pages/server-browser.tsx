@@ -28,8 +28,10 @@ export default function ServerBrowser({ onBack }: ServerBrowserProps) {
 
   const joinServerMutation = useMutation({
     mutationFn: async (serverId: number) => {
-      const response = await apiRequest("POST", `/api/servers/${serverId}/join`);
-      return response.json();
+      const response = await apiRequest(`/api/servers/${serverId}/join`, {
+        method: "POST",
+      });
+      return response;
     },
     onSuccess: () => {
       queryClient.invalidateQueries({ queryKey: ["/api/servers"] });

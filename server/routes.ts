@@ -169,6 +169,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const serverId = parseInt(req.params.id);
       const userId = req.user.claims.sub;
       
+      // Check if server exists
+      const server = await storage.getServer(serverId);
+      if (!server) {
+        return res.status(404).json({ message: "Server not found" });
+      }
+      
+      // Check if already a member
+      const isMember = await storage.isUserMember(serverId, userId);
+      if (isMember) {
+        return res.status(409).json({ message: "Already a member of this server" });
+      }
+      
       const membership = await storage.joinServer(serverId, userId);
       res.status(201).json(membership);
     } catch (error) {
