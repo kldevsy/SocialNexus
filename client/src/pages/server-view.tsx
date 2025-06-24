@@ -32,21 +32,7 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
   const [isDeafened, setIsDeafened] = useState(false);
   
   // Voice chat functionality
-  const {
-    isConnected: isVoiceConnected,
-    currentChannelId: currentVoiceChannelId,
-    voiceUsers,
-    userCount: voiceUserCount,
-    isMuted: isVoiceMuted,
-    isDeafened: isVoiceDeafened,
-    showControlPanel,
-    stream: voiceStream,
-    joinVoiceChannel,
-    leaveVoiceChannel,
-    toggleMute: toggleVoiceMute,
-    toggleDeafen: toggleVoiceDeafen,
-    setShowControlPanel
-  } = useVoiceChat();
+  const voiceChat = useVoiceChat();
 
   // Sistema de drag para sidebars com touch e mouse
   useEffect(() => {
@@ -207,11 +193,17 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
     }
   };
 
-  const handleJoinVoiceChannel = (channelId: number) => {
-    if (currentVoiceChannelId === channelId) {
-      leaveVoiceChannel();
+  const handleVoiceChannelClick = (channelId: number, channelName: string) => {
+    if (voiceChat.isConnecting) return;
+    
+    if (voiceChat.connectedChannelId === channelId) {
+      voiceChat.disconnect();
     } else {
-      joinVoiceChannel(channelId);
+      if (voiceChat.isConnected) {
+        voiceChat.disconnect();
+      }
+      const userName = user?.firstName || user?.email?.split('@')[0] || 'Usuário';
+      voiceChat.connect(channelId, channelName, user?.id || '', userName);
     }
   };
 
@@ -459,25 +451,19 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: (textChannels.length + index) * 0.05 }}
                       whileHover={{ scale: 1.02, x: 6 }}
-                      onClick={() => {
-                        if (currentVoiceChannelId === channel.id) {
-                          leaveVoiceChannel();
-                        } else {
-                          joinVoiceChannel(channel.id);
-                        }
-                      }}
+                      onClick={() => handleVoiceChannelClick(channel.id, channel.name)}
                       className={`flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-all duration-200 group shadow-sm hover:shadow-md ${
-                        currentVoiceChannelId === channel.id
+                        voiceChat.connectedChannelId === channel.id
                           ? "bg-gradient-to-r from-green-100 to-emerald-100 border border-green-300"
                           : "bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 hover:from-purple-100 hover:to-pink-100 hover:border-purple-300"
                       }`}
                     >
                       <div className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-sm ${
-                        currentVoiceChannelId === channel.id
+                        voiceChat.connectedChannelId === channel.id
                           ? "bg-gradient-to-br from-green-500 to-green-600"
                           : "bg-gradient-to-br from-purple-500 to-purple-600"
                       }`}>
-                        {currentVoiceChannelId === channel.id ? (
+                        {voiceChat.connectedChannelId === channel.id ? (
                           <PhoneCall className="h-4 w-4 text-white" />
                         ) : (
                           <Volume2 className="h-4 w-4 text-white" />
@@ -508,12 +494,12 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
                           </Button>
                         )}
                         <div className={`w-2 h-2 rounded-full ${
-                          currentVoiceChannelId === channel.id ? "bg-green-500 animate-pulse" : "bg-gray-400"
+                          voiceChat.connectedChannelId === channel.id ? "bg-green-500 animate-pulse" : "bg-gray-400"
                         }`}></div>
                         <span className="text-xs text-gray-500 font-medium">
-                          {currentVoiceChannelId === channel.id ? voiceUserCount : "0"}/∞
+                          {voiceChat.connectedChannelId === channel.id ? voiceChat.userCount : "0"}/∞
                         </span>
-                        {currentVoiceChannelId === channel.id && (
+                        {voiceChat.connectedChannelId === channel.id && (
                           <span className="text-xs text-green-600 font-medium">Conectado</span>
                         )}
                       </div>
@@ -575,13 +561,13 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => currentVoiceChannelId ? toggleVoiceDeafen() : setIsDeafened(!isDeafened)}
+                    onClick={() => voiceChat.isConnected ? voiceChat.toggleDeafen() : setIsDeafened(!isDeafened)}
                     className={`text-gray-400 hover:text-white ${
-                      currentVoiceChannelId ? (isVoiceDeafened ? 'text-red-400' : 'text-green-400') : (isDeafened ? 'text-red-400' : '')
+                      voiceChat.isConnected ? (voiceChat.isDeafened ? 'text-red-400' : 'text-green-400') : (isDeafened ? 'text-red-400' : '')
                     }`}
-                    title={currentVoiceChannelId ? "Controle de áudio ativo" : "Controle local"}
+                    title={voiceChat.isConnected ? "Controle de áudio ativo" : "Controle local"}
                   >
-                    {currentVoiceChannelId ? (isVoiceDeafened ? <VolumeX className="h-4 w-4" /> : <Headphones className="h-4 w-4" />) : (isDeafened ? <VolumeX className="h-4 w-4" /> : <Headphones className="h-4 w-4" />)}
+                    {voiceChat.isConnected ? (voiceChat.isDeafened ? <VolumeX className="h-4 w-4" /> : <Headphones className="h-4 w-4" />) : (isDeafened ? <VolumeX className="h-4 w-4" /> : <Headphones className="h-4 w-4" />)}
                   </Button>
                   <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
                     <Settings className="h-4 w-4" />
@@ -796,30 +782,30 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
                   <p className="text-purple-700 mb-4">
                     {selectedChannel.description || "Conecte-se para conversar por voz com outros membros"}
                   </p>
-                  {currentVoiceChannelId === selectedChannel.id ? (
+                  {voiceChat.connectedChannelId === selectedChannel.id ? (
                     <div className="space-y-4">
                       <div className="flex items-center justify-center space-x-4">
                         <Button 
-                          variant={isVoiceMuted ? "destructive" : "outline"}
-                          onClick={toggleVoiceMute}
+                          variant={voiceChat.isMuted ? "destructive" : "outline"}
+                          onClick={voiceChat.toggleMute}
                           className="flex items-center space-x-2"
                         >
-                          {isVoiceMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                          <span>{isVoiceMuted ? "Desmutar" : "Mutar"}</span>
+                          {voiceChat.isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                          <span>{voiceChat.isMuted ? "Desmutar" : "Mutar"}</span>
                         </Button>
                         
                         <Button 
-                          variant={isVoiceDeafened ? "destructive" : "outline"}
-                          onClick={toggleVoiceDeafen}
+                          variant={voiceChat.isDeafened ? "destructive" : "outline"}
+                          onClick={voiceChat.toggleDeafen}
                           className="flex items-center space-x-2"
                         >
-                          {isVoiceDeafened ? <VolumeX className="h-4 w-4" /> : <Headphones className="h-4 w-4" />}
-                          <span>{isVoiceDeafened ? "Ouvir" : "Ensurdecer"}</span>
+                          {voiceChat.isDeafened ? <VolumeX className="h-4 w-4" /> : <Headphones className="h-4 w-4" />}
+                          <span>{voiceChat.isDeafened ? "Ouvir" : "Ensurdecer"}</span>
                         </Button>
                         
                         <Button 
                           variant="destructive"
-                          onClick={() => leaveVoiceChannel()}
+                          onClick={() => voiceChat.disconnect()}
                           className="flex items-center space-x-2"
                         >
                           <PhoneOff className="h-4 w-4" />
@@ -829,7 +815,7 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
                       
                       <div className="text-center">
                         <p className="text-sm text-purple-600">
-                          🎤 Conectado ao canal • {voiceUserCount} usuário{voiceUserCount !== 1 ? 's' : ''} online
+                          🎤 Conectado ao canal • {voiceChat.userCount} usuário{voiceChat.userCount !== 1 ? 's' : ''} online
                         </p>
                         <div className="flex items-center justify-center mt-2 space-x-2">
                           <div className={`w-2 h-2 rounded-full ${isVoiceConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
