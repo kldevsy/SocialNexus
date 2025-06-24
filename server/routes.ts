@@ -92,10 +92,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.get('/api/servers/:id', isAuthenticated, async (req: any, res) => {
     try {
       const serverId = parseInt(req.params.id);
+      const userId = req.user.claims.sub;
+      
       const server = await storage.getServerWithChannels(serverId);
       
       if (!server) {
         return res.status(404).json({ message: "Server not found" });
+      }
+
+      // Check if user is a member or if server is public
+      const isMember = await storage.isUserMember(serverId, userId);
+      if (!server.isPublic && !isMember) {
+        return res.status(403).json({ message: "Access denied. You must be a member to view this server." });
       }
 
       // Get server members

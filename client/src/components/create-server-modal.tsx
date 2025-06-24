@@ -32,7 +32,13 @@ export function CreateServerModal({ open, onOpenChange }: CreateServerModalProps
 
   const createServerMutation = useMutation({
     mutationFn: async (data: Omit<InsertServer, "ownerId">) => {
-      const response = await apiRequest("POST", "/api/servers", data);
+      const response = await apiRequest("/api/servers", {
+        method: "POST",
+        body: JSON.stringify(data),
+        headers: {
+          'Content-Type': 'application/json',
+        },
+      });
       return response.json();
     },
     onSuccess: () => {

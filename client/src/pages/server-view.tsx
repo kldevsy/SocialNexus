@@ -127,14 +127,15 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
     }
   };
 
-  const { data: server, isLoading: serverLoading } = useQuery({
+  const { data: server, isLoading: serverLoading, error: serverError } = useQuery({
     queryKey: ["/api/servers", serverId],
     queryFn: async () => {
       const response = await fetch(`/api/servers/${serverId}`, {
         credentials: "include",
       });
       if (!response.ok) {
-        throw new Error("Failed to fetch server");
+        const errorData = await response.json().catch(() => ({}));
+        throw new Error(errorData.message || `HTTP ${response.status}: Failed to fetch server`);
       }
       return response.json() as Promise<ServerWithChannels & { members: User[] }>;
     },
@@ -148,6 +149,57 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
   const displayName = user?.firstName && user?.lastName 
     ? `${user.firstName} ${user.lastName}` 
     : user?.username || user?.email || 'Usuario';
+
+  // Handle server loading and error states
+  if (serverLoading) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="animate-spin rounded-full h-12 w-12 border-b-2 border-primary mx-auto mb-4"></div>
+          <p className="text-gray-600">Carregando servidor...</p>
+        </div>
+      </div>
+    );
+  }
+
+  if (serverError) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="text-center">
+          <div className="text-red-500 mb-4">
+            <svg className="w-16 h-16 mx-auto" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 9v2m0 4h.01m-6.938 4h13.856c1.54 0 2.502-1.667 1.732-2.5L13.732 4c-.77-.833-1.964-.833-2.732 0L3.732 16.5c-.77.833.192 2.5 1.732 2.5z" />
+            </svg>
+          </div>
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Erro ao carregar servidor</h3>
+          <p className="text-gray-600 mb-4">{serverError.message}</p>
+          <button 
+            onClick={onBack}
+            className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90"
+          >
+            Voltar
+          </button>
+        </div>
+      </div>
+    );
+  }
+
+  if (!server) {
+    return (
+      <div className="h-screen flex items-center justify-center">
+        <div className="text-center">
+          <h3 className="text-lg font-semibold text-gray-900 mb-2">Servidor não encontrado</h3>
+          <p className="text-gray-600 mb-4">Este servidor pode ter sido removido ou você não tem permissão para acessá-lo.</p>
+          <button 
+            onClick={onBack}
+            className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90"
+          >
+            Voltar
+          </button>
+        </div>
+      </div>
+    );
+  }
 
   // Set default channel if none selected and channels exist
   if (!selectedChannelId && textChannels.length > 0) {
