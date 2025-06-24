@@ -18,6 +18,7 @@ export function useVoiceChat() {
   const [isMuted, setIsMuted] = useState(false);
   const [isDeafened, setIsDeafened] = useState(false);
   const [voiceLevel, setVoiceLevel] = useState(0);
+  const [isMonitoring, setIsMonitoring] = useState(false);
   
   const currentUserId = useRef<string>('');
   const peerConnections = useRef(new Map<string, RTCPeerConnection>());
@@ -390,6 +391,69 @@ export function useVoiceChat() {
     setIsDeafened(prev => !prev);
   };
 
+  const startVoiceMonitoring = async () => {
+    if (isMonitoring) {
+      stopVoiceMonitoring();
+      return;
+    }
+
+    try {
+      const stream = await navigator.mediaDevices.getUserMedia({ 
+        audio: {
+          echoCancellation: true,
+          noiseSuppression: true,
+          autoGainControl: true,
+          sampleRate: 48000
+        } 
+      });
+      
+      setLocalStream(stream);
+      setIsMonitoring(true);
+      
+      // Setup audio analysis
+      audioContext.current = new (window.AudioContext || (window as any).webkitAudioContext)();
+      const source = audioContext.current.createMediaStreamSource(stream);
+      analyser.current = audioContext.current.createAnalyser();
+      analyser.current.fftSize = 256;
+      source.connect(analyser.current);
+      
+      // Voice level monitoring
+      const dataArray = new Uint8Array(analyser.current.frequencyBinCount);
+      const checkVoiceLevel = () => {
+        if (analyser.current && isMonitoring) {
+          analyser.current.getByteFrequencyData(dataArray);
+          const average = dataArray.reduce((a, b) => a + b) / dataArray.length;
+          setVoiceLevel(average);
+          requestAnimationFrame(checkVoiceLevel);
+        }
+      };
+      checkVoiceLevel();
+      
+      console.log('🎯 Voice monitoring started');
+    } catch (error) {
+      console.error('❌ Error starting voice monitoring:', error);
+    }
+  };
+
+  const stopVoiceMonitoring = () => {
+    if (localStream) {
+      localStream.getTracks().forEach(track => track.stop());
+      setLocalStream(null);
+    }
+    
+    if (analyser.current) {
+      analyser.current = null;
+    }
+    if (audioContext.current && audioContext.current.state !== 'closed') {
+      audioContext.current.close();
+      audioContext.current = null;
+    }
+    
+    setIsMonitoring(false);
+    setVoiceLevel(0);
+    console.log('🔇 Voice monitoring stopped');
+  };
+
   // Effect to update audio when mute state changes
   useEffect(() => {
     if (localStream) {
@@ -423,9 +487,12 @@ export function useVoiceChat() {
     isDeafened,
     voiceLevel,
     localStream,
+    isMonitoring,
     connect,
     disconnect,
     toggleMute,
-    toggleDeafen
+    toggleDeafen,
+    startVoiceMonitoring,
+    stopVoiceMonitoring
   };
 }

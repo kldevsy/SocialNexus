@@ -813,10 +813,24 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
                         </Button>
                       </div>
                       
-                      <div className="text-center">
+                      <div className="text-center space-y-3">
                         <p className="text-sm text-purple-600">
                           🎤 Conectado ao canal • {voiceChat.userCount} usuário{voiceChat.userCount !== 1 ? 's' : ''} online
                         </p>
+                        
+                        {/* Voice Level Indicator */}
+                        <div className="bg-gray-100 rounded-lg p-3">
+                          <p className="text-xs text-gray-600 mb-2">Nível de voz detectado:</p>
+                          <div className="w-full bg-gray-300 rounded-full h-2">
+                            <div 
+                              className="bg-green-500 h-2 rounded-full transition-all duration-100"
+                              style={{ width: `${Math.min((voiceChat.voiceLevel / 50) * 100, 100)}%` }}
+                            ></div>
+                          </div>
+                          <p className="text-xs text-gray-500 mt-1">
+                            {voiceChat.voiceLevel > 10 ? '🎤 Voz detectada' : '🔇 Silêncio'}
+                          </p>
+                        </div>
                         <div className="flex items-center justify-center mt-2 space-x-2">
                           <div className={`w-2 h-2 rounded-full ${isVoiceConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
                           <span className={`text-xs ${isVoiceConnected ? 'text-green-600' : 'text-red-500'}`}>
