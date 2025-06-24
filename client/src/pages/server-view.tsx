@@ -17,14 +17,16 @@ interface ServerViewProps {
 export default function ServerView({ serverId, onBack }: ServerViewProps) {
   const { user } = useAuth();
   const { toast } = useToast();
-  const [isMuted, setIsMuted] = useState(false);
-  const [isDeafened, setIsDeafened] = useState(false);
+  const queryClient = useQueryClient();
+  const containerRef = useRef<HTMLDivElement>(null);
+  
   const [isChannelSidebarOpen, setIsChannelSidebarOpen] = useState(false);
   const [isMemberSidebarOpen, setIsMemberSidebarOpen] = useState(false);
   const [isDragging, setIsDragging] = useState(false);
   const [dragStartX, setDragStartX] = useState(0);
   const [dragStartY, setDragStartY] = useState(0);
-  const containerRef = useRef<HTMLDivElement>(null);
+  const [selectedChannelId, setSelectedChannelId] = useState<number | null>(null);
+  const [isCreateChannelModalOpen, setIsCreateChannelModalOpen] = useState(false);
 
   // Sistema de drag para sidebars com touch e mouse
   useEffect(() => {
@@ -104,17 +106,65 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
     }
   };
 
-  const { data: server, isLoading: serverLoading } = useQuery<ServerWithOwner>({
+  const { data: server, isLoading: serverLoading } = useQuery({
     queryKey: ["/api/servers", serverId],
-    enabled: !!serverId,
+    queryFn: async () => {
+      const response = await fetch(`/api/servers/${serverId}`, {
+        credentials: "include",
+      });
+      if (!response.ok) {
+        throw new Error("Failed to fetch server");
+      }
+      return response.json() as Promise<ServerWithChannels & { members: User[] }>;
+    },
   });
 
-  const { data: members = [], isLoading: membersLoading } = useQuery<User[]>({
-    queryKey: ["/api/servers", serverId, "members"],
-    enabled: !!serverId,
+  const members = server?.members || [];
+  const channels = server?.channels || [];
+  const textChannels = channels.filter(channel => channel.type === "text");
+  const voiceChannels = channels.filter(channel => channel.type === "voice");
+  const isOwner = user?.id === server?.ownerId;
+
+  // Set default channel if none selected and channels exist
+  if (!selectedChannelId && textChannels.length > 0) {
+    setSelectedChannelId(textChannels[0].id);
+  }
+
+  const deleteChannelMutation = useMutation({
+    mutationFn: async (channelId: number) => {
+      const response = await fetch(`/api/channels/${channelId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Canal deletado com sucesso!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/servers", serverId] });
+      // Reset selected channel if it was deleted
+      const remainingChannels = textChannels.filter(c => c.id !== selectedChannelId);
+      setSelectedChannelId(remainingChannels[0]?.id || null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao deletar canal",
+        description: error?.message || "Ocorreu um erro inesperado.",
+        variant: "destructive",
+      });
+    },
   });
 
-  const queryClient = useQueryClient();
+  const handleDeleteChannel = (channelId: number) => {
+    if (confirm("Tem certeza que deseja deletar este canal? Esta ação não pode ser desfeita.")) {
+      deleteChannelMutation.mutate(channelId);
+    }
+  };
 
   const joinServerMutation = useMutation({
     mutationFn: async () => {
@@ -148,7 +198,6 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
     );
   }
 
-  const displayName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || "User" : "User";
   const onlineMembers = members.filter(() => Math.random() > 0.6); // Simulate online status
 
   return (
