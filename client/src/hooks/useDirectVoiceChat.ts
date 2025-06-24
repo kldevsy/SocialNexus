@@ -177,7 +177,19 @@ export function useDirectVoiceChat() {
         
         switch (data.type) {
           case 'voice-users':
-            setUserCount(data.count);
+            console.log('Voice users update:', data);
+            setUserCount(data.count || data.userCount || 0);
+            // Connect to existing users
+            data.users?.forEach((user: any) => {
+              if (user.userId !== userId) {
+                setTimeout(() => initiatePeerConnection(user.userId), 100);
+              }
+            });
+            break;
+            
+          case 'channel-users':
+            console.log('Channel users update:', data);
+            setUserCount(data.userCount || data.count || 0);
             // Connect to existing users
             data.users?.forEach((user: any) => {
               if (user.userId !== userId) {

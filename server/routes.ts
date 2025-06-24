@@ -386,12 +386,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
             }));
             
             // Broadcast updated user count to all users in channel
+            const currentCount = voiceChannels.get(channelId)?.size || 0;
             voiceChannels.get(channelId)?.forEach(client => {
               if (client.readyState === 1) { // WebSocket.OPEN = 1
                 client.send(JSON.stringify({
+                  type: 'voice-users',
+                  channelId,
+                  count: currentCount
+                }));
+                client.send(JSON.stringify({
                   type: 'channel-users',
                   channelId,
-                  userCount: voiceChannels.get(channelId)?.size || 0
+                  userCount: currentCount
                 }));
               }
             });
@@ -425,19 +431,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
           case 'webrtc-signal':
           case 'voice-signal':
             // WebRTC signaling relay
-            const targetChannelId = message.channelId;
-            const targetUserId = message.targetUserId;
+            const targetChannelId = message.channelId || message.to;
+            const targetUserId = message.targetUserId || message.to;
+            const fromUserId = message.fromUserId || message.from;
             
-            console.log(`🔄 Relaying voice signal from ${message.fromUserId} to ${targetUserId} in channel ${targetChannelId || 'undefined'}`);
+            console.log(`🔄 Relaying voice signal from ${fromUserId} to ${targetUserId} in channel ${targetChannelId || userChannelId || 'undefined'}`);
             console.log(`🔍 Signal type: ${message.signal?.type}`);
             
             // Find the channel this user is in if channelId is missing
-            let actualChannelId = targetChannelId;
+            let actualChannelId = targetChannelId || userChannelId;
             if (!actualChannelId) {
               // Search for the user in all channels
               for (const [channelId, clients] of voiceChannels.entries()) {
                 for (const client of clients) {
-                  if ((client as any).userId === targetUserId || (client as any).userId === message.fromUserId) {
+                  if ((client as any).userId === targetUserId || (client as any).userId === fromUserId) {
                     actualChannelId = channelId;
                     break;
                   }
@@ -467,7 +474,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
                     client.send(JSON.stringify({
                       type: 'webrtc-signal',
                       to: targetUserId,
-                      from: message.fromUserId,
+                      from: fromUserId,
                       signal: message.signal
                     }));
                   }
@@ -518,6 +525,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
           // Broadcast updated user count
           clients.forEach(client => {
             if (client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify({
+                type: 'voice-users',
+                channelId: userChannelId,
+                count: clients.size
+              }));
               client.send(JSON.stringify({
                 type: 'channel-users',
                 channelId: userChannelId,
