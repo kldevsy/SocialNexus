@@ -770,11 +770,12 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
                         <p className="text-sm text-purple-600">
                           🎤 Conectado ao canal • {voiceUserCount} usuário{voiceUserCount !== 1 ? 's' : ''} online
                         </p>
-                        {!isVoiceConnected && (
-                          <p className="text-xs text-red-500 mt-1">
-                            Reconectando...
-                          </p>
-                        )}
+                        <div className="flex items-center justify-center mt-2 space-x-2">
+                          <div className={`w-2 h-2 rounded-full ${isVoiceConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
+                          <span className={`text-xs ${isVoiceConnected ? 'text-green-600' : 'text-red-500'}`}>
+                            {isVoiceConnected ? 'Conectado' : 'Desconectado'}
+                          </span>
+                        </div>
                       </div>
                       
                       {voiceUsers.length > 0 && (

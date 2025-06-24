@@ -23,7 +23,11 @@ export function useVoiceChat() {
   
   // WebSocket connection
   const connectWebSocket = useCallback(() => {
-    if (wsRef.current?.readyState === WebSocket.OPEN) return;
+    // Close existing connection first
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
     
     const protocol = window.location.protocol === "https:" ? "wss:" : "ws:";
     const wsUrl = `${protocol}//${window.location.host}/ws`;
@@ -70,7 +74,11 @@ export function useVoiceChat() {
     ws.onclose = () => {
       console.log('Voice chat WebSocket disconnected');
       setIsConnected(false);
-      setTimeout(connectWebSocket, 3000); // Reconnect after 3 seconds
+      wsRef.current = null;
+      // Only reconnect if we were intentionally connected to a channel
+      if (currentChannelId) {
+        setTimeout(connectWebSocket, 3000);
+      }
     };
     
     ws.onerror = (error) => {
@@ -164,20 +172,25 @@ export function useVoiceChat() {
       streamRef.current = stream;
       setCurrentChannelId(channelId);
       
-      // Connect WebSocket if not connected
-      if (!isConnected) {
-        connectWebSocket();
-      }
+      // Connect WebSocket and join channel
+      connectWebSocket();
       
-      // Join channel via WebSocket
-      if (wsRef.current?.readyState === WebSocket.OPEN) {
-        wsRef.current.send(JSON.stringify({
-          type: 'join-voice-channel',
-          channelId,
-          userId: user.id,
-          userName: user.firstName || user.username || 'User'
-        }));
-      }
+      // Wait for connection and then join
+      const joinChannel = () => {
+        if (wsRef.current?.readyState === WebSocket.OPEN) {
+          wsRef.current.send(JSON.stringify({
+            type: 'join-voice-channel',
+            channelId,
+            userId: user.id,
+            userName: user.firstName || user.username || 'User'
+          }));
+        } else {
+          // Wait a bit and try again
+          setTimeout(joinChannel, 100);
+        }
+      };
+      
+      setTimeout(joinChannel, 100);
       
       return true;
     } catch (error) {
@@ -206,9 +219,16 @@ export function useVoiceChat() {
     peerConnectionsRef.current.forEach(pc => pc.close());
     peerConnectionsRef.current.clear();
     
+    // Close WebSocket connection
+    if (wsRef.current) {
+      wsRef.current.close();
+      wsRef.current = null;
+    }
+    
     setCurrentChannelId(null);
     setVoiceUsers([]);
     setUserCount(0);
+    setIsConnected(false);
   }, [currentChannelId, user]);
   
   // Toggle mute
@@ -228,17 +248,21 @@ export function useVoiceChat() {
     // Note: In a real implementation, this would control audio output
   }, [isDeafened]);
   
-  // Initialize WebSocket connection
+  // Cleanup on unmount
   useEffect(() => {
-    connectWebSocket();
-    
     return () => {
       if (wsRef.current) {
         wsRef.current.close();
+        wsRef.current = null;
       }
-      leaveVoiceChannel();
+      if (streamRef.current) {
+        streamRef.current.getTracks().forEach(track => track.stop());
+        streamRef.current = null;
+      }
+      peerConnectionsRef.current.forEach(pc => pc.close());
+      peerConnectionsRef.current.clear();
     };
-  }, [connectWebSocket, leaveVoiceChannel]);
+  }, []);
   
   return {
     isConnected,

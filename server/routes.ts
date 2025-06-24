@@ -284,6 +284,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   wss.on('connection', (ws, req) => {
     console.log('WebSocket connection established');
+    let userChannelId: number | null = null;
+    let userId: string | null = null;
     
     ws.on('message', (data) => {
       try {
@@ -292,14 +294,19 @@ export async function registerRoutes(app: Express): Promise<Server> {
         switch (message.type) {
           case 'join-voice-channel':
             const channelId = message.channelId;
+            userChannelId = channelId;
+            userId = message.userId;
+            
             if (!voiceChannels.has(channelId)) {
               voiceChannels.set(channelId, new Set());
             }
             voiceChannels.get(channelId)?.add(ws);
             
+            console.log(`User ${userId} joined voice channel ${channelId}. Total users: ${voiceChannels.get(channelId)?.size}`);
+            
             // Notify others in the channel
             voiceChannels.get(channelId)?.forEach(client => {
-              if (client !== ws && client.readyState === ws.OPEN) {
+              if (client !== ws && client.readyState === WebSocket.OPEN) {
                 client.send(JSON.stringify({
                   type: 'user-joined',
                   channelId,
@@ -315,6 +322,17 @@ export async function registerRoutes(app: Express): Promise<Server> {
               channelId,
               userCount: voiceChannels.get(channelId)?.size || 0
             }));
+            
+            // Broadcast updated user count to all users in channel
+            voiceChannels.get(channelId)?.forEach(client => {
+              if (client.readyState === WebSocket.OPEN) {
+                client.send(JSON.stringify({
+                  type: 'channel-users',
+                  channelId,
+                  userCount: voiceChannels.get(channelId)?.size || 0
+                }));
+              }
+            });
             break;
             
           case 'leave-voice-channel':
@@ -353,21 +371,38 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     
     ws.on('close', () => {
-      // Remove from all voice channels
-      voiceChannels.forEach((clients, channelId) => {
-        if (clients.has(ws)) {
+      console.log(`WebSocket closed for user ${userId} in channel ${userChannelId}`);
+      
+      // Remove from the specific channel this user was in
+      if (userChannelId && voiceChannels.has(userChannelId)) {
+        const clients = voiceChannels.get(userChannelId);
+        if (clients?.has(ws)) {
           clients.delete(ws);
+          console.log(`Removed user ${userId} from channel ${userChannelId}. Remaining users: ${clients.size}`);
+          
           // Notify others
           clients.forEach(client => {
-            if (client.readyState === ws.OPEN) {
+            if (client.readyState === WebSocket.OPEN) {
               client.send(JSON.stringify({
                 type: 'user-left',
-                channelId
+                channelId: userChannelId,
+                userId
+              }));
+            }
+          });
+          
+          // Broadcast updated user count
+          clients.forEach(client => {
+            if (client.readyState === WebSocket.OPEN) {
+              client.send(JSON.stringify({
+                type: 'channel-users',
+                channelId: userChannelId,
+                userCount: clients.size
               }));
             }
           });
         }
-      });
+      }
     });
   });
   
