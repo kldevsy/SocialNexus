@@ -251,7 +251,7 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
     );
   }
 
-  if (!server) {
+  if (!serverData) {
     return (
       <div className="h-screen flex items-center justify-center">
         <div className="text-center">
@@ -268,6 +268,7 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
     );
   }
 
+  // Prepare data after all conditional returns
   const server = serverData;
   const textChannels = channels.filter((channel: any) => channel.type === "text");
   const voiceChannels = channels.filter((channel: any) => channel.type === "voice");
