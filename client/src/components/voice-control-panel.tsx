@@ -1,4 +1,4 @@
-import { useState, useEffect, useRef } from "react";
+import { useState, useEffect, useRef, useCallback } from "react";
 import { motion, AnimatePresence } from "framer-motion";
 import { Button } from "@/components/ui/button";
 import { Slider } from "@/components/ui/slider";
@@ -109,8 +109,13 @@ export function VoiceControlPanel({
 
   // Drag functionality
   const handleMouseDown = (e: React.MouseEvent) => {
-    if (isMinimized) return;
+    // Don't start dragging if clicking on buttons
+    if ((e.target as HTMLElement).closest('button')) {
+      return;
+    }
+    
     e.preventDefault();
+    e.stopPropagation();
     setIsDragging(true);
     setDragStart({
       x: e.clientX - position.x,
@@ -118,7 +123,7 @@ export function VoiceControlPanel({
     });
   };
 
-  const handleMouseMove = (e: MouseEvent) => {
+  const handleMouseMove = useCallback((e: MouseEvent) => {
     if (!isDragging) return;
     
     e.preventDefault();
@@ -132,32 +137,44 @@ export function VoiceControlPanel({
     const maxY = window.innerHeight - panelHeight;
     
     setPosition({
-      x: Math.max(10, Math.min(newX, maxX - 10)),
-      y: Math.max(10, Math.min(newY, maxY - 10))
+      x: Math.max(0, Math.min(newX, maxX)),
+      y: Math.max(0, Math.min(newY, maxY))
     });
-  };
+  }, [isDragging, dragStart.x, dragStart.y]);
 
-  const handleMouseUp = () => {
+  const handleMouseUp = useCallback(() => {
     setIsDragging(false);
-  };
+  }, []);
 
   useEffect(() => {
     if (isDragging) {
       document.addEventListener('mousemove', handleMouseMove);
       document.addEventListener('mouseup', handleMouseUp);
       document.body.style.userSelect = 'none';
+      document.body.style.cursor = 'grabbing';
+      
       return () => {
         document.removeEventListener('mousemove', handleMouseMove);
         document.removeEventListener('mouseup', handleMouseUp);
         document.body.style.userSelect = '';
+        document.body.style.cursor = '';
       };
     }
-  }, [isDragging, dragStart]);
+  }, [isDragging, handleMouseMove, handleMouseUp]);
 
   // Handle close with disconnect
-  const handleClose = () => {
+  const handleClose = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
     onDisconnect(); // Disconnect from voice channel
     onClose(); // Close panel
+  };
+
+  // Handle minimize
+  const handleMinimize = (e: React.MouseEvent) => {
+    e.preventDefault();
+    e.stopPropagation();
+    setIsMinimized(!isMinimized);
   };
 
   if (!isConnected) return null;
@@ -175,38 +192,41 @@ export function VoiceControlPanel({
         transition={{ type: "spring", damping: 25, stiffness: 300 }}
         className="fixed z-50"
         style={{
-          left: `${position.x || window.innerWidth - 350}px`,
-          top: `${position.y || window.innerHeight - 500}px`,
-          cursor: isDragging ? 'grabbing' : 'default'
+          left: `${position.x}px`,
+          top: `${position.y}px`,
+          width: isMinimized ? 'auto' : '320px',
+          minWidth: isMinimized ? '200px' : '320px'
         }}
       >
         <Card className="bg-gray-900/95 backdrop-blur-lg border-gray-700 text-white shadow-2xl overflow-hidden">
           <motion.div
-            animate={{ height: isMinimized ? "auto" : "auto" }}
-            transition={{ duration: 0.3 }}
+            animate={{ 
+              height: isMinimized ? "70px" : "auto",
+              opacity: 1 
+            }}
+            transition={{ duration: 0.3, ease: "easeInOut" }}
           >
             {/* Header */}
             <div 
               className="flex items-center justify-between p-4 border-b border-gray-700 select-none"
               onMouseDown={handleMouseDown}
-              style={{ cursor: isMinimized ? 'default' : (isDragging ? 'grabbing' : 'grab') }}
+              style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
             >
-              <div className="flex items-center space-x-3">
+              <div className="flex items-center space-x-3 flex-1">
                 <div className="w-3 h-3 bg-green-500 rounded-full animate-pulse"></div>
                 <div>
                   <h3 className="font-semibold text-sm">#{channelName}</h3>
                   <p className="text-xs text-gray-400">{userCount} usuário{userCount !== 1 ? 's' : ''}</p>
                 </div>
-                {!isMinimized && (
-                  <Move className={`h-4 w-4 ml-2 ${isDragging ? 'text-blue-400' : 'text-gray-500'}`} />
-                )}
+                <Move className={`h-4 w-4 ml-2 ${isDragging ? 'text-blue-400' : 'text-gray-500'}`} />
               </div>
-              <div className="flex items-center space-x-1">
+              <div className="flex items-center space-x-1 ml-2">
                 <Button
                   variant="ghost"
                   size="sm"
-                  onClick={() => setIsMinimized(!isMinimized)}
-                  className="text-gray-400 hover:text-white w-8 h-8 p-0"
+                  onClick={handleMinimize}
+                  className="text-gray-400 hover:text-white w-8 h-8 p-0 shrink-0"
+                  onMouseDown={(e) => e.stopPropagation()}
                 >
                   {isMinimized ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
                 </Button>
@@ -214,7 +234,8 @@ export function VoiceControlPanel({
                   variant="ghost"
                   size="sm"
                   onClick={handleClose}
-                  className="text-gray-400 hover:text-red-400 w-8 h-8 p-0"
+                  className="text-gray-400 hover:text-red-400 w-8 h-8 p-0 shrink-0"
+                  onMouseDown={(e) => e.stopPropagation()}
                 >
                   ×
                 </Button>
