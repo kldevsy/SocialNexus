@@ -390,14 +390,26 @@ export async function registerRoutes(app: Express): Promise<Server> {
             break;
             
           case 'voice-signal':
-            // Simple signaling for WebRTC (peer-to-peer audio)
+            // WebRTC signaling relay
             const targetChannelId = message.channelId;
+            const targetUserId = message.targetUserId;
+            
+            console.log(`🔄 Relaying voice signal from ${message.fromUserId} to ${targetUserId} in channel ${targetChannelId}`);
+            
             if (voiceChannels.has(targetChannelId)) {
-              voiceChannels.get(targetChannelId)?.forEach(client => {
-                if (client !== ws && client.readyState === 1) { // WebSocket.OPEN = 1
+              // Find the specific target user's WebSocket connection
+              let targetFound = false;
+              voiceChannels.get(targetChannelId)?.forEach((client: any) => {
+                if (client !== ws && client.readyState === 1 && client.userId === targetUserId) {
                   client.send(JSON.stringify(message));
+                  targetFound = true;
+                  console.log(`✅ Signal relayed to target user ${targetUserId}`);
                 }
               });
+              
+              if (!targetFound) {
+                console.log(`❌ Target user ${targetUserId} not found in channel ${targetChannelId}`);
+              }
             }
             break;
         }
