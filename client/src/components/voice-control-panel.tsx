@@ -108,12 +108,15 @@ export function VoiceControlPanel({
   }, [stream, isMuted, micSensitivity]);
 
   // Drag functionality
-  const handleMouseDown = (e: React.MouseEvent) => {
-    // Don't start dragging if clicking on buttons
-    if ((e.target as HTMLElement).closest('button')) {
+  const handleDragStart = (e: React.MouseEvent) => {
+    // Don't start dragging if clicking on buttons or input elements
+    const target = e.target as HTMLElement;
+    if (target.closest('button') || target.closest('input') || target.closest('slider')) {
+      console.log('Blocked drag on button/input');
       return;
     }
     
+    console.log('Starting drag', { x: e.clientX, y: e.clientY, position });
     e.preventDefault();
     e.stopPropagation();
     setIsDragging(true);
@@ -130,19 +133,25 @@ export function VoiceControlPanel({
     const newX = e.clientX - dragStart.x;
     const newY = e.clientY - dragStart.y;
     
+    console.log('Moving', { newX, newY, clientX: e.clientX, clientY: e.clientY });
+    
     // Keep panel within screen bounds
     const panelWidth = panelRef.current?.offsetWidth || 320;
     const panelHeight = panelRef.current?.offsetHeight || 450;
     const maxX = window.innerWidth - panelWidth;
     const maxY = window.innerHeight - panelHeight;
     
-    setPosition({
+    const finalPos = {
       x: Math.max(0, Math.min(newX, maxX)),
       y: Math.max(0, Math.min(newY, maxY))
-    });
+    };
+    
+    console.log('Setting position', finalPos);
+    setPosition(finalPos);
   }, [isDragging, dragStart.x, dragStart.y]);
 
   const handleMouseUp = useCallback(() => {
+    console.log('Drag ended');
     setIsDragging(false);
   }, []);
 
@@ -198,7 +207,7 @@ export function VoiceControlPanel({
           minWidth: isMinimized ? '200px' : '320px'
         }}
       >
-        <Card className="bg-gray-900/95 backdrop-blur-lg border-gray-700 text-white shadow-2xl overflow-hidden">
+        <Card className="bg-gray-900/95 backdrop-blur-lg border-gray-700 text-white shadow-2xl overflow-hidden select-none">
           <motion.div
             animate={{ 
               height: isMinimized ? "70px" : "auto",
@@ -206,10 +215,10 @@ export function VoiceControlPanel({
             }}
             transition={{ duration: 0.3, ease: "easeInOut" }}
           >
-            {/* Header */}
+            {/* Header - Drag Area */}
             <div 
-              className="flex items-center justify-between p-4 border-b border-gray-700 select-none"
-              onMouseDown={handleMouseDown}
+              className="flex items-center justify-between p-4 border-b border-gray-700 select-none cursor-grab active:cursor-grabbing"
+              onMouseDown={handleDragStart}
               style={{ cursor: isDragging ? 'grabbing' : 'grab' }}
             >
               <div className="flex items-center space-x-3 flex-1">
@@ -221,24 +230,22 @@ export function VoiceControlPanel({
                 <Move className={`h-4 w-4 ml-2 ${isDragging ? 'text-blue-400' : 'text-gray-500'}`} />
               </div>
               <div className="flex items-center space-x-1 ml-2">
-                <Button
-                  variant="ghost"
-                  size="sm"
+                <button
                   onClick={handleMinimize}
-                  className="text-gray-400 hover:text-white w-8 h-8 p-0 shrink-0"
+                  className="text-gray-400 hover:text-white w-8 h-8 p-0 shrink-0 flex items-center justify-center rounded hover:bg-gray-700 transition-colors"
                   onMouseDown={(e) => e.stopPropagation()}
+                  type="button"
                 >
                   {isMinimized ? <Maximize2 className="h-4 w-4" /> : <Minimize2 className="h-4 w-4" />}
-                </Button>
-                <Button
-                  variant="ghost"
-                  size="sm"
+                </button>
+                <button
                   onClick={handleClose}
-                  className="text-gray-400 hover:text-red-400 w-8 h-8 p-0 shrink-0"
+                  className="text-gray-400 hover:text-red-400 w-8 h-8 p-0 shrink-0 flex items-center justify-center rounded hover:bg-gray-700 transition-colors"
                   onMouseDown={(e) => e.stopPropagation()}
+                  type="button"
                 >
-                  ×
-                </Button>
+                  <span className="text-lg leading-none">×</span>
+                </button>
               </div>
             </div>
 
