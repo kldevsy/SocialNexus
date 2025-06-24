@@ -130,19 +130,6 @@ export async function setupAuth(app: Express) {
 }
 
 export const isAuthenticated: RequestHandler = async (req, res, next) => {
-  // Modo desenvolvimento - permite acesso temporário
-  if (process.env.NODE_ENV === 'development') {
-    req.user = {
-      claims: {
-        sub: 'test-user-1',
-        email: 'usuario@exemplo.com',
-        given_name: 'João',
-        family_name: 'Silva'
-      }
-    };
-    return next();
-  }
-
   const user = req.user as any;
 
   if (!req.isAuthenticated() || !user.expires_at) {

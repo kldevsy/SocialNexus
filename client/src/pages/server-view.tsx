@@ -111,7 +111,7 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
     );
   }
 
-  const displayName = `${user?.firstName} ${user?.lastName}`.trim() || "User";
+  const displayName = user ? `${user.firstName || ''} ${user.lastName || ''}`.trim() || "User" : "User";
   const onlineMembers = members.filter(() => Math.random() > 0.6); // Simulate online status
 
   return (
