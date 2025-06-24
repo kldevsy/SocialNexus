@@ -6,7 +6,7 @@ import type { ServerWithOwner, User } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { ArrowLeft, Hash, Volume2, VolumeX, Headphones, Mic, MicOff, Settings, Crown, Users, UserPlus, Menu, X } from "lucide-react";
+import { ArrowLeft, Hash, Volume2, VolumeX, Headphones, Mic, MicOff, Settings, Crown, Users, UserPlus, Menu, X, Plus } from "lucide-react";
 
 interface ServerViewProps {
   serverId: number;
@@ -236,64 +236,141 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
             </div>
 
             {/* Channels */}
-            <div className="flex-1 p-4 space-y-4">
+            <div className="flex-1 p-4 space-y-6 bg-gradient-to-b from-gray-50 via-white to-gray-50">
+              {/* Text Channels Section */}
               <div>
-                <h3 className="text-gray-400 text-xs font-semibold uppercase tracking-wide mb-2">
-                  Canais de Texto
-                </h3>
-                <div className="space-y-1">
+                <div className="flex items-center mb-4">
+                  <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center mr-3 shadow-sm">
+                    <Hash className="h-3 w-3 text-white" />
+                  </div>
+                  <h3 className="text-gray-700 text-sm font-bold uppercase tracking-wide">
+                    Canais de Texto
+                  </h3>
+                </div>
+                <div className="space-y-2">
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
-                    className="flex items-center space-x-2 p-2 rounded hover:bg-gray-700 cursor-pointer text-gray-300 hover:text-white bg-gray-700"
+                    whileHover={{ scale: 1.02, x: 6 }}
+                    className="flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-all duration-200 group bg-gradient-to-r from-blue-50 to-indigo-50 border border-blue-200 hover:from-blue-100 hover:to-indigo-100 hover:border-blue-300 shadow-sm hover:shadow-md"
                   >
-                    <Hash className="h-4 w-4" />
-                    <span className="text-sm">geral</span>
+                    <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-blue-600 rounded-lg flex items-center justify-center shadow-sm">
+                      <Hash className="h-4 w-4 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <span className="text-sm font-semibold text-gray-800 group-hover:text-blue-700">geral</span>
+                      <p className="text-xs text-gray-500 group-hover:text-blue-500">Canal principal do servidor</p>
+                    </div>
+                    <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
                   </motion.div>
+                  
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.1 }}
-                    className="flex items-center space-x-2 p-2 rounded hover:bg-gray-700 cursor-pointer text-gray-300 hover:text-white"
+                    whileHover={{ scale: 1.02, x: 6 }}
+                    className="flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-all duration-200 group bg-gradient-to-r from-yellow-50 to-orange-50 border border-yellow-200 hover:from-yellow-100 hover:to-orange-100 hover:border-yellow-300 shadow-sm hover:shadow-md"
                   >
-                    <Hash className="h-4 w-4" />
-                    <span className="text-sm">anúncios</span>
+                    <div className="w-8 h-8 bg-gradient-to-br from-yellow-500 to-orange-500 rounded-lg flex items-center justify-center shadow-sm">
+                      <Hash className="h-4 w-4 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <span className="text-sm font-semibold text-gray-800 group-hover:text-orange-700">anúncios</span>
+                      <p className="text-xs text-gray-500 group-hover:text-orange-500">Informações importantes</p>
+                    </div>
+                    <div className="w-2 h-2 bg-red-500 rounded-full"></div>
                   </motion.div>
+                  
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.2 }}
-                    className="flex items-center space-x-2 p-2 rounded hover:bg-gray-700 cursor-pointer text-gray-300 hover:text-white"
+                    whileHover={{ scale: 1.02, x: 6 }}
+                    className="flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-all duration-200 group bg-gradient-to-r from-green-50 to-emerald-50 border border-green-200 hover:from-green-100 hover:to-emerald-100 hover:border-green-300 shadow-sm hover:shadow-md"
                   >
-                    <Hash className="h-4 w-4" />
-                    <span className="text-sm">random</span>
+                    <div className="w-8 h-8 bg-gradient-to-br from-green-500 to-emerald-500 rounded-lg flex items-center justify-center shadow-sm">
+                      <Hash className="h-4 w-4 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <span className="text-sm font-semibold text-gray-800 group-hover:text-green-700">random</span>
+                      <p className="text-xs text-gray-500 group-hover:text-green-500">Conversas casuais</p>
+                    </div>
+                    <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
                   </motion.div>
                 </div>
               </div>
 
+              {/* Voice Channels Section */}
               <div>
-                <h3 className="text-gray-400 text-xs font-semibold uppercase tracking-wide mb-2">
-                  Canais de Voz
-                </h3>
-                <div className="space-y-1">
+                <div className="flex items-center mb-4">
+                  <div className="w-6 h-6 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg flex items-center justify-center mr-3 shadow-sm">
+                    <Volume2 className="h-3 w-3 text-white" />
+                  </div>
+                  <h3 className="text-gray-700 text-sm font-bold uppercase tracking-wide">
+                    Canais de Voz
+                  </h3>
+                </div>
+                <div className="space-y-2">
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.3 }}
-                    className="flex items-center space-x-2 p-2 rounded hover:bg-gray-700 cursor-pointer text-gray-300 hover:text-white"
+                    whileHover={{ scale: 1.02, x: 6 }}
+                    className="flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-all duration-200 group bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 hover:from-purple-100 hover:to-pink-100 hover:border-purple-300 shadow-sm hover:shadow-md"
                   >
-                    <Volume2 className="h-4 w-4" />
-                    <span className="text-sm">Sala Geral</span>
+                    <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center shadow-sm">
+                      <Volume2 className="h-4 w-4 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <span className="text-sm font-semibold text-gray-800 group-hover:text-purple-700">Sala Geral</span>
+                      <p className="text-xs text-gray-500 group-hover:text-purple-500">Bate-papo por voz</p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
+                      <span className="text-xs text-gray-500 font-medium">0/10</span>
+                    </div>
                   </motion.div>
+                  
                   <motion.div
                     initial={{ opacity: 0, x: -20 }}
                     animate={{ opacity: 1, x: 0 }}
                     transition={{ delay: 0.4 }}
-                    className="flex items-center space-x-2 p-2 rounded hover:bg-gray-700 cursor-pointer text-gray-300 hover:text-white"
+                    whileHover={{ scale: 1.02, x: 6 }}
+                    className="flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-all duration-200 group bg-gradient-to-r from-indigo-50 to-blue-50 border border-indigo-200 hover:from-indigo-100 hover:to-blue-100 hover:border-indigo-300 shadow-sm hover:shadow-md"
                   >
-                    <Volume2 className="h-4 w-4" />
-                    <span className="text-sm">Gaming</span>
+                    <div className="w-8 h-8 bg-gradient-to-br from-indigo-500 to-blue-500 rounded-lg flex items-center justify-center shadow-sm">
+                      <Volume2 className="h-4 w-4 text-white" />
+                    </div>
+                    <div className="flex-1">
+                      <span className="text-sm font-semibold text-gray-800 group-hover:text-indigo-700">Gaming</span>
+                      <p className="text-xs text-gray-500 group-hover:text-indigo-500">Para jogos online</p>
+                    </div>
+                    <div className="flex items-center space-x-2">
+                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      <span className="text-xs text-green-600 font-medium">2/5</span>
+                    </div>
                   </motion.div>
+                </div>
+              </div>
+
+              {/* Footer Actions */}
+              <div className="pt-4 border-t border-gray-200">
+                <div className="flex items-center justify-between">
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-gray-600 hover:text-gray-800 hover:bg-gray-100 transition-colors"
+                  >
+                    <Settings className="h-4 w-4 mr-2" />
+                    Configurações
+                  </Button>
+                  <Button 
+                    variant="ghost" 
+                    size="sm" 
+                    className="text-green-600 hover:text-green-700 hover:bg-green-50 w-8 h-8 p-0 rounded-lg"
+                  >
+                    <Users className="h-4 w-4" />
+                  </Button>
                 </div>
               </div>
             </div>
