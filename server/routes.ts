@@ -453,7 +453,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
               }
             }
             
-            console.log(`🎯 Using channel ID: ${actualChannelId} (original: ${targetChannelId})`);
+            console.log(`🎯 Using channel ID: ${actualChannelId} (original: ${signalChannelId})`);
             
             if (actualChannelId && voiceChannels.has(actualChannelId)) {
               // Find the specific target user's WebSocket connection

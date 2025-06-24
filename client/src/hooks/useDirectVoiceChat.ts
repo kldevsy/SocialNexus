@@ -4,6 +4,7 @@ export function useDirectVoiceChat() {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectedChannelId, setConnectedChannelId] = useState<number | null>(null);
+  const connectedChannelIdRef = useRef<number | null>(null);
   const [userCount, setUserCount] = useState(0);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [isMuted, setIsMuted] = useState(false);
@@ -86,7 +87,7 @@ export function useDirectVoiceChat() {
             type: 'webrtc-signal',
             to: from,
             from: currentUserIdRef.current,
-            channelId: connectedChannelId,
+            channelId: connectedChannelIdRef.current,
             signal: { type: 'answer', answer }
           }));
           
@@ -140,12 +141,12 @@ export function useDirectVoiceChat() {
     const offer = await pc.createOffer();
     await pc.setLocalDescription(offer);
     
-    console.log(`Sending offer to ${userId} in channel ${connectedChannelId}`);
+    console.log(`Sending offer to ${userId} in channel ${connectedChannelIdRef.current}`);
     wsRef.current?.send(JSON.stringify({
       type: 'webrtc-signal',
       to: userId,
       from: currentUserIdRef.current,
-      channelId: connectedChannelId,
+      channelId: connectedChannelIdRef.current,
       signal: { type: 'offer', offer }
     }));
   }, [localStream, createPeerConnection]);
@@ -182,6 +183,7 @@ export function useDirectVoiceChat() {
         }));
         setIsConnected(true);
         setConnectedChannelId(channelId);
+        connectedChannelIdRef.current = channelId;
         setIsConnecting(false);
       };
       
@@ -247,7 +249,7 @@ export function useDirectVoiceChat() {
     if (wsRef.current) {
       wsRef.current.send(JSON.stringify({
         type: 'leave-voice',
-        channelId: connectedChannelId,
+        channelId: connectedChannelIdRef.current,
         userId: currentUserIdRef.current
       }));
       wsRef.current.close();
@@ -264,6 +266,7 @@ export function useDirectVoiceChat() {
     
     setIsConnected(false);
     setConnectedChannelId(null);
+    connectedChannelIdRef.current = null;
     setUserCount(0);
   };
 
