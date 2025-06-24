@@ -136,6 +136,12 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
     queryKey: [`/api/servers/${serverId}/channels`],
     refetchOnWindowFocus: false,
     enabled: !!serverData,
+    onSuccess: (data) => {
+      console.log('Channels fetched:', data);
+    },
+    onError: (error) => {
+      console.error('Error fetching channels:', error);
+    },
   });
 
   const { data: members = [], isLoading: membersLoading } = useQuery({

@@ -36,8 +36,8 @@ export function CreateChannelModal({ open, onOpenChange, serverId }: CreateChann
         title: "Canal criado com sucesso!",
         description: "Seu novo canal está pronto para uso.",
       });
-      queryClient.invalidateQueries({ queryKey: ["/api/servers", serverId] });
-      queryClient.invalidateQueries({ queryKey: ["/api/servers", serverId, "channels"] });
+      queryClient.invalidateQueries({ queryKey: [`/api/servers/${serverId}`] });
+      queryClient.invalidateQueries({ queryKey: [`/api/servers/${serverId}/channels`] });
       onOpenChange(false);
       setName("");
       setDescription("");
