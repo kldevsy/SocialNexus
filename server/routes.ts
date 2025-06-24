@@ -1,5 +1,6 @@
 import type { Express } from "express";
 import { createServer, type Server } from "http";
+import { WebSocketServer } from "ws";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
 import { insertServerSchema, updateUserSchema, updateServerSchema, insertChannelSchema } from "@shared/schema";
@@ -274,5 +275,101 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   const httpServer = createServer(app);
+  
+  // Setup WebSocket for voice channels
+  const wss = new WebSocketServer({ server: httpServer, path: '/ws' });
+  
+  // Store voice channel connections
+  const voiceChannels = new Map<number, Set<any>>();
+  
+  wss.on('connection', (ws, req) => {
+    console.log('WebSocket connection established');
+    
+    ws.on('message', (data) => {
+      try {
+        const message = JSON.parse(data.toString());
+        
+        switch (message.type) {
+          case 'join-voice-channel':
+            const channelId = message.channelId;
+            if (!voiceChannels.has(channelId)) {
+              voiceChannels.set(channelId, new Set());
+            }
+            voiceChannels.get(channelId)?.add(ws);
+            
+            // Notify others in the channel
+            voiceChannels.get(channelId)?.forEach(client => {
+              if (client !== ws && client.readyState === ws.OPEN) {
+                client.send(JSON.stringify({
+                  type: 'user-joined',
+                  channelId,
+                  userId: message.userId,
+                  userName: message.userName
+                }));
+              }
+            });
+            
+            // Send current users to the new connection
+            ws.send(JSON.stringify({
+              type: 'channel-users',
+              channelId,
+              userCount: voiceChannels.get(channelId)?.size || 0
+            }));
+            break;
+            
+          case 'leave-voice-channel':
+            const leaveChannelId = message.channelId;
+            if (voiceChannels.has(leaveChannelId)) {
+              voiceChannels.get(leaveChannelId)?.delete(ws);
+              
+              // Notify others
+              voiceChannels.get(leaveChannelId)?.forEach(client => {
+                if (client.readyState === ws.OPEN) {
+                  client.send(JSON.stringify({
+                    type: 'user-left',
+                    channelId: leaveChannelId,
+                    userId: message.userId
+                  }));
+                }
+              });
+            }
+            break;
+            
+          case 'voice-signal':
+            // Simple signaling for WebRTC (peer-to-peer audio)
+            const targetChannelId = message.channelId;
+            if (voiceChannels.has(targetChannelId)) {
+              voiceChannels.get(targetChannelId)?.forEach(client => {
+                if (client !== ws && client.readyState === ws.OPEN) {
+                  client.send(JSON.stringify(message));
+                }
+              });
+            }
+            break;
+        }
+      } catch (error) {
+        console.error('WebSocket message error:', error);
+      }
+    });
+    
+    ws.on('close', () => {
+      // Remove from all voice channels
+      voiceChannels.forEach((clients, channelId) => {
+        if (clients.has(ws)) {
+          clients.delete(ws);
+          // Notify others
+          clients.forEach(client => {
+            if (client.readyState === ws.OPEN) {
+              client.send(JSON.stringify({
+                type: 'user-left',
+                channelId
+              }));
+            }
+          });
+        }
+      });
+    });
+  });
+  
   return httpServer;
 }

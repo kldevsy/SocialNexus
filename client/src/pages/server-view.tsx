@@ -1,12 +1,13 @@
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
+import { useVoiceChat } from "@/hooks/useVoiceChat";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import type { ServerWithOwner, User, Channel, ServerWithChannels } from "@shared/schema";
 import { useToast } from "@/hooks/use-toast";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
-import { ArrowLeft, Hash, Volume2, VolumeX, Headphones, Mic, MicOff, Settings, Crown, Users, UserPlus, Menu, X, Plus, Trash2 } from "lucide-react";
+import { ArrowLeft, Hash, Volume2, VolumeX, Headphones, Mic, MicOff, Settings, Crown, Users, UserPlus, Menu, X, Plus, Trash2, PhoneCall, PhoneOff } from "lucide-react";
 import { CreateChannelModal } from "@/components/create-channel-modal";
 
 interface ServerViewProps {
@@ -29,6 +30,20 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
   const [isCreateChannelModalOpen, setIsCreateChannelModalOpen] = useState(false);
   const [isMuted, setIsMuted] = useState(false);
   const [isDeafened, setIsDeafened] = useState(false);
+  
+  // Voice chat functionality
+  const {
+    isConnected: isVoiceConnected,
+    currentChannelId: currentVoiceChannelId,
+    voiceUsers,
+    userCount: voiceUserCount,
+    isMuted: isVoiceMuted,
+    isDeafened: isVoiceDeafened,
+    joinVoiceChannel,
+    leaveVoiceChannel,
+    toggleMute: toggleVoiceMute,
+    toggleDeafen: toggleVoiceDeafen
+  } = useVoiceChat();
 
   // Sistema de drag para sidebars com touch e mouse
   useEffect(() => {
@@ -383,10 +398,29 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: (textChannels.length + index) * 0.05 }}
                       whileHover={{ scale: 1.02, x: 6 }}
-                      className="flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-all duration-200 group bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 hover:from-purple-100 hover:to-pink-100 hover:border-purple-300 shadow-sm hover:shadow-md"
+                      onClick={() => {
+                        if (currentVoiceChannelId === channel.id) {
+                          leaveVoiceChannel();
+                        } else {
+                          joinVoiceChannel(channel.id);
+                        }
+                      }}
+                      className={`flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-all duration-200 group shadow-sm hover:shadow-md ${
+                        currentVoiceChannelId === channel.id
+                          ? "bg-gradient-to-r from-green-100 to-emerald-100 border border-green-300"
+                          : "bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 hover:from-purple-100 hover:to-pink-100 hover:border-purple-300"
+                      }`}
                     >
-                      <div className="w-8 h-8 bg-gradient-to-br from-purple-500 to-purple-600 rounded-lg flex items-center justify-center shadow-sm">
-                        <Volume2 className="h-4 w-4 text-white" />
+                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-sm ${
+                        currentVoiceChannelId === channel.id
+                          ? "bg-gradient-to-br from-green-500 to-green-600"
+                          : "bg-gradient-to-br from-purple-500 to-purple-600"
+                      }`}>
+                        {currentVoiceChannelId === channel.id ? (
+                          <PhoneCall className="h-4 w-4 text-white" />
+                        ) : (
+                          <Volume2 className="h-4 w-4 text-white" />
+                        )}
                       </div>
                       <div className="flex-1">
                         <span className="text-sm font-semibold text-gray-800 group-hover:text-purple-700">
@@ -412,8 +446,15 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
                             <Trash2 className="h-3 w-3 text-red-500" />
                           </Button>
                         )}
-                        <div className="w-2 h-2 bg-gray-400 rounded-full"></div>
-                        <span className="text-xs text-gray-500 font-medium">0/{Math.floor(Math.random() * 10) + 5}</span>
+                        <div className={`w-2 h-2 rounded-full ${
+                          currentVoiceChannelId === channel.id ? "bg-green-500 animate-pulse" : "bg-gray-400"
+                        }`}></div>
+                        <span className="text-xs text-gray-500 font-medium">
+                          {currentVoiceChannelId === channel.id ? voiceUserCount : "0"}/{Math.floor(Math.random() * 10) + 5}
+                        </span>
+                        {currentVoiceChannelId === channel.id && (
+                          <span className="text-xs text-green-600 font-medium">Conectado</span>
+                        )}
                       </div>
                     </motion.div>
                   ))}
@@ -462,18 +503,24 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setIsMuted(!isMuted)}
-                    className={`text-gray-400 hover:text-white ${isMuted ? 'text-red-400' : ''}`}
+                    onClick={() => currentVoiceChannelId ? toggleVoiceMute() : setIsMuted(!isMuted)}
+                    className={`text-gray-400 hover:text-white ${
+                      currentVoiceChannelId ? (isVoiceMuted ? 'text-red-400' : 'text-green-400') : (isMuted ? 'text-red-400' : '')
+                    }`}
+                    title={currentVoiceChannelId ? "Controle de voz ativo" : "Controle local"}
                   >
-                    {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                    {currentVoiceChannelId ? (isVoiceMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />) : (isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />)}
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => setIsDeafened(!isDeafened)}
-                    className={`text-gray-400 hover:text-white ${isDeafened ? 'text-red-400' : ''}`}
+                    onClick={() => currentVoiceChannelId ? toggleVoiceDeafen() : setIsDeafened(!isDeafened)}
+                    className={`text-gray-400 hover:text-white ${
+                      currentVoiceChannelId ? (isVoiceDeafened ? 'text-red-400' : 'text-green-400') : (isDeafened ? 'text-red-400' : '')
+                    }`}
+                    title={currentVoiceChannelId ? "Controle de áudio ativo" : "Controle local"}
                   >
-                    {isDeafened ? <VolumeX className="h-4 w-4" /> : <Headphones className="h-4 w-4" />}
+                    {currentVoiceChannelId ? (isVoiceDeafened ? <VolumeX className="h-4 w-4" /> : <Headphones className="h-4 w-4" />) : (isDeafened ? <VolumeX className="h-4 w-4" /> : <Headphones className="h-4 w-4" />)}
                   </Button>
                   <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
                     <Settings className="h-4 w-4" />
@@ -688,18 +735,73 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
                   <p className="text-purple-700 mb-4">
                     {selectedChannel.description || "Conecte-se para conversar por voz com outros membros"}
                   </p>
-                  <Button 
-                    className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2"
-                    onClick={() => {
-                      toast({
-                        title: "Recurso em desenvolvimento",
-                        description: "A funcionalidade de voz estará disponível em breve!",
-                      });
-                    }}
-                  >
-                    <Headphones className="h-4 w-4 mr-2" />
-                    Conectar ao Canal
-                  </Button>
+                  {currentVoiceChannelId === selectedChannel.id ? (
+                    <div className="space-y-4">
+                      <div className="flex items-center justify-center space-x-4">
+                        <Button 
+                          variant={isVoiceMuted ? "destructive" : "outline"}
+                          onClick={toggleVoiceMute}
+                          className="flex items-center space-x-2"
+                        >
+                          {isVoiceMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
+                          <span>{isVoiceMuted ? "Desmutar" : "Mutar"}</span>
+                        </Button>
+                        
+                        <Button 
+                          variant={isVoiceDeafened ? "destructive" : "outline"}
+                          onClick={toggleVoiceDeafen}
+                          className="flex items-center space-x-2"
+                        >
+                          {isVoiceDeafened ? <VolumeX className="h-4 w-4" /> : <Headphones className="h-4 w-4" />}
+                          <span>{isVoiceDeafened ? "Ouvir" : "Ensurdecer"}</span>
+                        </Button>
+                        
+                        <Button 
+                          variant="destructive"
+                          onClick={() => leaveVoiceChannel()}
+                          className="flex items-center space-x-2"
+                        >
+                          <PhoneOff className="h-4 w-4" />
+                          <span>Desconectar</span>
+                        </Button>
+                      </div>
+                      
+                      <div className="text-center">
+                        <p className="text-sm text-purple-600">
+                          🎤 Conectado ao canal • {voiceUserCount} usuário{voiceUserCount !== 1 ? 's' : ''} online
+                        </p>
+                        {!isVoiceConnected && (
+                          <p className="text-xs text-red-500 mt-1">
+                            Reconectando...
+                          </p>
+                        )}
+                      </div>
+                      
+                      {voiceUsers.length > 0 && (
+                        <div className="bg-purple-100 rounded-lg p-4">
+                          <h4 className="text-sm font-medium text-purple-900 mb-2">Usuários no canal:</h4>
+                          <div className="space-y-2">
+                            {voiceUsers.map(user => (
+                              <div key={user.userId} className="flex items-center space-x-2 text-sm">
+                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
+                                <span className="text-purple-700">{user.userName}</span>
+                                {user.isMuted && <MicOff className="h-3 w-3 text-red-500" />}
+                              </div>
+                            ))}
+                          </div>
+                        </div>
+                      )}
+                    </div>
+                  ) : (
+                    <Button 
+                      className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2"
+                      onClick={() => joinVoiceChannel(selectedChannel.id)}
+                      disabled={!isVoiceConnected}
+                    >
+                      <PhoneCall className="h-4 w-4 mr-2" />
+                      {!isVoiceConnected ? "Conectando..." : "Conectar ao Canal"}
+                    </Button>
+                  )}
                 </motion.div>
               </div>
             )}
