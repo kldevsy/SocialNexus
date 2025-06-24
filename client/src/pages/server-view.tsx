@@ -42,11 +42,13 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
       // Arrastar da esquerda para direita abre sidebar de canais
       if (deltaX > 50 && !isChannelSidebarOpen) {
         setIsChannelSidebarOpen(true);
+        setIsMemberSidebarOpen(false); // Fecha o outro menu
         setIsDragging(false);
       }
       // Arrastar da direita para esquerda abre sidebar de membros  
       else if (deltaX < -50 && !isMemberSidebarOpen) {
         setIsMemberSidebarOpen(true);
+        setIsChannelSidebarOpen(false); // Fecha o outro menu
         setIsDragging(false);
       }
     };
@@ -151,7 +153,7 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
   return (
     <div 
       ref={containerRef}
-      className="h-screen flex bg-gray-100 relative"
+      className="h-screen flex bg-gray-100 relative overflow-hidden"
       onMouseDown={handleMouseDown}
       onTouchStart={handleTouchStart}
     >
@@ -357,7 +359,10 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
               <Button 
                 variant="ghost" 
                 size="sm" 
-                onClick={() => setIsChannelSidebarOpen(true)}
+                onClick={() => {
+                  setIsChannelSidebarOpen(true);
+                  setIsMemberSidebarOpen(false);
+                }}
                 className="mr-3"
               >
                 <Menu className="h-5 w-5" />
@@ -373,7 +378,12 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
             <Button 
               variant="ghost" 
               size="sm"
-              onClick={() => setIsMemberSidebarOpen(!isMemberSidebarOpen)}
+              onClick={() => {
+                setIsMemberSidebarOpen(!isMemberSidebarOpen);
+                if (!isMemberSidebarOpen) {
+                  setIsChannelSidebarOpen(false);
+                }
+              }}
             >
               <Users className="h-4 w-4" />
             </Button>
@@ -457,71 +467,111 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
       <motion.div 
         initial={{ width: 0, opacity: 0 }}
         animate={{ 
-          width: isMemberSidebarOpen ? 256 : 0,
+          width: isMemberSidebarOpen ? 280 : 0,
           opacity: isMemberSidebarOpen ? 1 : 0
         }}
         transition={{ 
           width: { duration: 0.3, ease: "easeInOut" },
           opacity: { duration: 0.2, delay: isMemberSidebarOpen ? 0.1 : 0 }
         }}
-        className="bg-gray-50 border-l border-gray-200 overflow-hidden relative shadow-lg"
-        style={{ minWidth: isMemberSidebarOpen ? 256 : 0 }}
+        className="bg-gray-50 border-l border-gray-200 overflow-visible relative shadow-lg"
+        style={{ minWidth: isMemberSidebarOpen ? 280 : 0, maxWidth: isMemberSidebarOpen ? 280 : 0 }}
       >
         {isMemberSidebarOpen && (
-          <>
-            <div className="p-4 border-b border-gray-200 flex items-center justify-between">
-              <h3 className="font-semibold text-gray-900">Membros — {members.length}</h3>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => setIsMemberSidebarOpen(false)}
-                className="text-gray-500 hover:text-gray-700"
-              >
-                <X className="h-4 w-4" />
-              </Button>
+          <motion.div
+            initial={{ opacity: 0, y: 20 }}
+            animate={{ opacity: 1, y: 0 }}
+            transition={{ duration: 0.2, delay: 0.1 }}
+            className="h-full flex flex-col w-full min-w-[280px]"
+          >
+            {/* Members Header */}
+            <div className="p-4 border-b border-gray-200 bg-white">
+              <div className="flex items-center justify-between mb-3">
+                <h3 className="text-gray-900 font-semibold text-lg">Membros do Servidor</h3>
+                <Button 
+                  variant="ghost" 
+                  size="sm" 
+                  onClick={() => setIsMemberSidebarOpen(false)}
+                  className="text-gray-500 hover:text-gray-700"
+                >
+                  <X className="h-4 w-4" />
+                </Button>
+              </div>
+              <p className="text-sm text-gray-500">{members.length} total • {onlineMembers.length} online</p>
             </div>
-            <div className="p-4">
-              {membersLoading ? (
-                <div className="space-y-3">
-                  {[1, 2, 3].map((i) => (
-                    <div key={i} className="flex items-center space-x-3 animate-pulse">
-                      <div className="w-8 h-8 bg-gray-300 rounded-full"></div>
-                      <div className="flex-1 space-y-1">
-                        <div className="h-4 bg-gray-300 rounded w-3/4"></div>
-                        <div className="h-3 bg-gray-300 rounded w-1/2"></div>
-                      </div>
-                    </div>
-                  ))}
-                </div>
-              ) : (
+
+            {/* Online Members */}
+            <div className="flex-1 p-4 space-y-3 overflow-y-auto">
+              <div>
+                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                  Online — {onlineMembers.length}
+                </h4>
                 <div className="space-y-2">
-                  {members.map((member) => (
+                  {onlineMembers.map((member, index) => (
                     <motion.div
-                      key={member.id}
+                      key={`online-${index}`}
                       initial={{ opacity: 0, x: 20 }}
                       animate={{ opacity: 1, x: 0 }}
-                      className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 transition-colors cursor-pointer"
+                      transition={{ delay: index * 0.05 }}
+                      className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 cursor-pointer transition-colors"
                     >
-                      <Avatar className="h-8 w-8">
-                        <AvatarImage 
-                          src={member.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(member.firstName || 'User')}&size=32&background=6366f1&color=ffffff`} 
-                          alt={member.firstName || 'User'} 
-                        />
-                        <AvatarFallback>{(member.firstName || 'U').charAt(0)}</AvatarFallback>
-                      </Avatar>
-                      <div className="flex-1">
-                        <p className="text-sm font-medium text-gray-700 flex items-center">
-                          {member.firstName || 'User'}
-                          {member.id === server.ownerId && <Crown className="h-3 w-3 ml-1 text-yellow-500" />}
+                      <div className="relative">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage 
+                            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(member.firstName || 'User')}&size=32&background=random`}
+                            alt={member.firstName || 'User'}
+                          />
+                          <AvatarFallback>{(member.firstName || 'U').charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-green-500 border-2 border-white rounded-full"></div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-900 truncate">
+                          {member.firstName} {member.lastName}
+                        </p>
+                        <p className="text-xs text-gray-500">Online</p>
+                      </div>
+                    </motion.div>
+                  ))}
+                </div>
+              </div>
+
+              {/* Offline Members */}
+              <div>
+                <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wide mb-3">
+                  Offline — {members.length - onlineMembers.length}
+                </h4>
+                <div className="space-y-2">
+                  {members.filter((_, i) => !onlineMembers.includes(members[i])).map((member, index) => (
+                    <motion.div
+                      key={`offline-${index}`}
+                      initial={{ opacity: 0, x: 20 }}
+                      animate={{ opacity: 1, x: 0 }}
+                      transition={{ delay: (onlineMembers.length + index) * 0.05 }}
+                      className="flex items-center space-x-3 p-2 rounded-lg hover:bg-gray-100 cursor-pointer opacity-60 transition-colors"
+                    >
+                      <div className="relative">
+                        <Avatar className="h-8 w-8">
+                          <AvatarImage 
+                            src={`https://ui-avatars.com/api/?name=${encodeURIComponent(member.firstName || 'User')}&size=32&background=random`}
+                            alt={member.firstName || 'User'}
+                          />
+                          <AvatarFallback>{(member.firstName || 'U').charAt(0)}</AvatarFallback>
+                        </Avatar>
+                        <div className="absolute -bottom-1 -right-1 w-3 h-3 bg-gray-400 border-2 border-white rounded-full"></div>
+                      </div>
+                      <div className="flex-1 min-w-0">
+                        <p className="text-sm font-medium text-gray-700 truncate">
+                          {member.firstName} {member.lastName}
                         </p>
                         <p className="text-xs text-gray-500">Offline</p>
                       </div>
                     </motion.div>
                   ))}
                 </div>
-              )}
+              </div>
             </div>
-          </>
+          </motion.div>
         )}
       </motion.div>
     </div>
