@@ -134,7 +134,7 @@ export function useVoiceChat() {
           console.log('📤 Created and set local description (answer)');
           
           if (ws?.readyState === WebSocket.OPEN) {
-            ws.send(JSON.stringify({
+            const answerMessage = {
               type: 'voice-signal',
               signal: {
                 type: 'answer',
@@ -143,7 +143,9 @@ export function useVoiceChat() {
               targetUserId: fromUserId,
               fromUserId: currentUserId.current,
               channelId: connectedChannelId
-            }));
+            };
+            console.log('📤 Sending answer message:', answerMessage);
+            ws.send(JSON.stringify(answerMessage));
             console.log('📤 Sent answer to:', fromUserId);
           }
           break;
@@ -259,32 +261,34 @@ export function useVoiceChat() {
                     });
                   }
                   
-                  // Create and send offer
-                  pc.createOffer({
-                    offerToReceiveAudio: true,
-                    offerToReceiveVideo: false
-                  }).then(offer => {
-                    console.log('📤 Setting local description and sending offer to existing user:', user.userId);
-                    return pc.setLocalDescription(offer);
-                  }).then(() => {
-                    if (ws?.readyState === WebSocket.OPEN) {
-                      console.log('📤 Sending offer to existing user:', user.userId);
-                      const offerMessage = {
-                        type: 'voice-signal',
-                        signal: {
-                          type: 'offer',
-                          offer: pc.localDescription
-                        },
-                        targetUserId: user.userId,
-                        fromUserId: currentUserId.current,
-                        channelId: connectedChannelId
-                      };
-                      console.log('📤 Offer message:', JSON.stringify(offerMessage, null, 2));
-                      ws.send(JSON.stringify(offerMessage));
-                    }
-                  }).catch(error => {
-                    console.error('❌ Error creating offer for existing user:', error);
-                  });
+                  // Create and send offer after a delay
+                  setTimeout(() => {
+                    pc.createOffer({
+                      offerToReceiveAudio: true,
+                      offerToReceiveVideo: false
+                    }).then(offer => {
+                      console.log('📤 Setting local description and sending offer to existing user:', user.userId);
+                      return pc.setLocalDescription(offer);
+                    }).then(() => {
+                      if (ws?.readyState === WebSocket.OPEN) {
+                        console.log('📤 Sending offer to existing user:', user.userId);
+                        const offerMessage = {
+                          type: 'voice-signal',
+                          signal: {
+                            type: 'offer',
+                            offer: pc.localDescription
+                          },
+                          targetUserId: user.userId,
+                          fromUserId: currentUserId.current,
+                          channelId: connectedChannelId
+                        };
+                        console.log('📤 Offer message:', JSON.stringify(offerMessage, null, 2));
+                        ws.send(JSON.stringify(offerMessage));
+                      }
+                    }).catch(error => {
+                      console.error('❌ Error creating offer for existing user:', error);
+                    });
+                  }, 500); // Wait 0.5 seconds before creating offer
                 }
               });
             }
@@ -314,28 +318,32 @@ export function useVoiceChat() {
               }
               
               // Create and send offer
-              pc.createOffer({
-                offerToReceiveAudio: true,
-                offerToReceiveVideo: false
-              }).then(offer => {
-                console.log('📤 Setting local description and sending offer to new user:', message.userId);
-                return pc.setLocalDescription(offer);
-              }).then(() => {
-                if (ws?.readyState === WebSocket.OPEN) {
-                  ws.send(JSON.stringify({
-                    type: 'voice-signal',
-                    signal: {
-                      type: 'offer',
-                      offer: pc.localDescription
-                    },
-                    targetUserId: message.userId,
-                    fromUserId: currentUserId.current,
-                    channelId: connectedChannelId
-                  }));
-                }
-              }).catch(error => {
-                console.error('❌ Error creating offer for new user:', error);
-              });
+              setTimeout(() => {
+                pc.createOffer({
+                  offerToReceiveAudio: true,
+                  offerToReceiveVideo: false
+                }).then(offer => {
+                  console.log('📤 Setting local description and sending offer to new user:', message.userId);
+                  return pc.setLocalDescription(offer);
+                }).then(() => {
+                  if (ws?.readyState === WebSocket.OPEN) {
+                    const offerMessage = {
+                      type: 'voice-signal',
+                      signal: {
+                        type: 'offer',
+                        offer: pc.localDescription
+                      },
+                      targetUserId: message.userId,
+                      fromUserId: currentUserId.current,
+                      channelId: connectedChannelId
+                    };
+                    console.log('📤 Sending offer message to new user:', message.userId, offerMessage);
+                    ws.send(JSON.stringify(offerMessage));
+                  }
+                }).catch(error => {
+                  console.error('❌ Error creating offer for new user:', error);
+                });
+              }, 1000); // Wait 1 second before creating offer
             }
             break;
             
