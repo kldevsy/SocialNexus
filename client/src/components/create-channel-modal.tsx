@@ -29,9 +29,6 @@ export function CreateChannelModal({ open, onOpenChange, serverId }: CreateChann
       return await apiRequest(`/api/servers/${serverId}/channels`, {
         method: "POST",
         body: JSON.stringify(channelData),
-        headers: {
-          "Content-Type": "application/json",
-        },
       });
     },
     onSuccess: () => {
@@ -47,6 +44,7 @@ export function CreateChannelModal({ open, onOpenChange, serverId }: CreateChann
       setType("text");
     },
     onError: (error: any) => {
+      console.error("Channel creation error:", error);
       toast({
         title: "Erro ao criar canal",
         description: error?.message || "Ocorreu um erro inesperado.",
@@ -77,7 +75,7 @@ export function CreateChannelModal({ open, onOpenChange, serverId }: CreateChann
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="sm:max-w-md">
+      <DialogContent className="sm:max-w-md" aria-describedby="channel-modal-description">
         <DialogHeader>
           <DialogTitle className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
@@ -85,6 +83,9 @@ export function CreateChannelModal({ open, onOpenChange, serverId }: CreateChann
             </div>
             <span>Criar Canal</span>
           </DialogTitle>
+          <p id="channel-modal-description" className="text-sm text-gray-600">
+            Crie um novo canal para organizar conversas no seu servidor.
+          </p>
         </DialogHeader>
 
         <form onSubmit={handleSubmit} className="space-y-6">
