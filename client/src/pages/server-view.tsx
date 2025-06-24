@@ -33,19 +33,24 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
       const deltaX = clientX - dragStartX;
       const deltaY = Math.abs(clientY - dragStartY);
       
+      console.log('Movimento:', { deltaX, deltaY, clientX, dragStartX });
+      
       // Verificar se é um movimento horizontal (não vertical)
       if (deltaY > 50) {
+        console.log('Cancelando por movimento vertical');
         setIsDragging(false);
         return;
       }
       
-      // Arrastar da esquerda para direita abre sidebar de canais
-      if (deltaX > 100 && !isChannelSidebarOpen) {
+      // Arrastar da esquerda para direita abre sidebar de canais (reduzindo threshold)
+      if (deltaX > 50 && !isChannelSidebarOpen) {
+        console.log('Abrindo sidebar de canais');
         setIsChannelSidebarOpen(true);
         setIsDragging(false);
       }
       // Arrastar da direita para esquerda abre sidebar de membros  
-      else if (deltaX < -100 && !isMemberSidebarOpen) {
+      else if (deltaX < -50 && !isMemberSidebarOpen) {
+        console.log('Abrindo sidebar de membros');
         setIsMemberSidebarOpen(true);
         setIsDragging(false);
       }
@@ -83,13 +88,11 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
   const handleStart = (clientX: number, clientY: number, target: EventTarget | null) => {
     // Apenas inicia drag se não estiver clicando em botões ou elementos interativos
     if ((target as HTMLElement)?.closest('button, input, textarea, select, a')) {
+      console.log('Ignorando drag em elemento interativo');
       return;
     }
     
-    // Só permitir drag nas bordas da tela (primeiros/últimos 50px)
-    if (clientX > 50 && clientX < window.innerWidth - 50) {
-      return;
-    }
+    console.log('Drag iniciado em:', clientX, 'largura da tela:', window.innerWidth);
     
     setIsDragging(true);
     setDragStartX(clientX);
@@ -162,14 +165,16 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
     >
       {/* Drag zone esquerda sempre visível */}
       <div 
-        className="absolute left-0 top-0 w-6 h-full bg-transparent z-50 flex items-center justify-center"
+        className="absolute left-0 top-0 w-12 h-full bg-red-500 bg-opacity-20 z-50 flex items-center justify-center cursor-pointer"
         onMouseDown={(e) => {
+          console.log('Clique na zona esquerda');
           if (!isChannelSidebarOpen) {
             e.stopPropagation();
             handleStart(e.clientX, e.clientY, e.target);
           }
         }}
         onTouchStart={(e) => {
+          console.log('Touch na zona esquerda');
           if (!isChannelSidebarOpen && e.touches.length === 1) {
             e.stopPropagation();
             handleStart(e.touches[0].clientX, e.touches[0].clientY, e.target);
@@ -177,20 +182,22 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
         }}
       >
         {!isChannelSidebarOpen && (
-          <div className="w-1 h-12 bg-gray-300 rounded-full opacity-30 hover:opacity-60 transition-opacity" />
+          <div className="w-2 h-16 bg-gray-600 rounded-full opacity-50 hover:opacity-80 transition-opacity" />
         )}
       </div>
 
       {/* Drag zone direita sempre visível */}
       <div 
-        className="absolute right-0 top-0 w-6 h-full bg-transparent z-50 flex items-center justify-center"
+        className="absolute right-0 top-0 w-12 h-full bg-blue-500 bg-opacity-20 z-50 flex items-center justify-center cursor-pointer"
         onMouseDown={(e) => {
+          console.log('Clique na zona direita');
           if (!isMemberSidebarOpen) {
             e.stopPropagation();
             handleStart(e.clientX, e.clientY, e.target);
           }
         }}
         onTouchStart={(e) => {
+          console.log('Touch na zona direita');
           if (!isMemberSidebarOpen && e.touches.length === 1) {
             e.stopPropagation();
             handleStart(e.touches[0].clientX, e.touches[0].clientY, e.target);
@@ -198,7 +205,7 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
         }}
       >
         {!isMemberSidebarOpen && (
-          <div className="w-1 h-12 bg-gray-300 rounded-full opacity-30 hover:opacity-60 transition-opacity" />
+          <div className="w-2 h-16 bg-gray-600 rounded-full opacity-50 hover:opacity-80 transition-opacity" />
         )}
       </div>
 
