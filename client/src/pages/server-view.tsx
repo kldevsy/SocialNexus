@@ -141,7 +141,103 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
     },
   });
 
-  // Handle server loading and error states
+  // Prepare data - this must be done before any conditional returns
+  const members = server?.members || [];
+  const channels = server?.channels || [];
+  const textChannels = channels.filter(channel => channel.type === "text");
+  const voiceChannels = channels.filter(channel => channel.type === "voice");
+  const isOwner = user?.id === server?.ownerId;
+  const displayName = user?.firstName && user?.lastName 
+    ? `${user.firstName} ${user.lastName}` 
+    : user?.username || user?.email || 'Usuario';
+
+  // Set default channel if none selected and channels exist
+  useEffect(() => {
+    if (!selectedChannelId && textChannels.length > 0) {
+      setSelectedChannelId(textChannels[0].id);
+    }
+  }, [selectedChannelId, textChannels]);
+
+  // Get the currently selected channel
+  const selectedChannel = selectedChannelId 
+    ? channels.find(ch => ch.id === selectedChannelId)
+    : textChannels[0] || null;
+
+  // All mutations must be defined before any conditional returns
+  const deleteChannelMutation = useMutation({
+    mutationFn: async (channelId: number) => {
+      const response = await fetch(`/api/channels/${channelId}`, {
+        method: "DELETE",
+        credentials: "include",
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Canal deletado com sucesso!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/servers", serverId] });
+      // Reset selected channel if it was deleted
+      const remainingChannels = textChannels.filter(c => c.id !== selectedChannelId);
+      setSelectedChannelId(remainingChannels[0]?.id || null);
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao deletar canal",
+        description: error?.message || "Ocorreu um erro inesperado.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  const joinServerMutation = useMutation({
+    mutationFn: async () => {
+      const response = await fetch(`/api/servers/${serverId}/join`, {
+        method: "POST",
+        credentials: "include",
+      });
+      if (!response.ok) {
+        const error = await response.json();
+        throw new Error(error.message);
+      }
+      return response.json();
+    },
+    onSuccess: () => {
+      toast({
+        title: "Entrou no servidor com sucesso!",
+      });
+      queryClient.invalidateQueries({ queryKey: ["/api/servers", serverId] });
+      queryClient.invalidateQueries({ queryKey: ["/api/servers"] });
+    },
+    onError: (error: any) => {
+      toast({
+        title: "Erro ao entrar no servidor",
+        description: error?.message || "Ocorreu um erro inesperado.",
+        variant: "destructive",
+      });
+    },
+  });
+
+  // Helper functions
+  const handleDeleteChannel = (channelId: number) => {
+    if (confirm("Tem certeza que deseja deletar este canal? Esta ação não pode ser desfeita.")) {
+      deleteChannelMutation.mutate(channelId);
+    }
+  };
+
+  const handleJoinVoiceChannel = (channelId: number) => {
+    if (currentVoiceChannelId === channelId) {
+      leaveVoiceChannel();
+    } else {
+      joinVoiceChannel(channelId);
+    }
+  };
+
+  // Handle server loading and error states AFTER all hooks are defined
   if (serverLoading) {
     return (
       <div className="h-screen flex items-center justify-center">
@@ -188,95 +284,6 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
             Voltar
           </button>
         </div>
-      </div>
-    );
-  }
-
-  const members = server?.members || [];
-  const channels = server?.channels || [];
-  const textChannels = channels.filter(channel => channel.type === "text");
-  const voiceChannels = channels.filter(channel => channel.type === "voice");
-  const isOwner = user?.id === server?.ownerId;
-  const displayName = user?.firstName && user?.lastName 
-    ? `${user.firstName} ${user.lastName}` 
-    : user?.username || user?.email || 'Usuario';
-
-  // Set default channel if none selected and channels exist
-  useEffect(() => {
-    if (!selectedChannelId && textChannels.length > 0) {
-      setSelectedChannelId(textChannels[0].id);
-    }
-  }, [selectedChannelId, textChannels]);
-
-  // Get the currently selected channel
-  const selectedChannel = selectedChannelId 
-    ? channels.find(ch => ch.id === selectedChannelId)
-    : textChannels[0] || null;
-
-  const deleteChannelMutation = useMutation({
-    mutationFn: async (channelId: number) => {
-      const response = await fetch(`/api/channels/${channelId}`, {
-        method: "DELETE",
-        credentials: "include",
-      });
-      if (!response.ok) {
-        const error = await response.json();
-        throw new Error(error.message);
-      }
-      return response.json();
-    },
-    onSuccess: () => {
-      toast({
-        title: "Canal deletado com sucesso!",
-      });
-      queryClient.invalidateQueries({ queryKey: ["/api/servers", serverId] });
-      // Reset selected channel if it was deleted
-      const remainingChannels = textChannels.filter(c => c.id !== selectedChannelId);
-      setSelectedChannelId(remainingChannels[0]?.id || null);
-    },
-    onError: (error: any) => {
-      toast({
-        title: "Erro ao deletar canal",
-        description: error?.message || "Ocorreu um erro inesperado.",
-        variant: "destructive",
-      });
-    },
-  });
-
-  const handleDeleteChannel = (channelId: number) => {
-    if (confirm("Tem certeza que deseja deletar este canal? Esta ação não pode ser desfeita.")) {
-      deleteChannelMutation.mutate(channelId);
-    }
-  };
-
-  const joinServerMutation = useMutation({
-    mutationFn: async () => {
-      const response = await fetch(`/api/servers/${serverId}/join`, {
-        method: "POST",
-      });
-      if (!response.ok) throw new Error("Failed to join server");
-      return response.json();
-    },
-    onSuccess: () => {
-      queryClient.invalidateQueries({ queryKey: ["/api/servers", serverId, "members"] });
-      toast({
-        title: "Sucesso",
-        description: "Você entrou no servidor!",
-      });
-    },
-    onError: (error) => {
-      toast({
-        title: "Erro",
-        description: error.message || "Falha ao entrar no servidor",
-        variant: "destructive",
-      });
-    },
-  });
-
-  if (serverLoading || !server) {
-    return (
-      <div className="min-h-screen bg-gray-100 flex items-center justify-center">
-        <div className="animate-spin w-12 h-12 border-4 border-primary border-t-transparent rounded-full"></div>
       </div>
     );
   }
