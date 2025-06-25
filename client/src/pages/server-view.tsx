@@ -283,10 +283,20 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
     
     console.log(`📝 Sending typing indicator for channel ${currentChannel}, user ${user.id}`);
     try {
-      const response = await apiRequest(`/api/channels/${currentChannel}/typing`, {
+      const response = await fetch(`/api/channels/${currentChannel}/typing`, {
         method: "POST",
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
       });
-      console.log('✅ Typing indicator sent successfully:', response);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      console.log('✅ Typing indicator sent successfully:', result);
     } catch (error) {
       console.error('❌ Error sending typing indicator:', error);
     }
@@ -298,10 +308,20 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
     
     console.log(`🛑 Sending stop typing indicator for channel ${currentChannel}, user ${user.id}`);
     try {
-      const response = await apiRequest(`/api/channels/${currentChannel}/typing`, {
+      const response = await fetch(`/api/channels/${currentChannel}/typing`, {
         method: "DELETE",
+        credentials: 'include',
+        headers: {
+          'Content-Type': 'application/json',
+        }
       });
-      console.log('✅ Stop typing indicator sent successfully:', response);
+      
+      if (!response.ok) {
+        throw new Error(`HTTP ${response.status}: ${response.statusText}`);
+      }
+      
+      const result = await response.json();
+      console.log('✅ Stop typing indicator sent successfully:', result);
     } catch (error) {
       console.error('❌ Error clearing typing indicator:', error);
     }
