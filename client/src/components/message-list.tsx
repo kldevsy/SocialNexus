@@ -173,11 +173,11 @@ export function MessageList({ channelId }: MessageListProps) {
                   
                   {/* Message image */}
                   {message.imageUrl && (
-                    <div className="mt-2">
+                    <div className="mt-2 max-w-full overflow-hidden">
                       <img 
                         src={message.imageUrl} 
                         alt="Imagem enviada" 
-                        className="max-w-sm max-h-96 rounded-lg border shadow-sm cursor-pointer hover:shadow-md transition-shadow block"
+                        className="max-w-full max-h-96 w-auto h-auto rounded-lg border shadow-sm cursor-pointer hover:shadow-md transition-shadow block object-contain"
                         onClick={() => window.open(message.imageUrl!, '_blank')}
                         onError={(e) => {
                           console.error('Error loading image:', message.imageUrl);
@@ -193,33 +193,35 @@ export function MessageList({ channelId }: MessageListProps) {
         </>
       )}
 
-      {/* Typing indicators with animated dots */}
-      <AnimatePresence>
-        {typingUsers.length > 0 && (
-          <motion.div
-            initial={{ opacity: 0, y: 10, scale: 0.95 }}
-            animate={{ opacity: 1, y: 0, scale: 1 }}
-            exit={{ opacity: 0, y: -10, scale: 0.95 }}
-            transition={{ duration: 0.2, ease: "easeOut" }}
-            className="flex items-center space-x-3 text-sm text-gray-500 dark:text-gray-400 pl-4 py-3 mb-2 mx-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg backdrop-blur-sm"
-          >
-            <TypingDots size="medium" />
-            <motion.span 
-              className="text-gray-600 dark:text-gray-300 font-medium"
-              initial={{ opacity: 0 }}
-              animate={{ opacity: 1 }}
-              transition={{ delay: 0.1 }}
+      {/* Typing indicators with animated dots - positioned at bottom */}
+      <div className="sticky bottom-0 bg-white pt-2">
+        <AnimatePresence>
+          {typingUsers.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10, scale: 0.95 }}
+              animate={{ opacity: 1, y: 0, scale: 1 }}
+              exit={{ opacity: 0, y: -10, scale: 0.95 }}
+              transition={{ duration: 0.2, ease: "easeOut" }}
+              className="flex items-center space-x-3 text-sm text-gray-500 dark:text-gray-400 px-4 py-2 mx-2 mb-2 bg-gray-50 dark:bg-gray-800/50 rounded-lg backdrop-blur-sm"
             >
-              {typingUsers.length === 1 
-                ? `${typingUsers[0]} está digitando...`
-                : typingUsers.length === 2
-                  ? `${typingUsers[0]} e ${typingUsers[1]} estão digitando...`
-                  : `${typingUsers[0]} e mais ${typingUsers.length - 1} pessoas estão digitando...`
-              }
-            </motion.span>
-          </motion.div>
-        )}
-      </AnimatePresence>
+              <TypingDots size="medium" />
+              <motion.span 
+                className="text-gray-600 dark:text-gray-300 font-medium"
+                initial={{ opacity: 0 }}
+                animate={{ opacity: 1 }}
+                transition={{ delay: 0.1 }}
+              >
+                {typingUsers.length === 1 
+                  ? `${typingUsers[0]} está digitando...`
+                  : typingUsers.length === 2
+                    ? `${typingUsers[0]} e ${typingUsers[1]} estão digitando...`
+                    : `${typingUsers[0]} e mais ${typingUsers.length - 1} pessoas estão digitando...`
+                }
+              </motion.span>
+            </motion.div>
+          )}
+        </AnimatePresence>
+      </div>
 
       {/* Connection status */}
       {!wsConnected && (
