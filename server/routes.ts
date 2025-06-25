@@ -372,7 +372,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
 
   // Typing indicator routes
   
-  // Set typing indicator
+  // Set typing indicator (simplified - no database storage)
   app.post("/api/channels/:id/typing", isAuthenticated, async (req: any, res) => {
     try {
       const channelId = parseInt(req.params.id);
@@ -382,14 +382,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
         console.log('❌ Invalid channel ID');
         return res.status(400).json({ error: "Invalid channel ID" });
       }
-
-      const typingData = insertTypingIndicatorSchema.parse({
-        userId: req.user.claims.sub,
-        channelId,
-      });
-
-      await storage.setTyping(typingData);
-      console.log('✅ Typing indicator saved to database');
       
       // Get user info for broadcasting
       const user = await storage.getUser(req.user.claims.sub);
@@ -427,7 +419,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  // Clear typing indicator
+  // Clear typing indicator (simplified - no database storage)
   app.delete("/api/channels/:id/typing", isAuthenticated, async (req: any, res) => {
     try {
       const channelId = parseInt(req.params.id);
@@ -436,9 +428,6 @@ export async function registerRoutes(app: Express): Promise<Server> {
       if (isNaN(channelId)) {
         return res.status(400).json({ error: "Invalid channel ID" });
       }
-
-      await storage.clearTyping(req.user.claims.sub, channelId);
-      console.log('✅ Typing indicator cleared from database');
       
       // Get user info for broadcasting
       const user = await storage.getUser(req.user.claims.sub);

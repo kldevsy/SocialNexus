@@ -448,15 +448,34 @@ export class DatabaseStorage implements IStorage {
 
   // Typing indicator operations
   async setTyping(indicatorData: InsertTypingIndicator): Promise<TypingIndicator> {
-    const [indicator] = await db
-      .insert(typingIndicators)
-      .values({ ...indicatorData, lastTyping: new Date() })
-      .onConflictDoUpdate({
-        target: [typingIndicators.userId, typingIndicators.channelId],
-        set: { lastTyping: new Date() }
-      })
-      .returning();
-    return indicator;
+    // First try to find existing indicator
+    const existing = await db
+      .select()
+      .from(typingIndicators)
+      .where(
+        and(
+          eq(typingIndicators.userId, indicatorData.userId),
+          eq(typingIndicators.channelId, indicatorData.channelId)
+        )
+      )
+      .limit(1);
+
+    if (existing.length > 0) {
+      // Update existing indicator
+      const [updated] = await db
+        .update(typingIndicators)
+        .set({ lastTyping: new Date() })
+        .where(eq(typingIndicators.id, existing[0].id))
+        .returning();
+      return updated;
+    } else {
+      // Insert new indicator
+      const [indicator] = await db
+        .insert(typingIndicators)
+        .values({ ...indicatorData, lastTyping: new Date() })
+        .returning();
+      return indicator;
+    }
   }
 
   async getTypingUsers(channelId: number): Promise<TypingIndicatorWithUser[]> {
