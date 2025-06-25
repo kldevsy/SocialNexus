@@ -80,6 +80,9 @@ export default function Dashboard() {
     messages: userServers.length * 150 + 250, // Calculated based on server activity
   };
 
+  console.log('Dashboard stats:', stats);
+  console.log('User servers:', userServers);
+
   // Handle server navigation
   if (selectedServerId) {
     return (

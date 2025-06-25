@@ -122,7 +122,22 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
   const { data: serverData, isLoading: serverLoading, error: serverError } = useQuery({
     queryKey: [`/api/servers/${serverId}`],
     refetchOnWindowFocus: false,
+    staleTime: 5 * 60 * 1000,
+    retry: 3,
+    retryDelay: 1000,
+    onError: (error) => {
+      console.error('Server fetch error:', error);
+      console.log('Attempted server ID:', serverId);
+    },
+    onSuccess: (data) => {
+      console.log('Server data loaded:', data);
+    }
   });
+
+  console.log('ServerView: Loading server', serverId);
+  console.log('ServerView: Server data:', serverData);
+  console.log('ServerView: Loading state:', serverLoading);
+  console.log('ServerView: Error:', serverError);
 
   const { data: channels = [], isLoading: channelsLoading } = useQuery({
     queryKey: [`/api/servers/${serverId}/channels`],
@@ -221,6 +236,7 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
   }
 
   if (serverError) {
+    console.error('ServerView error details:', serverError);
     return (
       <div className="h-screen flex items-center justify-center">
         <div className="text-center">
@@ -230,13 +246,23 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
             </svg>
           </div>
           <h3 className="text-lg font-semibold text-gray-900 mb-2">Erro ao carregar servidor</h3>
-          <p className="text-gray-600 mb-4">{serverError.message}</p>
-          <button 
-            onClick={onBack}
-            className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90"
-          >
-            Voltar
-          </button>
+          <p className="text-gray-600 mb-4">
+            {serverError.message || `Servidor ${serverId} não encontrado`}
+          </p>
+          <div className="space-y-2">
+            <button 
+              onClick={() => window.location.reload()}
+              className="bg-blue-500 text-white px-4 py-2 rounded-lg hover:bg-blue-600 mr-2"
+            >
+              Tentar Novamente
+            </button>
+            <button 
+              onClick={onBack}
+              className="bg-primary text-white px-4 py-2 rounded-lg hover:bg-primary/90"
+            >
+              Voltar
+            </button>
+          </div>
         </div>
       </div>
     );

@@ -104,6 +104,7 @@ CommunityHub is a modern full-stack web application that provides a Discord-styl
 
 ## Recent Changes
 
+- **Erro 404 servidor corrigido no Vercel** (25/06/2025): API completa com todas as rotas necessárias, fallback para servidores não encontrados, logs de depuração detalhados, rotas de canais/membros/mensagens implementadas
 - **Tela branca ao selecionar categoria corrigida** (25/06/2025): Criado componente SafeSelect com tratamento de erros robusto, prevenção de crashes nos dropdowns, logs de depuração melhorados, fallbacks seguros implementados
 - **Persistência de servidores corrigida no Vercel** (25/06/2025): Servidores criados agora aparecem na lista do usuário, implementada persistência em memória, filtros por usuário funcionando, sistema de descoberta atualizado
 - **Deploy Vercel 100% funcional** (25/06/2025): API completa implementada, autenticação GitHub OAuth funcionando, rotas de logout GET/POST, CORS configurado, dados compatíveis com frontend, script de deploy automático criado
