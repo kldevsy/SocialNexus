@@ -40,11 +40,24 @@ export function MessageInput({
       let finalImageUrl = null;
       
       if (selectedImage) {
-        // Convert image to base64 for simple storage
-        const reader = new FileReader();
+        // Compress and convert image to base64
+        const canvas = document.createElement('canvas');
+        const ctx = canvas.getContext('2d');
+        const img = new Image();
+        
         finalImageUrl = await new Promise<string>((resolve) => {
-          reader.onloadend = () => resolve(reader.result as string);
-          reader.readAsDataURL(selectedImage);
+          img.onload = () => {
+            // Calculate new dimensions (max 800px width)
+            const maxWidth = 800;
+            const ratio = Math.min(maxWidth / img.width, maxWidth / img.height);
+            canvas.width = img.width * ratio;
+            canvas.height = img.height * ratio;
+            
+            // Draw and compress
+            ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+            resolve(canvas.toDataURL('image/jpeg', 0.8)); // 80% quality
+          };
+          img.src = URL.createObjectURL(selectedImage);
         });
       }
 
@@ -66,11 +79,17 @@ export function MessageInput({
       setImagePreview(null);
       onStopTyping();
     },
-    onError: (error) => {
+    onError: (error: any) => {
       console.error('Error sending message:', error);
+      let errorMessage = "Não foi possível enviar a mensagem. Tente novamente.";
+      
+      if (error?.message?.includes('PayloadTooLargeError') || error?.message?.includes('entity too large')) {
+        errorMessage = "Imagem muito grande. Tente uma imagem menor.";
+      }
+      
       toast({
-        title: "Erro",
-        description: "Não foi possível enviar a mensagem. Tente novamente.",
+        title: "Erro ao enviar",
+        description: errorMessage,
         variant: "destructive",
       });
     },
@@ -108,10 +127,10 @@ export function MessageInput({
   const handleImageSelect = (event: React.ChangeEvent<HTMLInputElement>) => {
     const file = event.target.files?.[0];
     if (file) {
-      if (file.size > 5 * 1024 * 1024) { // 5MB limit
+      if (file.size > 2 * 1024 * 1024) { // 2MB limit to avoid base64 bloat
         toast({
           title: "Arquivo muito grande",
-          description: "O arquivo deve ter no máximo 5MB.",
+          description: "O arquivo deve ter no máximo 2MB.",
           variant: "destructive",
         });
         return;
@@ -127,11 +146,24 @@ export function MessageInput({
       }
       
       setSelectedImage(file);
-      const reader = new FileReader();
-      reader.onload = (e) => {
-        setImagePreview(e.target?.result as string);
+      
+      // Create optimized preview
+      const canvas = document.createElement('canvas');
+      const ctx = canvas.getContext('2d');
+      const img = new Image();
+      
+      img.onload = () => {
+        // Small preview (max 200px)
+        const maxPreviewSize = 200;
+        const ratio = Math.min(maxPreviewSize / img.width, maxPreviewSize / img.height);
+        canvas.width = img.width * ratio;
+        canvas.height = img.height * ratio;
+        
+        ctx?.drawImage(img, 0, 0, canvas.width, canvas.height);
+        setImagePreview(canvas.toDataURL('image/jpeg', 0.7));
       };
-      reader.readAsDataURL(file);
+      
+      img.src = URL.createObjectURL(file);
     }
   };
 
