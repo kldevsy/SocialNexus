@@ -32,6 +32,7 @@ export function MessageInput({
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
+  const textareaRef = useRef<HTMLTextAreaElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
   const { toast } = useToast();
   const queryClient = useQueryClient();
@@ -96,12 +97,19 @@ export function MessageInput({
     },
   });
 
-  const handleSendMessage = () => {
+  const handleSubmit = () => {
     if (!message.trim() && !selectedImage) return;
     
     sendMessageMutation.mutate({
       content: message.trim() || undefined,
     });
+  };
+
+  const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {
+    if (e.key === 'Enter' && !e.shiftKey) {
+      e.preventDefault();
+      handleSubmit();
+    }
   };
 
   const handleInputChange = (value: string) => {
