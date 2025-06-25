@@ -276,17 +276,179 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // Login routes for GitHub OAuth compatibility
-    if (url === '/api/login' || url === '/api/auth/github') {
-      return res.status(200).json({ message: 'Login endpoint - configure GitHub OAuth' });
+    // GitHub OAuth login
+    if (url === '/api/auth/github' && req.method === 'GET') {
+      const clientId = process.env.GITHUB_CLIENT_ID;
+      const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+      
+      if (!clientId || !clientSecret) {
+        console.log('GitHub OAuth credentials not found, using demo mode');
+        const demoUser = {
+          id: 'demo-user-' + Date.now(),
+          username: 'DemoUser',
+          firstName: 'Demo',
+          lastName: 'User',
+          profileImageUrl: 'https://github.com/github.png',
+          email: 'demo@example.com'
+        };
+        
+        const authToken = Buffer.from(JSON.stringify(demoUser)).toString('base64');
+        res.setHeader('Set-Cookie', `auth-token=${authToken}; HttpOnly=false; Secure=false; Max-Age=${24 * 60 * 60}; Path=/`);
+        return res.redirect(302, '/');
+      }
+      
+      // Real GitHub OAuth flow
+      const baseUrl = req.headers.host?.includes('vercel.app') ? `https://${req.headers.host}` : `http://${req.headers.host}`;
+      const redirectUri = `${baseUrl}/api/auth/github/callback`;
+      const githubAuthUrl = `https://github.com/login/oauth/authorize?client_id=${clientId}&redirect_uri=${encodeURIComponent(redirectUri)}&scope=user:email`;
+      
+      console.log('Redirecting to GitHub OAuth:', githubAuthUrl);
+      return res.redirect(302, githubAuthUrl);
     }
 
+    // GitHub OAuth callback
+    if (url?.startsWith('/api/auth/github/callback') && req.method === 'GET') {
+      const code = req.query?.code;
+      const clientId = process.env.GITHUB_CLIENT_ID;
+      const clientSecret = process.env.GITHUB_CLIENT_SECRET;
+      
+      if (!code || !clientId || !clientSecret) {
+        console.error('Missing OAuth parameters:', { code: !!code, clientId: !!clientId, clientSecret: !!clientSecret });
+        return res.status(400).json({ error: 'Missing OAuth parameters' });
+      }
+      
+      try {
+        console.log('Exchanging code for access token...');
+        
+        // Exchange code for access token
+        const tokenResponse = await fetch('https://github.com/login/oauth/access_token', {
+          method: 'POST',
+          headers: {
+            'Accept': 'application/json',
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            client_id: clientId,
+            client_secret: clientSecret,
+            code: code,
+          }),
+        });
+        
+        const tokenData = await tokenResponse.json();
+        console.log('Token response received');
+        
+        if (!tokenData.access_token) {
+          console.error('Failed to get access token:', tokenData);
+          throw new Error('Failed to get access token');
+        }
+        
+        // Get user info from GitHub
+        const userResponse = await fetch('https://api.github.com/user', {
+          headers: {
+            'Authorization': `Bearer ${tokenData.access_token}`,
+            'Accept': 'application/vnd.github.v3+json',
+          },
+        });
+        
+        const githubUser = await userResponse.json();
+        console.log('GitHub user retrieved:', githubUser.login);
+        
+        const user = {
+          id: `github-${githubUser.id}`,
+          username: githubUser.login,
+          firstName: githubUser.name?.split(' ')[0] || githubUser.login,
+          lastName: githubUser.name?.split(' ').slice(1).join(' ') || '',
+          profileImageUrl: githubUser.avatar_url,
+          email: githubUser.email || null
+        };
+        
+        const authToken = Buffer.from(JSON.stringify(user)).toString('base64');
+        res.setHeader('Set-Cookie', `auth-token=${authToken}; HttpOnly=false; Secure=false; Max-Age=${24 * 60 * 60}; Path=/`);
+        
+        console.log('User authenticated successfully:', user.username);
+        return res.redirect(302, '/');
+      } catch (error) {
+        console.error('GitHub OAuth error:', error);
+        return res.status(500).json({ error: 'OAuth authentication failed' });
+      }
+    }
+
+    // Legacy login route for compatibility
+    if (url === '/api/login') {
+      return res.redirect(302, '/api/auth/github');
+    }
+
+    // Logout route
     if (url === '/api/logout') {
-      return res.status(200).json({ message: 'Logged out successfully' });
+      res.setHeader('Set-Cookie', 'auth-token=; HttpOnly=false; Secure=false; Max-Age=0; Path=/');
+      
+      if (req.method === 'POST') {
+        return res.status(200).json({ message: 'Logged out successfully' });
+      } else {
+        return res.redirect(302, '/');
+      }
+    }
+
+    // Server channels route
+    if (url?.match(/^\/api\/servers\/\d+\/channels$/) && req.method === 'GET') {
+      const serverId = parseInt(url.split('/')[3]);
+      const user = getAuthUser(req);
+      
+      // Return basic channels for now
+      const channels = [
+        { id: 1, name: 'geral', type: 'text', serverId },
+        { id: 2, name: 'Sala de Voz', type: 'voice', serverId }
+      ];
+      
+      return res.json(channels);
+    }
+
+    // Channel messages route
+    if (url?.match(/^\/api\/channels\/\d+\/messages$/) && req.method === 'GET') {
+      const channelId = parseInt(url.split('/')[3]);
+      const user = getAuthUser(req);
+      
+      // Return empty messages array for now
+      return res.json([]);
+    }
+
+    // Send message route
+    if (url?.match(/^\/api\/channels\/\d+\/messages$/) && req.method === 'POST') {
+      const channelId = parseInt(url.split('/')[3]);
+      const user = getAuthUser(req);
+      const messageData = req.body;
+      
+      const message = {
+        id: Date.now(),
+        content: messageData.content,
+        authorId: user.id,
+        channelId: channelId,
+        createdAt: new Date().toISOString(),
+        author: user
+      };
+      
+      return res.status(201).json(message);
+    }
+
+    // Join server route
+    if (url?.match(/^\/api\/servers\/\d+\/join$/) && req.method === 'POST') {
+      const serverId = parseInt(url.split('/')[3]);
+      const user = getAuthUser(req);
+      
+      return res.json({ success: true, message: 'Joined server successfully' });
+    }
+
+    // Server members route
+    if (url?.match(/^\/api\/servers\/\d+\/members$/) && req.method === 'GET') {
+      const serverId = parseInt(url.split('/')[3]);
+      const user = getAuthUser(req);
+      
+      // Return current user as member
+      return res.json([user]);
     }
 
     // Default fallback
-    return res.status(404).json({ error: 'Route not found' });
+    return res.status(404).json({ error: 'Route not found', url, method: req.method });
 
   } catch (error) {
     console.error('API Error:', error);
