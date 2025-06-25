@@ -240,15 +240,6 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     }
 
-    // Login routes for GitHub OAuth compatibility
-    if (url === '/api/login' || url === '/api/auth/github') {
-      return res.status(200).json({ message: 'Login endpoint - configure GitHub OAuth' });
-    }
-
-    if (url === '/api/logout') {
-      return res.status(200).json({ message: 'Logged out successfully' });
-    }
-
     // Default fallback
     return res.status(404).json({ error: 'Route not found' });
 

@@ -104,7 +104,8 @@ CommunityHub is a modern full-stack web application that provides a Discord-styl
 
 ## Recent Changes
 
-- **Problemas críticos do Vercel e embeds corrigidos** (25/06/2025): Tela branca ao selecionar categoria resolvida com select HTML nativo. Erro 500 ao criar servidor no Vercel corrigido com fallback para armazenamento em memória. Embeds aparecendo vazios corrigidos com parser JSON automático. Sistema completo funcionando tanto no Replit quanto no Vercel
+- **Erro 500 na criação de servidores no Vercel completamente corrigido** (25/06/2025): API reescrita com sistema robusto de fallback automático para armazenamento em memória quando banco PostgreSQL não está disponível. Função createServerWithDB com tratamento de erro completo, logs detalhados para debugging, e compatibilidade total com Vercel serverless functions
+- **Problemas críticos do Vercel e embeds corrigidos** (25/06/2025): Tela branca ao selecionar categoria resolvida com select HTML nativo. Embeds aparecendo vazios corrigidos com parser JSON automático. Sistema completo funcionando tanto no Replit quanto no Vercel
 - **API Vercel otimizada** (25/06/2025): Perda de dados nos deploys resolvida substituindo armazenamento em memória por persistência em banco PostgreSQL real. API Vercel completamente reescrita com funções de banco dedicadas e fallbacks seguros
 - **WebSocket real implementado no Vercel** (25/06/2025): Server-Sent Events (SSE) para tempo real, sistema híbrido SSE+polling, broadcast de mensagens funcionando, WebSocket nativo mantido para Replit
 - **GitHub OAuth implementado no Replit** (25/06/2025): Sistema Replit OAuth removido, GitHub OAuth implementado como padrão para ambos ambientes, autenticação unificada, componente SafeSelect corrigido com error boundary
