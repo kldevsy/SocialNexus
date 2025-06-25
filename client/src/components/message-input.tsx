@@ -1,7 +1,8 @@
 import { useState, useRef } from "react";
 import { Button } from "@/components/ui/button";
-import { Input } from "@/components/ui/input";
-import { ImageIcon, Send, Plus } from "lucide-react";
+import { Textarea } from "@/components/ui/textarea";
+import { ImageIcon, Send } from "lucide-react";
+import { QuickActionsMenu } from "./quick-actions-menu";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -228,55 +229,55 @@ export function MessageInput({
       )}
       
       <div className="flex items-end space-x-2">
-        {/* Add attachments button */}
-        <Button
-          variant="ghost"
-          size="sm"
-          className="p-2"
-          onClick={() => fileInputRef.current?.click()}
-        >
-          <Plus className="h-4 w-4" />
-        </Button>
-        
         {/* Hidden file input */}
         <input
           ref={fileInputRef}
           type="file"
-          accept="image/*"
+          accept="image/*,*/*"
           onChange={handleImageSelect}
           className="hidden"
         />
         
+        {/* Quick Actions Menu */}
+        <QuickActionsMenu
+          onMicrophoneSelect={handleMicrophoneSelect}
+          onFileSelect={handleFileSelect}
+          onMentionSelect={handleMentionSelect}
+          onEmbedSelect={handleEmbedSelect}
+        />
+        
         {/* Image button */}
         <Button
-          variant="ghost"
+          variant="outline"
           size="sm"
-          className="p-2"
+          className="h-11 px-3"
           onClick={() => fileInputRef.current?.click()}
+          title="Enviar imagem"
         >
           <ImageIcon className="h-4 w-4" />
         </Button>
         
         {/* Message input */}
-        <div className="flex-1">
-          <Input
+        <div className="flex-1 min-w-0">
+          <Textarea
+            ref={textareaRef}
             value={message}
             onChange={(e) => handleInputChange(e.target.value)}
-            onKeyPress={handleKeyPress}
-            placeholder="Digite uma mensagem..."
-            disabled={sendMessageMutation.isPending}
-            className="resize-none"
+            placeholder="Digite sua mensagem..."
+            className="min-h-[44px] max-h-32 resize-none border rounded-lg w-full"
+            onKeyDown={handleKeyDown}
           />
         </div>
         
         {/* Send button */}
         <Button
-          onClick={handleSendMessage}
+          onClick={handleSubmit}
           disabled={(!message.trim() && !selectedImage) || sendMessageMutation.isPending}
           size="sm"
+          className="h-11 px-4 bg-blue-600 hover:bg-blue-700 text-white"
         >
           {sendMessageMutation.isPending ? (
-            <div className="animate-spin w-4 h-4 border-2 border-white border-t-transparent rounded-full" />
+            <div className="h-4 w-4 border-2 border-white border-t-transparent rounded-full animate-spin" />
           ) : (
             <Send className="h-4 w-4" />
           )}
