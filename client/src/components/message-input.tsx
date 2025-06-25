@@ -42,7 +42,7 @@ export function MessageInput({
   const queryClient = useQueryClient();
 
   const sendMessageMutation = useMutation({
-    mutationFn: async ({ content, imageUrl }: { content?: string; imageUrl?: string }) => {
+    mutationFn: async ({ content, imageUrl, embedData }: { content?: string; imageUrl?: string; embedData?: any }) => {
       let finalImageUrl = null;
       
       if (selectedImage) {
@@ -75,6 +75,7 @@ export function MessageInput({
         body: JSON.stringify({
           content: content || null,
           imageUrl: finalImageUrl,
+          embedData: embedData || null,
         }),
       });
     },
@@ -206,13 +207,10 @@ export function MessageInput({
   };
 
   const handleEmbedSelect = () => {
-    console.log("Opening embed modal...");
     setEmbedModalOpen(true);
   };
 
   const handleEmbedSave = (embedData: any) => {
-    console.log("Saving embed:", embedData);
-    
     // Enviar mensagem com embed
     sendMessageMutation.mutate({
       content: message.trim() || undefined,
@@ -220,6 +218,7 @@ export function MessageInput({
     });
     
     setMessage("");
+    setEmbedModalOpen(false);
     toast({
       title: "Embed enviado!",
       description: "Seu embed foi criado e enviado com sucesso.",

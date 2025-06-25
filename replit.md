@@ -104,6 +104,7 @@ CommunityHub is a modern full-stack web application that provides a Discord-styl
 
 ## Recent Changes
 
+- **Sistema de embeds funcionando corretamente** (25/06/2025): Corrigido bug do botão criar embed que não abria o modal, função handleEmbedSave atualizada, modal abrindo e fechando corretamente
 - **Bugs de tela branca corrigidos** (25/06/2025): Adicionado tratamento de erros nos componentes Select e EmbedCreator, try-catch para prevenir crashes, logs de depuração implementados
 - **Projeto convertido para Supabase** (25/06/2025): Driver Neon substituído por PostgreSQL padrão, SSL configurado, dependências atualizadas. Pronto para conectar com URL do Supabase
 - **Configuração Supabase documentada** (25/06/2025): Instruções detalhadas para conectar ao Supabase, URL correta do connection pooling, SSL configurado para produção

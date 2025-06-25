@@ -203,7 +203,6 @@ const colorPresets = [
 ];
 
 export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorModalProps) {
-  console.log("EmbedCreatorModal render - open:", open);
   const [embedData, setEmbedData] = useState<EmbedData>({
     title: '',
     description: '',
@@ -249,7 +248,11 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
   };
 
   const loadTemplate = (template: any) => {
-    setEmbedData({ ...embedData, ...template.template });
+    try {
+      setEmbedData({ ...embedData, ...template.template });
+    } catch (error) {
+      console.error("Template load error:", error);
+    }
   };
 
   const handleImageUpload = (field: keyof EmbedData) => {
@@ -304,10 +307,9 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
   // Error boundary protection
   if (!open) return null;
 
-  try {
-    return (
-      <Dialog open={open} onOpenChange={onOpenChange}>
-        <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+  return (
+    <Dialog open={open} onOpenChange={onOpenChange}>
+      <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
@@ -821,8 +823,4 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
       </DialogContent>
     </Dialog>
   );
-  } catch (error) {
-    console.error("EmbedCreatorModal render error:", error);
-    return null;
-  }
 }

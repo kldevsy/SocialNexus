@@ -196,7 +196,7 @@ export default function Dashboard() {
               onClick={handleLogout}
             >
               <LogOut className="mr-3 h-4 w-4" />
-              Sign Out
+              Sair
             </Button>
           </div>
         </div>
