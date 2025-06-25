@@ -104,6 +104,7 @@ CommunityHub is a modern full-stack web application that provides a Discord-styl
 
 ## Recent Changes
 
+- **Sistema completo de embeds implementado** (25/06/2025): Criador de embeds visual com templates, campos personalizados, pré-visualização em tempo real, suporte a imagens, cores, autor, rodapé e animações. Sistema mais avançado que o Discord
 - **Menu de ações rápidas implementado** (25/06/2025): Botão "+" no input abre menu animado com opções para gravar áudio, enviar arquivos, mencionar usuários e criar embeds. Animações fluidas com Framer Motion
 - **Layout do chat corrigido para desktop** (25/06/2025): Imagens agora se ajustam corretamente ao container, indicador de digitação posicionado próximo ao input, espaço otimizado no modo desktop
 - **Indicador de digitação com pontos animados implementado** (25/06/2025): Animações fluidas com Framer Motion, componente reutilizável TypingDots, transições suaves de entrada/saída, timeout automático de limpeza

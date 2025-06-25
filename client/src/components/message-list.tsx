@@ -186,6 +186,14 @@ export function MessageList({ channelId }: MessageListProps) {
                       />
                     </div>
                   )}
+
+                  {/* Embed message */}
+                  {(message as any).embedData && (
+                    <EmbedMessage 
+                      embedData={(message as any).embedData}
+                      createdAt={message.createdAt}
+                    />
+                  )}
                 </div>
               </div>
             </motion.div>

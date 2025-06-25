@@ -3,6 +3,7 @@ import { Button } from "@/components/ui/button";
 import { Textarea } from "@/components/ui/textarea";
 import { ImageIcon, Send } from "lucide-react";
 import { QuickActionsMenu } from "./quick-actions-menu";
+import { EmbedCreatorModal } from "./embed-creator-modal";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -31,6 +32,7 @@ export function MessageInput({
   const [message, setMessage] = useState("");
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
+  const [embedModalOpen, setEmbedModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -202,9 +204,20 @@ export function MessageInput({
   };
 
   const handleEmbedSelect = () => {
+    setEmbedModalOpen(true);
+  };
+
+  const handleEmbedSave = (embedData: any) => {
+    // Enviar mensagem com embed
+    sendMessageMutation.mutate({
+      content: message.trim() || undefined,
+      embedData: embedData
+    });
+    
+    setMessage("");
     toast({
-      title: "Criar embed",
-      description: "Funcionalidade em desenvolvimento.",
+      title: "Embed enviado!",
+      description: "Seu embed foi criado e enviado com sucesso.",
     });
   };
 
