@@ -200,17 +200,12 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
   };
 
   const handleVoiceChannelClick = (channelId: number, channelName: string) => {
-    if (voiceChat.isConnecting) return;
-    
-    if (voiceChat.connectedChannelId === channelId) {
-      voiceChat.disconnect();
-    } else {
-      if (voiceChat.isConnected) {
-        voiceChat.disconnect();
-      }
-      const userName = user?.firstName || user?.email?.split('@')[0] || 'Usuário';
-      voiceChat.connect(channelId, channelName, user?.id || '', userName);
-    }
+    // Voice chat functionality temporarily disabled due to WebRTC limitations
+    toast({
+      title: "Chat de voz indisponível",
+      description: "Esta funcionalidade está temporariamente desabilitada devido a limitações técnicas.",
+      variant: "destructive",
+    });
   };
 
   // Handle server loading and error states AFTER all hooks are defined
@@ -573,24 +568,20 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => voiceChat.isConnected ? voiceChat.toggleMute() : setIsMuted(!isMuted)}
-                    className={`text-gray-400 hover:text-white ${
-                      voiceChat.isConnected ? (voiceChat.isMuted ? 'text-red-400' : 'text-green-400') : (isMuted ? 'text-red-400' : '')
-                    }`}
-                    title={voiceChat.isConnected ? "Controle de voz ativo" : "Controle local"}
+                    onClick={() => setIsMuted(!isMuted)}
+                    className={`text-gray-400 hover:text-white ${isMuted ? 'text-red-400' : ''}`}
+                    title="Controle local de microfone"
                   >
-                    {voiceChat.isConnected ? (voiceChat.isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />) : (isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />)}
+                    {isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
                   </Button>
                   <Button
                     variant="ghost"
                     size="sm"
-                    onClick={() => voiceChat.isConnected ? voiceChat.toggleDeafen() : setIsDeafened(!isDeafened)}
-                    className={`text-gray-400 hover:text-white ${
-                      voiceChat.isConnected ? (voiceChat.isDeafened ? 'text-red-400' : 'text-green-400') : (isDeafened ? 'text-red-400' : '')
-                    }`}
-                    title={voiceChat.isConnected ? "Controle de áudio ativo" : "Controle local"}
+                    onClick={() => setIsDeafened(!isDeafened)}
+                    className={`text-gray-400 hover:text-white ${isDeafened ? 'text-red-400' : ''}`}
+                    title="Controle local de áudio"
                   >
-                    {voiceChat.isConnected ? (voiceChat.isDeafened ? <VolumeX className="h-4 w-4" /> : <Headphones className="h-4 w-4" />) : (isDeafened ? <VolumeX className="h-4 w-4" /> : <Headphones className="h-4 w-4" />)}
+                    {isDeafened ? <VolumeX className="h-4 w-4" /> : <Headphones className="h-4 w-4" />}
                   </Button>
                   <Button variant="ghost" size="sm" className="text-gray-400 hover:text-white">
                     <Settings className="h-4 w-4" />
