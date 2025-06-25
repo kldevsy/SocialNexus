@@ -175,6 +175,30 @@ export function MessageInput({
     }
   };
 
+  // Quick action handlers
+  const handleMicrophoneSelect = () => {
+    toast({
+      title: "Gravação de áudio",
+      description: "Funcionalidade em desenvolvimento.",
+    });
+  };
+
+  const handleFileSelect = () => {
+    fileInputRef.current?.click();
+  };
+
+  const handleMentionSelect = () => {
+    setMessage(prev => prev + '@');
+    textareaRef.current?.focus();
+  };
+
+  const handleEmbedSelect = () => {
+    toast({
+      title: "Criar embed",
+      description: "Funcionalidade em desenvolvimento.",
+    });
+  };
+
   const handleKeyPress = (e: React.KeyboardEvent) => {
     if (e.key === 'Enter' && !e.shiftKey) {
       e.preventDefault();
