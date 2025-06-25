@@ -347,6 +347,18 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       const message = await storage.createMessage(messageData);
+      
+      // Broadcast new message to all connected clients in the channel
+      wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN && (client as any).channelId === channelId) {
+          client.send(JSON.stringify({
+            type: 'new-message',
+            channelId: channelId,
+            message: message
+          }));
+        }
+      });
+      
       res.status(201).json(message);
     } catch (error) {
       console.error("Error creating message:", error);
@@ -371,6 +383,25 @@ export async function registerRoutes(app: Express): Promise<Server> {
       });
 
       await storage.setTyping(typingData);
+      
+      // Get user info for broadcasting
+      const user = await storage.getUser(req.user.claims.sub);
+      const userName = user?.firstName || user?.email?.split('@')[0] || 'Usuário';
+      
+      // Broadcast typing indicator to other users in the channel
+      wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN && 
+            (client as any).channelId === channelId && 
+            (client as any).userId !== req.user.claims.sub) {
+          client.send(JSON.stringify({
+            type: 'user-typing',
+            channelId: channelId,
+            userId: req.user.claims.sub,
+            userName: userName
+          }));
+        }
+      });
+      
       res.json({ success: true });
     } catch (error) {
       console.error("Error setting typing indicator:", error);
@@ -388,6 +419,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       await storage.clearTyping(req.user.claims.sub, channelId);
+      
+      // Broadcast stop typing to other users in the channel
+      wss.clients.forEach((client) => {
+        if (client.readyState === WebSocket.OPEN && 
+            (client as any).channelId === channelId && 
+            (client as any).userId !== req.user.claims.sub) {
+          client.send(JSON.stringify({
+            type: 'user-stop-typing',
+            channelId: channelId,
+            userId: req.user.claims.sub
+          }));
+        }
+      });
+      
       res.json({ success: true });
     } catch (error) {
       console.error("Error clearing typing indicator:", error);
@@ -457,9 +502,11 @@ export async function registerRoutes(app: Express): Promise<Server> {
             
           case 'join-channel':
             // User joined a channel for real-time updates
+            const joinChannelId = message.channelId;
+            (ws as any).channelId = joinChannelId;
             ws.send(JSON.stringify({
               type: 'channel-joined',
-              channelId: message.channelId
+              channelId: joinChannelId
             }));
             break;
             

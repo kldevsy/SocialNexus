@@ -11,13 +11,14 @@ interface MessageListProps {
   typingUsers: string[];
 }
 
-export function MessageList({ channelId, typingUsers }: MessageListProps) {
+export function MessageList({ channelId }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [wsConnected, setWsConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
   const queryClient = useQueryClient();
   const [editingMessage, setEditingMessage] = useState<MessageWithAuthor | null>(null);
   const [replyingTo, setReplyingTo] = useState<MessageWithAuthor | null>(null);
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
 
   const { data: messages = [], isLoading } = useQuery({
     queryKey: [`/api/channels/${channelId}/messages`],
@@ -43,9 +44,19 @@ export function MessageList({ channelId, typingUsers }: MessageListProps) {
       const data = JSON.parse(event.data);
       
       if (data.type === 'new-message' && data.channelId === channelId) {
-        // Invalidate messages query to refresh
-        // Invalidate query to refresh messages
+        // Refresh messages immediately when new message arrives
         queryClient.invalidateQueries({ queryKey: [`/api/channels/${channelId}/messages`] });
+      } else if (data.type === 'user-typing' && data.channelId === channelId) {
+        // Add user to typing list
+        setTypingUsers(prev => {
+          if (!prev.includes(data.userName)) {
+            return [...prev, data.userName];
+          }
+          return prev;
+        });
+      } else if (data.type === 'user-stop-typing' && data.channelId === channelId) {
+        // Remove user from typing list using userId since userName might not be available
+        setTypingUsers(prev => prev.filter(user => user !== data.userName));
       }
     };
 
@@ -56,7 +67,7 @@ export function MessageList({ channelId, typingUsers }: MessageListProps) {
     return () => {
       ws.close();
     };
-  }, [channelId]);
+  }, [channelId, queryClient]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {
