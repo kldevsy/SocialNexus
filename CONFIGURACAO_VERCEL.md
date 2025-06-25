@@ -37,6 +37,16 @@ No dashboard do Vercel, vá em **Settings > Environment Variables** e adicione a
 - **Valor**: String aleatória segura (32+ caracteres)
 - **Gerar com**: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
 
+### Variável 3: GITHUB_CLIENT_ID (Para Login)
+- **Nome**: `GITHUB_CLIENT_ID`
+- **Valor**: ID do seu GitHub OAuth App
+- **Como obter**: GitHub Settings > Developer > OAuth Apps
+
+### Variável 4: GITHUB_CLIENT_SECRET (Para Login)
+- **Nome**: `GITHUB_CLIENT_SECRET`
+- **Valor**: Secret do seu GitHub OAuth App
+- **Como obter**: GitHub Settings > Developer > OAuth Apps
+
 ## 🗂️ Framework Preset
 Selecione: **Other** (as configurações já estão no vercel.json)
 

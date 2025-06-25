@@ -25,20 +25,42 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Auth routes for Vercel
     app.get('/api/auth/user', (req, res) => {
-      res.status(401).json({ message: 'Authentication not configured for production yet' });
+      try {
+        const authCookie = req.headers.cookie?.split(';').find(c => c.trim().startsWith('auth-token='));
+        
+        if (!authCookie) {
+          return res.status(401).json({ message: 'Not authenticated' });
+        }
+
+        const tokenValue = authCookie.split('=')[1];
+        const userData = JSON.parse(Buffer.from(tokenValue, 'base64').toString());
+        
+        res.json(userData);
+      } catch (error) {
+        res.status(401).json({ message: 'Invalid authentication' });
+      }
     });
 
-    // Login route - redirect to GitHub OAuth or show message
+    // Login route - redirect to GitHub OAuth
     app.get('/api/login', (req, res) => {
-      res.json({ 
-        message: 'Login will be available soon. For now, you can explore the public content.',
-        loginMethods: ['GitHub OAuth coming soon', 'Google OAuth coming soon'],
-        status: 'development'
-      });
+      const { GITHUB_CLIENT_ID } = process.env;
+      
+      if (!GITHUB_CLIENT_ID) {
+        return res.json({ 
+          message: 'GitHub OAuth not configured. Please add GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET environment variables.',
+          loginMethods: ['GitHub OAuth (configuration needed)'],
+          status: 'configuration_required'
+        });
+      }
+
+      res.redirect('/api/auth/github');
     });
 
     // Logout route
     app.post('/api/logout', (req, res) => {
+      res.setHeader('Set-Cookie', [
+        'auth-token=; HttpOnly; Path=/; Max-Age=0'
+      ]);
       res.json({ message: 'Logged out successfully' });
     });
 

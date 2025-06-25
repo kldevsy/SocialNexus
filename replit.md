@@ -104,6 +104,7 @@ CommunityHub is a modern full-stack web application that provides a Discord-styl
 
 ## Recent Changes
 
+- **GitHub OAuth implementado para Vercel** (25/06/2025): Sistema completo de autenticação com GitHub, sessões por cookie, rotas protegidas, login/logout funcionando. Pronto para produção com configuração de GitHub OAuth App
 - **Rota /api/login adicionada para Vercel** (25/06/2025): Criadas rotas de login/logout que funcionam no ambiente serverless, endpoints de demo funcionando, dados exemplo para teste. API completamente funcional no Vercel
 - **Erro 500 no login do Vercel corrigido** (25/06/2025): API simplificada para funcionar em serverless functions, removidas dependências específicas do Replit, endpoints básicos funcionando. Pronto para implementar OAuth alternativo (GitHub/Google/Auth0)
 - **Problema da tela de códigos no Vercel corrigido** (25/06/2025): Configuração vercel.json otimizada, rotas corrigidas para servir index.html como fallback, build configurado corretamente. Deploy funcionando com interface React carregando normalmente
