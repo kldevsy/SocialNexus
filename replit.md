@@ -104,6 +104,7 @@ CommunityHub is a modern full-stack web application that provides a Discord-styl
 
 ## Recent Changes
 
+- **Menu de contexto de mensagens implementado** (25/06/2025): Clique direito nas mensagens para copiar, editar, deletar, responder e reportar com ações rápidas
 - **Sistema completo de mensagens implementado** (25/06/2025): Chat em tempo real com indicador de digitação, envio de imagens, WebSocket para atualizações instantâneas
 - **Bug do menu branco corrigido** (25/06/2025): Substituição das mensagens de exemplo por componentes reais de mensagens
 - **Sistema de status de membros corrigido** (25/06/2025): Status online determinístico baseado no ID do usuário

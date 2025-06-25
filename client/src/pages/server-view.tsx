@@ -280,6 +280,33 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
     return (userIdNum % 3) !== 0; // About 2/3 of users appear online
   });
   const displayName = user?.firstName || user?.email?.split('@')[0] || 'Usuário';
+  
+  // Typing indicator functions - defined after data preparation
+  const handleTyping = async () => {
+    const currentChannel = selectedChannelId || (textChannels.length > 0 ? textChannels[0].id : null);
+    if (!currentChannel || !user?.id) return;
+    
+    try {
+      await apiRequest(`/api/channels/${currentChannel}/typing`, {
+        method: "POST",
+      });
+    } catch (error) {
+      console.error('Error sending typing indicator:', error);
+    }
+  };
+
+  const handleStopTyping = async () => {
+    const currentChannel = selectedChannelId || (textChannels.length > 0 ? textChannels[0].id : null);
+    if (!currentChannel || !user?.id) return;
+    
+    try {
+      await apiRequest(`/api/channels/${currentChannel}/typing`, {
+        method: "DELETE",
+      });
+    } catch (error) {
+      console.error('Error clearing typing indicator:', error);
+    }
+  };
 
   console.log('🏗️ Current state:', {
     serverId,
@@ -728,7 +755,7 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
           </div>
         </div>
 
-        {/* Message Input */}
+        {/* Message Input with Edit/Reply Support */}
         {selectedChannel && selectedChannel.type === "text" && (
           <MessageInput
             channelId={selectedChannel.id}

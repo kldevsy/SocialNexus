@@ -1,5 +1,5 @@
 import { useEffect, useRef, useState } from "react";
-import { useQuery } from "@tanstack/react-query";
+import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
@@ -15,6 +15,9 @@ export function MessageList({ channelId, typingUsers }: MessageListProps) {
   const messagesEndRef = useRef<HTMLDivElement>(null);
   const [wsConnected, setWsConnected] = useState(false);
   const wsRef = useRef<WebSocket | null>(null);
+  const queryClient = useQueryClient();
+  const [editingMessage, setEditingMessage] = useState<MessageWithAuthor | null>(null);
+  const [replyingTo, setReplyingTo] = useState<MessageWithAuthor | null>(null);
 
   const { data: messages = [], isLoading } = useQuery({
     queryKey: [`/api/channels/${channelId}/messages`],
@@ -41,8 +44,8 @@ export function MessageList({ channelId, typingUsers }: MessageListProps) {
       
       if (data.type === 'new-message' && data.channelId === channelId) {
         // Invalidate messages query to refresh
-        // This is a simple approach - in production you might want to update the cache directly
-        window.location.reload();
+        // Invalidate query to refresh messages
+        queryClient.invalidateQueries({ queryKey: [`/api/channels/${channelId}/messages`] });
       }
     };
 

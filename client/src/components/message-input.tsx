@@ -11,9 +11,22 @@ interface MessageInputProps {
   userId: string;
   onTyping: () => void;
   onStopTyping: () => void;
+  editingMessage?: MessageWithAuthor | null;
+  onCancelEdit?: () => void;
+  replyingTo?: MessageWithAuthor | null;
+  onCancelReply?: () => void;
 }
 
-export function MessageInput({ channelId, userId, onTyping, onStopTyping }: MessageInputProps) {
+export function MessageInput({ 
+  channelId, 
+  userId, 
+  onTyping, 
+  onStopTyping, 
+  editingMessage, 
+  onCancelEdit, 
+  replyingTo, 
+  onCancelReply 
+}: MessageInputProps) {
   const [message, setMessage] = useState("");
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);

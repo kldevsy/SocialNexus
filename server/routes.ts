@@ -395,6 +395,40 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Update message (edit)
+  app.patch("/api/messages/:id", isAuthenticated, async (req: any, res) => {
+    try {
+      const messageId = parseInt(req.params.id);
+      
+      if (isNaN(messageId)) {
+        return res.status(400).json({ error: "Invalid message ID" });
+      }
+
+      // Validate that user owns the message
+      const messages = await storage.getChannelMessages(0, 1000, 0); // Get all messages to find this one
+      const message = messages.find(m => m.id === messageId);
+      
+      if (!message) {
+        return res.status(404).json({ error: "Message not found" });
+      }
+      
+      if (message.authorId !== req.user.claims.sub) {
+        return res.status(403).json({ error: "You can only edit your own messages" });
+      }
+
+      const updatedMessage = await storage.updateMessage(messageId, req.body);
+      
+      if (!updatedMessage) {
+        return res.status(404).json({ error: "Message not found" });
+      }
+
+      res.json(updatedMessage);
+    } catch (error) {
+      console.error("Error updating message:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Setup WebSocket for voice channels
