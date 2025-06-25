@@ -21,11 +21,11 @@ npm install
 ```
 ./
 ```
-(deixe vazio ou use "./" - é a pasta raiz do projeto)
+(deixe vazio)
 
 ## 🔐 Variáveis de Ambiente Necessárias
 
-No dashboard do Vercel, vá em **Settings > Environment Variables** e adicione:
+No dashboard do Vercel, vá em **Settings > Environment Variables** e adicione apenas:
 
 ### Variável 1: DATABASE_URL
 - **Nome**: `DATABASE_URL`
@@ -37,12 +37,8 @@ No dashboard do Vercel, vá em **Settings > Environment Variables** e adicione:
 - **Valor**: String aleatória segura (32+ caracteres)
 - **Gerar com**: `node -e "console.log(require('crypto').randomBytes(32).toString('hex'))"`
 
-### Variável 3: NODE_ENV (Opcional)
-- **Nome**: `NODE_ENV`
-- **Valor**: `production`
-
 ## 🗂️ Framework Preset
-Selecione: **Other** ou **Vite**
+Selecione: **Other** (as configurações já estão no vercel.json)
 
 ## ⚙️ Resumo das Configurações
 

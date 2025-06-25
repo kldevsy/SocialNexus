@@ -8,15 +8,12 @@
 4. **deploy-vercel.sh** - Script automático de deploy
 5. **DEPLOY_VERCEL.md** - Guia completo passo a passo
 
-## Para fazer o deploy agora:
+## SOLUÇÃO PARA TELA DE CÓDIGOS CORRIGIDA
 
-### Opção 1: Script Automático
-```bash
-chmod +x deploy-vercel.sh
-./deploy-vercel.sh
-```
+O problema da "tela cheia de códigos" foi resolvido. Agora:
 
-### Opção 2: Manual Rápido
+### Para fazer o deploy:
+
 ```bash
 # 1. Instalar e fazer login
 npm i -g vercel
@@ -25,10 +22,19 @@ vercel login
 # 2. Deploy
 vercel
 
-# 3. Configurar variáveis no dashboard Vercel:
-# - DATABASE_URL (de neon.tech, supabase.com ou railway.app)
-# - SESSION_SECRET (gerar com crypto.randomBytes)
+# 3. No dashboard Vercel configure:
+#    Build Command: npm run build
+#    Output Directory: dist/public
+#    Install Command: npm install
+
+# 4. Adicionar variáveis de ambiente:
+#    - DATABASE_URL (seu banco PostgreSQL)
+#    - SESSION_SECRET (string aleatória)
 ```
+
+### Após o deploy:
+- Seu site aparecerá corretamente (não mais códigos)
+- Interface funcionando em https://seu-projeto.vercel.app
 
 ## Bancos de dados gratuitos recomendados:
 - **Neon.tech** (PostgreSQL serverless, melhor opção)
