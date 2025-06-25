@@ -104,6 +104,7 @@ CommunityHub is a modern full-stack web application that provides a Discord-styl
 
 ## Recent Changes
 
+- **Sistema de chat de voz simplificado** (24/06/2025): Nova implementação focada na funcionalidade básica com debugging melhorado
 - **Chat de voz WebRTC finalizado** (24/06/2025): Sistema completo funcionando com contador sincronizado e sinais WebRTC corretos
 - **Sistema de monitoramento de voz adicionado** (24/06/2025): Botão de teste de microfone com indicador visual para diagnóstico de áudio
 - **Sistema de chat de voz profissional** (24/06/2025): Painel de controle flutuante com detecção de voz em tempo real, controles de volume e sensibilidade

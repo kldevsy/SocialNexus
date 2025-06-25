@@ -1,6 +1,6 @@
-import { useState, useRef, useCallback, useEffect } from 'react';
+import { useState, useRef, useCallback } from 'react';
 
-export function useVoiceChatFixed() {
+export function useSimpleVoice() {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectedChannelId, setConnectedChannelId] = useState<number | null>(null);
@@ -14,21 +14,19 @@ export function useVoiceChatFixed() {
   const connectedChannelIdRef = useRef<number | null>(null);
   const peerConnectionsRef = useRef(new Map<string, RTCPeerConnection>());
   const localStreamRef = useRef<MediaStream | null>(null);
+  const remoteAudiosRef = useRef(new Map<string, HTMLAudioElement>());
 
-  // Create peer connection with proper audio handling
   const createPeerConnection = useCallback((userId: string) => {
-    console.log(`🔗 Creating peer connection for ${userId}`);
+    console.log(`Creating peer connection for ${userId}`);
     
     const pc = new RTCPeerConnection({
       iceServers: [
-        { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' }
+        { urls: 'stun:stun.l.google.com:19302' }
       ]
     });
 
     pc.onicecandidate = (event) => {
       if (event.candidate && wsRef.current?.readyState === WebSocket.OPEN) {
-        console.log(`🧊 Sending ICE candidate to ${userId}`);
         wsRef.current.send(JSON.stringify({
           type: 'webrtc-signal',
           to: userId,
@@ -40,52 +38,62 @@ export function useVoiceChatFixed() {
     };
 
     pc.ontrack = (event) => {
-      console.log(`🎵 Received audio track from ${userId}`);
+      console.log(`Received audio track from ${userId}`);
       const remoteStream = event.streams[0];
       
       if (remoteStream && remoteStream.getAudioTracks().length > 0) {
-        // Create audio element for playback
-        let audio = document.querySelector(`[data-user-id="${userId}"]`) as HTMLAudioElement;
+        console.log(`Setting up audio playback for ${userId}`);
+        
+        // Create or get existing audio element
+        let audio = remoteAudiosRef.current.get(userId);
         if (!audio) {
           audio = new Audio();
-          audio.setAttribute('data-user-id', userId);
           audio.autoplay = true;
-          audio.playsInline = true;
+          audio.controls = false;
+          audio.volume = isDeafened ? 0 : 1;
+          remoteAudiosRef.current.set(userId, audio);
+          
+          // Add to DOM for debugging
+          audio.id = `audio-${userId}`;
+          audio.style.display = 'none';
           document.body.appendChild(audio);
         }
         
         audio.srcObject = remoteStream;
-        audio.volume = isDeafened ? 0 : 1;
         
-        audio.play().then(() => {
-          console.log(`✅ Audio playback started for ${userId}`);
-        }).catch((error) => {
-          console.error(`❌ Audio playback error for ${userId}:`, error);
-        });
+        // Force play
+        const playPromise = audio.play();
+        if (playPromise !== undefined) {
+          playPromise.then(() => {
+            console.log(`Audio playing for ${userId}`);
+          }).catch(error => {
+            console.error(`Audio play failed for ${userId}:`, error);
+            // Try to enable after user interaction
+            const enableAudio = () => {
+              audio?.play().then(() => {
+                console.log(`Audio enabled for ${userId} after interaction`);
+              });
+              document.removeEventListener('click', enableAudio);
+            };
+            document.addEventListener('click', enableAudio, { once: true });
+          });
+        }
       }
     };
 
     pc.onconnectionstatechange = () => {
-      console.log(`🔄 Connection state for ${userId}: ${pc.connectionState}`);
-      if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
-        // Clean up audio element
-        const audioElement = document.querySelector(`[data-user-id="${userId}"]`);
-        if (audioElement) {
-          audioElement.remove();
-        }
-      }
+      console.log(`Connection state for ${userId}: ${pc.connectionState}`);
     };
 
     return pc;
   }, [isDeafened]);
 
-  // Handle WebRTC signaling
   const handleSignal = useCallback(async (data: any) => {
     const { from, signal } = data;
     
     if (!from || from === currentUserIdRef.current) return;
     
-    console.log(`📨 Handling ${signal.type} signal from ${from}`);
+    console.log(`Handling ${signal.type} from ${from}`);
     
     let pc = peerConnectionsRef.current.get(from);
     
@@ -97,16 +105,15 @@ export function useVoiceChatFixed() {
             peerConnectionsRef.current.set(from, pc);
           }
           
-          // Add local stream if available
+          // Add local stream
           const currentStream = localStreamRef.current;
-          if (currentStream && currentStream.getTracks().length > 0) {
-            console.log(`🎤 Adding local stream to connection with ${from}`);
+          if (currentStream) {
             currentStream.getTracks().forEach(track => {
               pc!.addTrack(track, currentStream);
             });
           }
           
-          await pc.setRemoteDescription(new RTCSessionDescription(signal.offer));
+          await pc.setRemoteDescription(signal.offer);
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
           
@@ -121,39 +128,41 @@ export function useVoiceChatFixed() {
 
         case 'answer':
           if (pc) {
-            await pc.setRemoteDescription(new RTCSessionDescription(signal.answer));
+            await pc.setRemoteDescription(signal.answer);
           }
           break;
 
         case 'ice':
-          if (pc && pc.remoteDescription) {
-            await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
+          if (pc) {
+            try {
+              await pc.addIceCandidate(signal.candidate);
+            } catch (e) {
+              console.warn(`ICE candidate error:`, e);
+            }
           }
           break;
       }
     } catch (error) {
-      console.error(`❌ Error handling signal from ${from}:`, error);
+      console.error(`Error handling signal:`, error);
     }
   }, [createPeerConnection]);
 
-  // Initialize connection to a user
   const connectToUser = useCallback(async (userId: string) => {
     if (peerConnectionsRef.current.has(userId)) return;
     
     const currentStream = localStreamRef.current;
-    if (!currentStream || currentStream.getTracks().length === 0) {
-      console.warn(`⚠️ Cannot connect to ${userId}: no local stream`);
+    if (!currentStream) {
+      console.warn(`No local stream for ${userId}`);
       return;
     }
     
-    console.log(`🚀 Connecting to user ${userId}`);
+    console.log(`Connecting to ${userId}`);
     
     const pc = createPeerConnection(userId);
     peerConnectionsRef.current.set(userId, pc);
     
     // Add local stream
     currentStream.getTracks().forEach(track => {
-      console.log(`🎵 Adding local track: ${track.kind}`);
       pc.addTrack(track, currentStream);
     });
     
@@ -161,7 +170,6 @@ export function useVoiceChatFixed() {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
       
-      console.log(`📤 Sending offer to ${userId}`);
       wsRef.current?.send(JSON.stringify({
         type: 'webrtc-signal',
         to: userId,
@@ -170,7 +178,7 @@ export function useVoiceChatFixed() {
         signal: { type: 'offer', offer }
       }));
     } catch (error) {
-      console.error(`❌ Error creating offer for ${userId}:`, error);
+      console.error(`Error creating offer:`, error);
       peerConnectionsRef.current.delete(userId);
     }
   }, [createPeerConnection]);
@@ -185,14 +193,10 @@ export function useVoiceChatFixed() {
     try {
       // Get audio stream
       const stream = await navigator.mediaDevices.getUserMedia({ 
-        audio: { 
-          echoCancellation: true, 
-          noiseSuppression: true,
-          autoGainControl: true
-        } 
+        audio: true 
       });
       
-      console.log('🎤 Audio stream acquired successfully');
+      console.log('Audio stream acquired');
       setLocalStream(stream);
       localStreamRef.current = stream;
       
@@ -202,7 +206,7 @@ export function useVoiceChatFixed() {
       wsRef.current = ws;
       
       ws.onopen = () => {
-        console.log('✅ WebSocket connected to voice channel');
+        console.log('WebSocket connected');
         ws.send(JSON.stringify({
           type: 'join-voice',
           channelId,
@@ -216,19 +220,17 @@ export function useVoiceChatFixed() {
       
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
-        console.log('📩 WebSocket message:', data.type);
         
         switch (data.type) {
           case 'voice-users':
           case 'channel-users':
             setUserCount(data.count || data.userCount || 0);
             
-            // Connect to existing users
+            // Connect to existing users with delay
             if (data.users && data.users.length > 0) {
-              console.log(`👥 Found ${data.users.length} existing users`);
               data.users.forEach((user: any) => {
                 if (user.userId !== userId) {
-                  setTimeout(() => connectToUser(user.userId), 1000);
+                  setTimeout(() => connectToUser(user.userId), 2000);
                 }
               });
             }
@@ -237,8 +239,7 @@ export function useVoiceChatFixed() {
           case 'user-joined-voice':
           case 'user-joined':
             if (data.userId !== userId) {
-              console.log(`👋 User ${data.userId} joined, connecting...`);
-              setTimeout(() => connectToUser(data.userId), 1000);
+              setTimeout(() => connectToUser(data.userId), 2000);
             }
             break;
             
@@ -249,9 +250,11 @@ export function useVoiceChatFixed() {
               pc.close();
               peerConnectionsRef.current.delete(data.userId);
             }
-            const audioElement = document.querySelector(`[data-user-id="${data.userId}"]`);
-            if (audioElement) {
-              audioElement.remove();
+            
+            const audio = remoteAudiosRef.current.get(data.userId);
+            if (audio) {
+              audio.remove();
+              remoteAudiosRef.current.delete(data.userId);
             }
             break;
             
@@ -262,29 +265,31 @@ export function useVoiceChatFixed() {
       };
       
       ws.onclose = () => {
-        console.log('❌ WebSocket disconnected');
+        console.log('WebSocket disconnected');
         setIsConnected(false);
         wsRef.current = null;
       };
       
     } catch (error) {
-      console.error('❌ Failed to connect to voice channel:', error);
+      console.error('Failed to connect:', error);
       setIsConnecting(false);
     }
   };
 
   const disconnect = () => {
-    console.log('🔌 Disconnecting from voice channel');
-    
-    // Clean up audio elements
-    document.querySelectorAll('[data-user-id]').forEach(audio => audio.remove());
+    console.log('Disconnecting from voice channel');
     
     // Close peer connections
-    peerConnectionsRef.current.forEach((pc, userId) => {
-      console.log(`Closing connection to ${userId}`);
+    peerConnectionsRef.current.forEach((pc) => {
       pc.close();
     });
     peerConnectionsRef.current.clear();
+    
+    // Remove audio elements
+    remoteAudiosRef.current.forEach((audio) => {
+      audio.remove();
+    });
+    remoteAudiosRef.current.clear();
     
     // Send leave message
     if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
@@ -317,7 +322,7 @@ export function useVoiceChatFixed() {
       if (audioTrack) {
         audioTrack.enabled = isMuted;
         setIsMuted(!isMuted);
-        console.log(`🎤 Microphone ${!isMuted ? 'muted' : 'unmuted'}`);
+        console.log(`Microphone ${!isMuted ? 'muted' : 'unmuted'}`);
       }
     }
   };
@@ -327,11 +332,11 @@ export function useVoiceChatFixed() {
     setIsDeafened(newDeafenState);
     
     // Update volume of all remote audio elements
-    document.querySelectorAll('[data-user-id]').forEach((audio: any) => {
+    remoteAudiosRef.current.forEach((audio) => {
       audio.volume = newDeafenState ? 0 : 1;
     });
     
-    console.log(`🔇 Audio ${newDeafenState ? 'deafened' : 'undeafened'}`);
+    console.log(`Audio ${newDeafenState ? 'deafened' : 'undeafened'}`);
   };
 
   return {
