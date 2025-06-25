@@ -30,7 +30,12 @@ interface EmbedMessageProps {
 }
 
 export function EmbedMessage({ embedData, createdAt }: EmbedMessageProps) {
-  if (!embedData) return null;
+  console.log('EmbedMessage render:', { embedData, createdAt });
+  
+  if (!embedData) {
+    console.log('EmbedMessage: No embedData provided');
+    return null;
+  }
 
   return (
     <motion.div

@@ -239,10 +239,13 @@ export function MessageList({ channelId }: MessageListProps) {
 
                   {/* Embed message */}
                   {(message as any).embedData && (
-                    <EmbedMessage 
-                      embedData={(message as any).embedData}
-                      createdAt={message.createdAt}
-                    />
+                    <div>
+                      {console.log('Message with embed:', message)}
+                      <EmbedMessage 
+                        embedData={(message as any).embedData}
+                        createdAt={message.createdAt}
+                      />
+                    </div>
                   )}
                 </div>
               </div>
