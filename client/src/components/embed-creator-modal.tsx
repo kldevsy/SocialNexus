@@ -39,7 +39,8 @@ import {
   GamepadIcon,
   Trophy,
   Target,
-  Rocket
+  Rocket,
+  Square
 } from "lucide-react";
 
 interface EmbedField {
