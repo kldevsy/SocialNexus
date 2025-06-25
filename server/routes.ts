@@ -349,6 +349,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const message = await storage.createMessage(messageData);
       
       // Broadcast new message to all connected clients in the channel
+      console.log(`📣 Broadcasting new message to channel ${channelId}`);
+      let messageBroadcastCount = 0;
       wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN && (client as any).channelId === channelId) {
           client.send(JSON.stringify({
@@ -356,8 +358,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             channelId: channelId,
             message: message
           }));
+          messageBroadcastCount++;
         }
       });
+      console.log(`📤 Broadcasted new message to ${messageBroadcastCount} clients`);
       
       res.status(201).json(message);
     } catch (error) {
@@ -389,6 +393,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       const userName = user?.firstName || user?.email?.split('@')[0] || 'Usuário';
       
       // Broadcast typing indicator to other users in the channel
+      console.log(`📝 Broadcasting typing indicator from ${userName} to channel ${channelId}`);
+      let broadcastCount = 0;
       wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN && 
             (client as any).channelId === channelId && 
@@ -399,8 +405,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             userId: req.user.claims.sub,
             userName: userName
           }));
+          broadcastCount++;
         }
       });
+      console.log(`📤 Broadcasted typing indicator to ${broadcastCount} clients`);
       
       res.json({ success: true });
     } catch (error) {
@@ -421,6 +429,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
       await storage.clearTyping(req.user.claims.sub, channelId);
       
       // Broadcast stop typing to other users in the channel
+      console.log(`🛑 Broadcasting stop typing from user ${req.user.claims.sub} to channel ${channelId}`);
+      let stopBroadcastCount = 0;
       wss.clients.forEach((client) => {
         if (client.readyState === WebSocket.OPEN && 
             (client as any).channelId === channelId && 
@@ -430,8 +440,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
             channelId: channelId,
             userId: req.user.claims.sub
           }));
+          stopBroadcastCount++;
         }
       });
+      console.log(`📤 Broadcasted stop typing to ${stopBroadcastCount} clients`);
       
       res.json({ success: true });
     } catch (error) {
@@ -503,7 +515,10 @@ export async function registerRoutes(app: Express): Promise<Server> {
           case 'join-channel':
             // User joined a channel for real-time updates
             const joinChannelId = message.channelId;
+            const joinUserId = message.userId || (ws as any).userId;
             (ws as any).channelId = joinChannelId;
+            (ws as any).userId = joinUserId;
+            console.log(`👤 User ${joinUserId} joined channel ${joinChannelId} for real-time updates`);
             ws.send(JSON.stringify({
               type: 'channel-joined',
               channelId: joinChannelId

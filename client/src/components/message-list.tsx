@@ -20,6 +20,12 @@ export function MessageList({ channelId }: MessageListProps) {
   const [editingMessage, setEditingMessage] = useState<MessageWithAuthor | null>(null);
   const [replyingTo, setReplyingTo] = useState<MessageWithAuthor | null>(null);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  
+  // Get user for WebSocket authentication
+  const { data: user } = useQuery({
+    queryKey: ['/api/auth/user'],
+    retry: false
+  });
 
   const { data: messages = [], isLoading } = useQuery({
     queryKey: [`/api/channels/${channelId}/messages`],
@@ -34,23 +40,37 @@ export function MessageList({ channelId }: MessageListProps) {
 
     ws.onopen = () => {
       setWsConnected(true);
-      // Join channel for real-time updates
+      console.log(`📡 WebSocket connected for channel ${channelId}`);
+      
+      // First authenticate user if available
+      if (user?.id) {
+        ws.send(JSON.stringify({
+          type: 'authenticate',
+          userId: user.id
+        }));
+      }
+      
+      // Then join channel for real-time updates
       ws.send(JSON.stringify({
         type: 'join-channel',
-        channelId
+        channelId,
+        userId: user?.id || 'anonymous'
       }));
     };
 
     ws.onmessage = (event) => {
       const data = JSON.parse(event.data);
+      console.log('📨 WebSocket message received:', data);
       
       if (data.type === 'new-message' && data.channelId === channelId) {
         // Refresh messages immediately when new message arrives
         queryClient.invalidateQueries({ queryKey: [`/api/channels/${channelId}/messages`] });
       } else if (data.type === 'user-typing' && data.channelId === channelId) {
+        console.log(`⌨️ User ${data.userName} is typing in channel ${channelId}`);
         // Add user to typing list with timeout cleanup
         setTypingUsers(prev => {
           if (!prev.includes(data.userName)) {
+            console.log(`➕ Adding ${data.userName} to typing list`);
             return [...prev, data.userName];
           }
           return prev;
@@ -62,6 +82,7 @@ export function MessageList({ channelId }: MessageListProps) {
         }, 5000);
         
       } else if (data.type === 'user-stop-typing' && data.channelId === channelId) {
+        console.log(`🛑 User ${data.userName} stopped typing in channel ${channelId}`);
         // Remove user from typing list
         setTypingUsers(prev => prev.filter(user => user !== data.userName));
       }
@@ -74,7 +95,7 @@ export function MessageList({ channelId }: MessageListProps) {
     return () => {
       ws.close();
     };
-  }, [channelId, queryClient]);
+  }, [channelId, queryClient, user]);
 
   // Auto-scroll to bottom on new messages
   useEffect(() => {

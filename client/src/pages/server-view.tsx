@@ -281,12 +281,14 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
     const currentChannel = selectedChannelId || (textChannels.length > 0 ? textChannels[0].id : null);
     if (!currentChannel || !user?.id) return;
     
+    console.log(`📝 Sending typing indicator for channel ${currentChannel}, user ${user.id}`);
     try {
-      await apiRequest(`/api/channels/${currentChannel}/typing`, {
+      const response = await apiRequest(`/api/channels/${currentChannel}/typing`, {
         method: "POST",
       });
+      console.log('✅ Typing indicator sent successfully:', response);
     } catch (error) {
-      console.error('Error sending typing indicator:', error);
+      console.error('❌ Error sending typing indicator:', error);
     }
   };
 
@@ -294,12 +296,14 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
     const currentChannel = selectedChannelId || (textChannels.length > 0 ? textChannels[0].id : null);
     if (!currentChannel || !user?.id) return;
     
+    console.log(`🛑 Sending stop typing indicator for channel ${currentChannel}, user ${user.id}`);
     try {
-      await apiRequest(`/api/channels/${currentChannel}/typing`, {
+      const response = await apiRequest(`/api/channels/${currentChannel}/typing`, {
         method: "DELETE",
       });
+      console.log('✅ Stop typing indicator sent successfully:', response);
     } catch (error) {
-      console.error('Error clearing typing indicator:', error);
+      console.error('❌ Error clearing typing indicator:', error);
     }
   };
 
