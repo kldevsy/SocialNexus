@@ -111,14 +111,15 @@ export function useDirectVoiceChat() {
             peerConnectionsRef.current.set(from, pc);
             
             // Add local stream
-            if (localStream) {
-              console.log(`Adding local tracks to existing peer connection for ${from}`);
+            if (localStream && localStream.getTracks().length > 0) {
+              console.log(`Adding local tracks to peer connection for ${from}`);
               localStream.getTracks().forEach(track => {
                 console.log(`Adding track:`, track.kind, track.enabled);
                 pc!.addTrack(track, localStream);
               });
             } else {
               console.warn(`No local stream when handling offer from ${from}`);
+              return; // Don't proceed without local stream
             }
           }
           
@@ -166,7 +167,10 @@ export function useDirectVoiceChat() {
 
   // Initialize peer connection with a user
   const initiatePeerConnection = useCallback(async (userId: string) => {
-    if (peerConnectionsRef.current.has(userId)) return;
+    if (peerConnectionsRef.current.has(userId)) {
+      console.log(`Peer connection already exists for ${userId}`);
+      return;
+    }
     
     console.log(`Initiating connection with ${userId}`);
     
@@ -174,28 +178,34 @@ export function useDirectVoiceChat() {
     peerConnectionsRef.current.set(userId, pc);
     
     // Add local stream to peer connection
-    if (localStream) {
+    if (localStream && localStream.getTracks().length > 0) {
       console.log(`Adding local stream tracks to peer connection for ${userId}`);
       localStream.getTracks().forEach(track => {
         console.log(`Adding track:`, track.kind, track.enabled, track.readyState);
         pc.addTrack(track, localStream);
       });
+      
+      // Create and send offer
+      try {
+        const offer = await pc.createOffer();
+        await pc.setLocalDescription(offer);
+        
+        console.log(`Sending offer to ${userId} in channel ${connectedChannelIdRef.current}`);
+        wsRef.current?.send(JSON.stringify({
+          type: 'webrtc-signal',
+          to: userId,
+          from: currentUserIdRef.current,
+          channelId: connectedChannelIdRef.current,
+          signal: { type: 'offer', offer }
+        }));
+      } catch (error) {
+        console.error(`Error creating offer for ${userId}:`, error);
+      }
     } else {
       console.warn(`No local stream available when creating peer connection for ${userId}`);
+      // Remove the peer connection since we can't use it without a stream
+      peerConnectionsRef.current.delete(userId);
     }
-    
-    // Create and send offer
-    const offer = await pc.createOffer();
-    await pc.setLocalDescription(offer);
-    
-    console.log(`Sending offer to ${userId} in channel ${connectedChannelIdRef.current}`);
-    wsRef.current?.send(JSON.stringify({
-      type: 'webrtc-signal',
-      to: userId,
-      from: currentUserIdRef.current,
-      channelId: connectedChannelIdRef.current,
-      signal: { type: 'offer', offer }
-    }));
   }, [localStream, createPeerConnection]);
 
   const connect = async (channelId: number, channelName: string, userId: string, userName: string) => {
@@ -251,28 +261,37 @@ export function useDirectVoiceChat() {
           case 'voice-users':
             console.log('Voice users update:', data);
             setUserCount(data.count || data.userCount || 0);
-            // Connect to existing users
-            data.users?.forEach((user: any) => {
-              if (user.userId !== userId) {
-                setTimeout(() => initiatePeerConnection(user.userId), 100);
-              }
-            });
+            // Connect to existing users after ensuring we have local stream
+            if (localStream && localStream.getTracks().length > 0) {
+              data.users?.forEach((user: any) => {
+                if (user.userId !== userId) {
+                  setTimeout(() => initiatePeerConnection(user.userId), 200);
+                }
+              });
+            }
             break;
             
           case 'channel-users':
             console.log('Channel users update:', data);
             setUserCount(data.userCount || data.count || 0);
-            // Connect to existing users
-            data.users?.forEach((user: any) => {
-              if (user.userId !== userId) {
-                setTimeout(() => initiatePeerConnection(user.userId), 100);
-              }
-            });
+            // Connect to existing users after ensuring we have local stream
+            if (localStream && localStream.getTracks().length > 0) {
+              data.users?.forEach((user: any) => {
+                if (user.userId !== userId) {
+                  setTimeout(() => initiatePeerConnection(user.userId), 200);
+                }
+              });
+            }
             break;
             
           case 'user-joined-voice':
             if (data.userId !== userId) {
-              setTimeout(() => initiatePeerConnection(data.userId), 100);
+              // Ensure we have local stream before initiating connection
+              if (localStream && localStream.getTracks().length > 0) {
+                setTimeout(() => initiatePeerConnection(data.userId), 200);
+              } else {
+                console.warn(`Cannot initiate connection with ${data.userId}: no local stream`);
+              }
             }
             break;
             
