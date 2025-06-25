@@ -104,6 +104,8 @@ CommunityHub is a modern full-stack web application that provides a Discord-styl
 
 ## Recent Changes
 
+- **Projeto convertido para Supabase** (25/06/2025): Driver Neon substituído por PostgreSQL padrão, SSL configurado, dependências atualizadas. Pronto para conectar com URL do Supabase
+- **Configuração Supabase documentada** (25/06/2025): Instruções detalhadas para conectar ao Supabase, URL correta do connection pooling, SSL configurado para produção
 - **Callback URL GitHub OAuth corrigida** (25/06/2025): Corrigido erro "redirect_uri não está associado" ajustando detecção da URL do Vercel. Instruções para atualizar callback URL no GitHub OAuth App fornecidas
 - **Rotas GitHub OAuth integradas na API principal** (25/06/2025): Corrigido erro "Não é possível obter /api/auth/github" movendo todas as rotas OAuth para o arquivo principal da API. Sistema funcionando com variáveis já configuradas pelo usuário
 - **Página de configuração GitHub OAuth criada** (25/06/2025): Interface amigável que explica passo a passo como configurar GitHub OAuth, auto-refresh para detectar configuração, instruções visuais claras. Sistema pronto para ativar login
