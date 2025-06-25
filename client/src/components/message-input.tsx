@@ -207,8 +207,7 @@ export function MessageInput({
 
   const handleEmbedSelect = () => {
     console.log("Opening embed modal...");
-    setTestModalOpen(true); // Primeiro vamos testar com modal simples
-    // setEmbedModalOpen(true);
+    setEmbedModalOpen(true);
   };
 
   const handleEmbedSave = (embedData: any) => {

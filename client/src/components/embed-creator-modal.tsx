@@ -181,6 +181,7 @@ const colorPresets = [
 ];
 
 export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorModalProps) {
+  console.log("EmbedCreatorModal render - open:", open);
   const [embedData, setEmbedData] = useState<EmbedData>({
     title: '',
     description: '',
@@ -266,9 +267,11 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
     });
   };
 
+  if (!open) return null;
+
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-6xl max-h-[90vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
@@ -283,9 +286,9 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
           </div>
         </DialogHeader>
 
-        <div className="flex-1 flex gap-6 overflow-hidden">
+        <div className="flex-1 flex gap-4 overflow-hidden">
           {/* Editor Panel */}
-          <div className="flex-1 overflow-y-auto">
+          <div className="flex-1 overflow-y-auto max-h-[60vh]">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
               <TabsList className="grid w-full grid-cols-4">
                 <TabsTrigger value="basic" className="flex items-center space-x-2">
@@ -637,8 +640,8 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
           </div>
 
           {/* Preview Panel */}
-          <div className="w-96 border-l pl-6">
-            <div className="sticky top-0">
+          <div className="w-80 border-l pl-4">
+            <div className="sticky top-0 max-h-[60vh] overflow-y-auto">
               <div className="flex items-center space-x-2 mb-4">
                 <Eye className="h-4 w-4" />
                 <h3 className="font-semibold">Pré-visualização</h3>

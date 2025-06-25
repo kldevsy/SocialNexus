@@ -178,8 +178,6 @@ export const insertMessageSchema = createInsertSchema(messages).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
-}).extend({
-  embedData: z.string().optional(),
 });
 
 export const insertTypingIndicatorSchema = createInsertSchema(typingIndicators).omit({
