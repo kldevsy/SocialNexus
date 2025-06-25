@@ -104,6 +104,7 @@ CommunityHub is a modern full-stack web application that provides a Discord-styl
 
 ## Recent Changes
 
+- **Indicador de digitação com pontos animados implementado** (25/06/2025): Animações fluidas com Framer Motion, componente reutilizável TypingDots, transições suaves de entrada/saída, timeout automático de limpeza
 - **Sistema de mensagens em tempo real corrigido** (25/06/2025): WebSocket funcionando corretamente para mensagens instantâneas entre usuários, indicadores de digitação em tempo real, broadcast adequado de eventos
 - **Bug de upload de imagens resolvido** (25/06/2025): Compressão automática, limite aumentado no servidor, conversão para base64, layout de mensagens corrigido
 - **Erro da tela branca corrigido** (25/06/2025): Referências undefined do sistema de voz removidas, hooks organizados adequadamente

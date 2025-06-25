@@ -3,8 +3,9 @@ import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
-import { motion } from "framer-motion";
+import { motion, AnimatePresence } from "framer-motion";
 import type { MessageWithAuthor } from "@shared/schema";
+import { TypingDots } from "./typing-dots";
 
 interface MessageListProps {
   channelId: number;
@@ -47,15 +48,21 @@ export function MessageList({ channelId }: MessageListProps) {
         // Refresh messages immediately when new message arrives
         queryClient.invalidateQueries({ queryKey: [`/api/channels/${channelId}/messages`] });
       } else if (data.type === 'user-typing' && data.channelId === channelId) {
-        // Add user to typing list
+        // Add user to typing list with timeout cleanup
         setTypingUsers(prev => {
           if (!prev.includes(data.userName)) {
             return [...prev, data.userName];
           }
           return prev;
         });
+        
+        // Auto-remove typing indicator after 5 seconds (fallback)
+        setTimeout(() => {
+          setTypingUsers(prev => prev.filter(user => user !== data.userName));
+        }, 5000);
+        
       } else if (data.type === 'user-stop-typing' && data.channelId === channelId) {
-        // Remove user from typing list using userId since userName might not be available
+        // Remove user from typing list
         setTypingUsers(prev => prev.filter(user => user !== data.userName));
       }
     };
@@ -165,26 +172,33 @@ export function MessageList({ channelId }: MessageListProps) {
         </>
       )}
 
-      {/* Typing indicators */}
-      {typingUsers.length > 0 && (
-        <motion.div
-          initial={{ opacity: 0, y: 10 }}
-          animate={{ opacity: 1, y: 0 }}
-          className="flex items-center space-x-2 text-sm text-gray-500 pl-13"
-        >
-          <div className="flex space-x-1">
-            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce"></div>
-            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.1s' }}></div>
-            <div className="w-2 h-2 bg-gray-400 rounded-full animate-bounce" style={{ animationDelay: '0.2s' }}></div>
-          </div>
-          <span>
-            {typingUsers.length === 1 
-              ? `${typingUsers[0]} está digitando...`
-              : `${typingUsers.slice(0, -1).join(', ')} e ${typingUsers[typingUsers.length - 1]} estão digitando...`
-            }
-          </span>
-        </motion.div>
-      )}
+      {/* Typing indicators with animated dots */}
+      <AnimatePresence>
+        {typingUsers.length > 0 && (
+          <motion.div
+            initial={{ opacity: 0, y: 10, scale: 0.95 }}
+            animate={{ opacity: 1, y: 0, scale: 1 }}
+            exit={{ opacity: 0, y: -10, scale: 0.95 }}
+            transition={{ duration: 0.2, ease: "easeOut" }}
+            className="flex items-center space-x-3 text-sm text-gray-500 dark:text-gray-400 pl-4 py-3 mb-2 mx-4 bg-gray-50 dark:bg-gray-800/50 rounded-lg backdrop-blur-sm"
+          >
+            <TypingDots size="medium" />
+            <motion.span 
+              className="text-gray-600 dark:text-gray-300 font-medium"
+              initial={{ opacity: 0 }}
+              animate={{ opacity: 1 }}
+              transition={{ delay: 0.1 }}
+            >
+              {typingUsers.length === 1 
+                ? `${typingUsers[0]} está digitando...`
+                : typingUsers.length === 2
+                  ? `${typingUsers[0]} e ${typingUsers[1]} estão digitando...`
+                  : `${typingUsers[0]} e mais ${typingUsers.length - 1} pessoas estão digitando...`
+              }
+            </motion.span>
+          </motion.div>
+        )}
+      </AnimatePresence>
 
       {/* Connection status */}
       {!wsConnected && (
