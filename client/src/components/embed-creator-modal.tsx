@@ -48,10 +48,29 @@ interface EmbedField {
   inline: boolean;
 }
 
+interface EmbedButton {
+  id: string;
+  label: string;
+  style: 'primary' | 'secondary' | 'success' | 'danger' | 'link';
+  url?: string;
+  emoji?: string;
+  disabled?: boolean;
+}
+
+interface EmbedProgressBar {
+  id: string;
+  label: string;
+  value: number;
+  max: number;
+  style: 'default' | 'striped' | 'animated' | 'gradient';
+  color: string;
+}
+
 interface EmbedData {
   title: string;
   description: string;
   color: string;
+  colorPulsing: boolean;
   url: string;
   thumbnail: string;
   image: string;
@@ -62,6 +81,9 @@ interface EmbedData {
   footerIcon: string;
   timestamp: boolean;
   fields: EmbedField[];
+  buttons: EmbedButton[];
+  progressBars: EmbedProgressBar[];
+  selectedIcon?: string;
 }
 
 interface EmbedCreatorModalProps {
@@ -186,6 +208,7 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
     title: '',
     description: '',
     color: '#3b82f6',
+    colorPulsing: false,
     url: '',
     thumbnail: '',
     image: '',
@@ -195,7 +218,10 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
     footerText: '',
     footerIcon: '',
     timestamp: false,
-    fields: []
+    fields: [],
+    buttons: [],
+    progressBars: [],
+    selectedIcon: undefined
   });
 
   const [activeTab, setActiveTab] = useState('basic');
@@ -290,7 +316,7 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
           {/* Editor Panel */}
           <div className="flex-1 overflow-y-auto max-h-[50vh] lg:max-h-[60vh]">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
-              <TabsList className="grid w-full grid-cols-4">
+              <TabsList className="grid w-full grid-cols-6">
                 <TabsTrigger value="basic" className="flex items-center space-x-1 text-xs sm:text-sm">
                   <Hash className="h-3 w-3 sm:h-4 sm:w-4" />
                   <span className="hidden sm:inline">Básico</span>
@@ -302,6 +328,14 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
                 <TabsTrigger value="fields" className="flex items-center space-x-1 text-xs sm:text-sm">
                   <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
                   <span className="hidden sm:inline">Campos</span>
+                </TabsTrigger>
+                <TabsTrigger value="buttons" className="flex items-center space-x-1 text-xs sm:text-sm">
+                  <Square className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Botões</span>
+                </TabsTrigger>
+                <TabsTrigger value="progress" className="flex items-center space-x-1 text-xs sm:text-sm">
+                  <BarChart3 className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Progresso</span>
                 </TabsTrigger>
                 <TabsTrigger value="templates" className="flex items-center space-x-1 text-xs sm:text-sm">
                   <Star className="h-3 w-3 sm:h-4 sm:w-4" />

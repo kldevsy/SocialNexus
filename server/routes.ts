@@ -335,7 +335,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/channels/:id/messages", isAuthenticated, async (req: any, res) => {
     try {
       const channelId = parseInt(req.params.id);
-      const userId = req.session.user!.id;
+      const userId = req.user?.id || req.session?.user?.id;
       
       if (isNaN(channelId)) {
         return res.status(400).json({ error: "Invalid channel ID" });
@@ -355,7 +355,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
       // Broadcast new message to all connected clients in the channel
       const messageWithAuthor = {
         ...message,
-        author: req.session.user!,
+        author: req.user || req.session?.user,
         embedData: message.embedData ? JSON.parse(message.embedData) : undefined
       };
       
