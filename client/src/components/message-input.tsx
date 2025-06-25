@@ -37,17 +37,15 @@ export function MessageInput({
 
   const sendMessageMutation = useMutation({
     mutationFn: async ({ content, imageUrl }: { content?: string; imageUrl?: string }) => {
-      const formData = new FormData();
-      
-      if (content) {
-        formData.append('content', content);
-      }
+      let finalImageUrl = null;
       
       if (selectedImage) {
-        // For now, we'll use a placeholder image service
-        // In production, you'd upload to a proper service like Cloudinary
-        const imageUrl = URL.createObjectURL(selectedImage);
-        formData.append('imageUrl', imageUrl);
+        // Convert image to base64 for simple storage
+        const reader = new FileReader();
+        finalImageUrl = await new Promise<string>((resolve) => {
+          reader.onloadend = () => resolve(reader.result as string);
+          reader.readAsDataURL(selectedImage);
+        });
       }
 
       return apiRequest(`/api/channels/${channelId}/messages`, {
@@ -57,7 +55,7 @@ export function MessageInput({
         },
         body: JSON.stringify({
           content: content || null,
-          imageUrl: selectedImage ? URL.createObjectURL(selectedImage) : null,
+          imageUrl: finalImageUrl,
         }),
       });
     },
@@ -83,7 +81,6 @@ export function MessageInput({
     
     sendMessageMutation.mutate({
       content: message.trim() || undefined,
-      imageUrl: selectedImage ? URL.createObjectURL(selectedImage) : undefined,
     });
   };
 

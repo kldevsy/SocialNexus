@@ -96,7 +96,7 @@ export function MessageList({ channelId, typingUsers }: MessageListProps) {
         </div>
       ) : (
         <>
-          {messages.reverse().map((message: MessageWithAuthor, index: number) => (
+          {[...messages].reverse().map((message: MessageWithAuthor, index: number) => (
             <motion.div
               key={message.id}
               initial={{ opacity: 0, y: 20 }}
@@ -124,24 +124,30 @@ export function MessageList({ channelId, typingUsers }: MessageListProps) {
                   </span>
                 </div>
                 
-                {/* Message content */}
-                {message.content && (
-                  <p className="text-gray-700 whitespace-pre-wrap break-words">
-                    {message.content}
-                  </p>
-                )}
-                
-                {/* Message image */}
-                {message.imageUrl && (
-                  <div className="mt-2">
-                    <img 
-                      src={message.imageUrl} 
-                      alt="Imagem enviada" 
-                      className="max-w-sm max-h-96 rounded-lg border shadow-sm cursor-pointer hover:shadow-md transition-shadow"
-                      onClick={() => window.open(message.imageUrl!, '_blank')}
-                    />
-                  </div>
-                )}
+                <div className="space-y-2">
+                  {/* Message content */}
+                  {message.content && (
+                    <p className="text-gray-700 whitespace-pre-wrap break-words">
+                      {message.content}
+                    </p>
+                  )}
+                  
+                  {/* Message image */}
+                  {message.imageUrl && (
+                    <div className="mt-2">
+                      <img 
+                        src={message.imageUrl} 
+                        alt="Imagem enviada" 
+                        className="max-w-sm max-h-96 rounded-lg border shadow-sm cursor-pointer hover:shadow-md transition-shadow block"
+                        onClick={() => window.open(message.imageUrl!, '_blank')}
+                        onError={(e) => {
+                          console.error('Error loading image:', message.imageUrl);
+                          e.currentTarget.style.display = 'none';
+                        }}
+                      />
+                    </div>
+                  )}
+                </div>
               </div>
             </motion.div>
           ))}
