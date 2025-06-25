@@ -1,10 +1,9 @@
 import { useState, useRef, useCallback, useEffect } from 'react';
 
-export function useDirectVoiceChat() {
+export function useVoiceChatFixed() {
   const [isConnected, setIsConnected] = useState(false);
   const [isConnecting, setIsConnecting] = useState(false);
   const [connectedChannelId, setConnectedChannelId] = useState<number | null>(null);
-  const connectedChannelIdRef = useRef<number | null>(null);
   const [userCount, setUserCount] = useState(0);
   const [localStream, setLocalStream] = useState<MediaStream | null>(null);
   const [isMuted, setIsMuted] = useState(false);
@@ -12,24 +11,24 @@ export function useDirectVoiceChat() {
   
   const wsRef = useRef<WebSocket | null>(null);
   const currentUserIdRef = useRef<string>('');
+  const connectedChannelIdRef = useRef<number | null>(null);
   const peerConnectionsRef = useRef(new Map<string, RTCPeerConnection>());
-  const pendingCandidatesRef = useRef(new Map<string, RTCIceCandidate[]>());
+  const localStreamRef = useRef<MediaStream | null>(null);
 
-  // Simple peer connection factory  
+  // Create peer connection with proper audio handling
   const createPeerConnection = useCallback((userId: string) => {
-    console.log(`Creating peer connection for ${userId}`);
+    console.log(`🔗 Creating peer connection for ${userId}`);
     
     const pc = new RTCPeerConnection({
       iceServers: [
         { urls: 'stun:stun.l.google.com:19302' },
-        { urls: 'stun:stun1.l.google.com:19302' },
-        { urls: 'stun:stun2.l.google.com:19302' }
+        { urls: 'stun:stun1.l.google.com:19302' }
       ]
     });
 
     pc.onicecandidate = (event) => {
       if (event.candidate && wsRef.current?.readyState === WebSocket.OPEN) {
-        console.log(`Sending ICE candidate to ${userId}`);
+        console.log(`🧊 Sending ICE candidate to ${userId}`);
         wsRef.current.send(JSON.stringify({
           type: 'webrtc-signal',
           to: userId,
@@ -41,44 +40,33 @@ export function useDirectVoiceChat() {
     };
 
     pc.ontrack = (event) => {
-      console.log(`🎵 Received audio track from ${userId}`, event.streams[0]);
+      console.log(`🎵 Received audio track from ${userId}`);
       const remoteStream = event.streams[0];
       
       if (remoteStream && remoteStream.getAudioTracks().length > 0) {
-        console.log(`🔊 Creating audio element for ${userId}`);
-        const audio = new Audio();
-        audio.srcObject = remoteStream;
-        audio.autoplay = true;
-        audio.playsInline = true;
-        audio.volume = isDeafened ? 0 : 1;
-        
-        // Store audio element for cleanup
-        const existingAudio = document.querySelector(`[data-user-id="${userId}"]`);
-        if (existingAudio) {
-          existingAudio.remove();
+        // Create audio element for playback
+        let audio = document.querySelector(`[data-user-id="${userId}"]`) as HTMLAudioElement;
+        if (!audio) {
+          audio = new Audio();
+          audio.setAttribute('data-user-id', userId);
+          audio.autoplay = true;
+          audio.playsInline = true;
+          document.body.appendChild(audio);
         }
         
-        audio.setAttribute('data-user-id', userId);
-        document.body.appendChild(audio);
+        audio.srcObject = remoteStream;
+        audio.volume = isDeafened ? 0 : 1;
         
         audio.play().then(() => {
           console.log(`✅ Audio playback started for ${userId}`);
         }).catch((error) => {
-          console.error(`❌ Error playing audio for ${userId}:`, error);
-          // Try to enable autoplay
-          const playAudio = () => {
-            audio.play().catch(console.error);
-            document.removeEventListener('click', playAudio);
-          };
-          document.addEventListener('click', playAudio, { once: true });
+          console.error(`❌ Audio playback error for ${userId}:`, error);
         });
-      } else {
-        console.warn(`No audio tracks in stream from ${userId}`);
       }
     };
 
     pc.onconnectionstatechange = () => {
-      console.log(`Connection state for ${userId}: ${pc.connectionState}`);
+      console.log(`🔄 Connection state for ${userId}: ${pc.connectionState}`);
       if (pc.connectionState === 'failed' || pc.connectionState === 'disconnected') {
         // Clean up audio element
         const audioElement = document.querySelector(`[data-user-id="${userId}"]`);
@@ -86,10 +74,6 @@ export function useDirectVoiceChat() {
           audioElement.remove();
         }
       }
-    };
-
-    pc.onicecandidateerror = (event) => {
-      console.error(`ICE candidate error for ${userId}:`, event);
     };
 
     return pc;
@@ -101,6 +85,8 @@ export function useDirectVoiceChat() {
     
     if (!from || from === currentUserIdRef.current) return;
     
+    console.log(`📨 Handling ${signal.type} signal from ${from}`);
+    
     let pc = peerConnectionsRef.current.get(from);
     
     try {
@@ -109,21 +95,18 @@ export function useDirectVoiceChat() {
           if (!pc) {
             pc = createPeerConnection(from);
             peerConnectionsRef.current.set(from, pc);
-            
-            // Add local stream
-            if (localStream && localStream.getTracks().length > 0) {
-              console.log(`Adding local tracks to peer connection for ${from}`);
-              localStream.getTracks().forEach(track => {
-                console.log(`Adding track:`, track.kind, track.enabled);
-                pc!.addTrack(track, localStream);
-              });
-            } else {
-              console.warn(`No local stream when handling offer from ${from}`);
-              return; // Don't proceed without local stream
-            }
           }
           
-          await pc.setRemoteDescription(signal.offer);
+          // Add local stream if available
+          const currentStream = localStreamRef.current;
+          if (currentStream && currentStream.getTracks().length > 0) {
+            console.log(`🎤 Adding local stream to connection with ${from}`);
+            currentStream.getTracks().forEach(track => {
+              pc!.addTrack(track, currentStream);
+            });
+          }
+          
+          await pc.setRemoteDescription(new RTCSessionDescription(signal.offer));
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
           
@@ -134,70 +117,51 @@ export function useDirectVoiceChat() {
             channelId: connectedChannelIdRef.current,
             signal: { type: 'answer', answer }
           }));
-          
-          // Process pending candidates
-          const pending = pendingCandidatesRef.current.get(from) || [];
-          for (const candidate of pending) {
-            await pc.addIceCandidate(candidate);
-          }
-          pendingCandidatesRef.current.delete(from);
           break;
 
         case 'answer':
           if (pc) {
-            await pc.setRemoteDescription(signal.answer);
+            await pc.setRemoteDescription(new RTCSessionDescription(signal.answer));
           }
           break;
 
         case 'ice':
           if (pc && pc.remoteDescription) {
-            await pc.addIceCandidate(signal.candidate);
-          } else {
-            // Store candidate for later
-            const pending = pendingCandidatesRef.current.get(from) || [];
-            pending.push(signal.candidate);
-            pendingCandidatesRef.current.set(from, pending);
+            await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
           }
           break;
       }
     } catch (error) {
-      console.error('Error handling signal:', error);
+      console.error(`❌ Error handling signal from ${from}:`, error);
     }
-  }, [localStream, createPeerConnection]);
+  }, [createPeerConnection]);
 
-  // Initialize peer connection with a user
-  const initiatePeerConnection = useCallback(async (userId: string) => {
-    if (peerConnectionsRef.current.has(userId)) {
-      console.log(`Peer connection already exists for ${userId}`);
-      return;
-    }
+  // Initialize connection to a user
+  const connectToUser = useCallback(async (userId: string) => {
+    if (peerConnectionsRef.current.has(userId)) return;
     
-    console.log(`Initiating connection with ${userId}`);
-    
-    // Get current local stream from state
-    const currentStream = localStream;
-    
+    const currentStream = localStreamRef.current;
     if (!currentStream || currentStream.getTracks().length === 0) {
-      console.error(`❌ No local stream available for ${userId}, aborting connection`);
+      console.warn(`⚠️ Cannot connect to ${userId}: no local stream`);
       return;
     }
+    
+    console.log(`🚀 Connecting to user ${userId}`);
     
     const pc = createPeerConnection(userId);
     peerConnectionsRef.current.set(userId, pc);
     
-    // Add local stream to peer connection
-    console.log(`📡 Adding ${currentStream.getTracks().length} tracks to peer connection for ${userId}`);
+    // Add local stream
     currentStream.getTracks().forEach(track => {
-      console.log(`🎵 Adding track:`, track.kind, `enabled: ${track.enabled}`, `state: ${track.readyState}`);
+      console.log(`🎵 Adding local track: ${track.kind}`);
       pc.addTrack(track, currentStream);
     });
     
-    // Create and send offer
     try {
       const offer = await pc.createOffer();
       await pc.setLocalDescription(offer);
       
-      console.log(`📤 Sending offer to ${userId} in channel ${connectedChannelIdRef.current}`);
+      console.log(`📤 Sending offer to ${userId}`);
       wsRef.current?.send(JSON.stringify({
         type: 'webrtc-signal',
         to: userId,
@@ -209,39 +173,28 @@ export function useDirectVoiceChat() {
       console.error(`❌ Error creating offer for ${userId}:`, error);
       peerConnectionsRef.current.delete(userId);
     }
-  }, [localStream, createPeerConnection]);
+  }, [createPeerConnection]);
 
   const connect = async (channelId: number, channelName: string, userId: string, userName: string) => {
     if (isConnecting || isConnected) return;
     
     setIsConnecting(true);
     currentUserIdRef.current = userId;
+    connectedChannelIdRef.current = channelId;
     
     try {
-      // Get audio stream with better settings
+      // Get audio stream
       const stream = await navigator.mediaDevices.getUserMedia({ 
         audio: { 
           echoCancellation: true, 
           noiseSuppression: true,
-          autoGainControl: true,
-          sampleRate: 48000,
-          channelCount: 1
+          autoGainControl: true
         } 
       });
       
-      console.log('🎤 Local audio stream acquired:', stream.getAudioTracks().map(t => ({
-        id: t.id,
-        kind: t.kind,
-        enabled: t.enabled,
-        muted: t.muted,
-        readyState: t.readyState
-      })));
-      
-      // Set local stream BEFORE WebSocket connection
+      console.log('🎤 Audio stream acquired successfully');
       setLocalStream(stream);
-      
-      // Wait a bit to ensure state is updated
-      await new Promise(resolve => setTimeout(resolve, 100));
+      localStreamRef.current = stream;
       
       // Connect WebSocket
       const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
@@ -249,7 +202,7 @@ export function useDirectVoiceChat() {
       wsRef.current = ws;
       
       ws.onopen = () => {
-        console.log('Connected to voice channel');
+        console.log('✅ WebSocket connected to voice channel');
         ws.send(JSON.stringify({
           type: 'join-voice',
           channelId,
@@ -258,52 +211,34 @@ export function useDirectVoiceChat() {
         }));
         setIsConnected(true);
         setConnectedChannelId(channelId);
-        connectedChannelIdRef.current = channelId;
         setIsConnecting(false);
       };
       
       ws.onmessage = (event) => {
         const data = JSON.parse(event.data);
+        console.log('📩 WebSocket message:', data.type);
         
         switch (data.type) {
           case 'voice-users':
-            console.log('Voice users update:', data);
-            setUserCount(data.count || data.userCount || 0);
-            // Connect to existing users after ensuring we have local stream
-            if (localStream && localStream.getTracks().length > 0) {
-              data.users?.forEach((user: any) => {
-                if (user.userId !== userId) {
-                  setTimeout(() => initiatePeerConnection(user.userId), 200);
-                }
-              });
-            }
-            break;
-            
           case 'channel-users':
-            console.log('Channel users update:', data);
-            setUserCount(data.userCount || data.count || 0);
-            // Connect to existing users after ensuring we have local stream
-            if (localStream && localStream.getTracks().length > 0) {
-              data.users?.forEach((user: any) => {
+            setUserCount(data.count || data.userCount || 0);
+            
+            // Connect to existing users
+            if (data.users && data.users.length > 0) {
+              console.log(`👥 Found ${data.users.length} existing users`);
+              data.users.forEach((user: any) => {
                 if (user.userId !== userId) {
-                  setTimeout(() => initiatePeerConnection(user.userId), 200);
+                  setTimeout(() => connectToUser(user.userId), 1000);
                 }
               });
             }
             break;
             
           case 'user-joined-voice':
+          case 'user-joined':
             if (data.userId !== userId) {
-              // Ensure we have local stream before initiating connection
-              setTimeout(() => {
-                const currentStream = localStream;
-                if (currentStream && currentStream.getTracks().length > 0) {
-                  console.log(`User joined, initiating connection with ${data.userId}`);
-                  setTimeout(() => initiatePeerConnection(data.userId), 300);
-                } else {
-                  console.warn(`Cannot initiate connection with ${data.userId}: no local stream`);
-                }
-              }, 500);
+              console.log(`👋 User ${data.userId} joined, connecting...`);
+              setTimeout(() => connectToUser(data.userId), 1000);
             }
             break;
             
@@ -314,7 +249,6 @@ export function useDirectVoiceChat() {
               pc.close();
               peerConnectionsRef.current.delete(data.userId);
             }
-            // Clean up audio element
             const audioElement = document.querySelector(`[data-user-id="${data.userId}"]`);
             if (audioElement) {
               audioElement.remove();
@@ -322,36 +256,38 @@ export function useDirectVoiceChat() {
             break;
             
           case 'webrtc-signal':
-            console.log('Received WebRTC signal:', data.signal?.type, 'from:', data.from);
             handleSignal(data);
             break;
         }
       };
       
       ws.onclose = () => {
+        console.log('❌ WebSocket disconnected');
         setIsConnected(false);
         wsRef.current = null;
       };
       
     } catch (error) {
-      console.error('Failed to connect:', error);
+      console.error('❌ Failed to connect to voice channel:', error);
       setIsConnecting(false);
     }
   };
 
   const disconnect = () => {
-    // Clean up all audio elements
+    console.log('🔌 Disconnecting from voice channel');
+    
+    // Clean up audio elements
     document.querySelectorAll('[data-user-id]').forEach(audio => audio.remove());
     
-    // Close all peer connections
+    // Close peer connections
     peerConnectionsRef.current.forEach((pc, userId) => {
-      console.log(`Closing peer connection for ${userId}`);
+      console.log(`Closing connection to ${userId}`);
       pc.close();
     });
     peerConnectionsRef.current.clear();
-    pendingCandidatesRef.current.clear();
     
-    if (wsRef.current) {
+    // Send leave message
+    if (wsRef.current && wsRef.current.readyState === WebSocket.OPEN) {
       wsRef.current.send(JSON.stringify({
         type: 'leave-voice',
         channelId: connectedChannelIdRef.current,
@@ -361,9 +297,9 @@ export function useDirectVoiceChat() {
     }
     
     // Stop local stream
-    if (localStream) {
-      console.log('🛑 Stopping local stream');
-      localStream.getTracks().forEach(track => track.stop());
+    if (localStreamRef.current) {
+      localStreamRef.current.getTracks().forEach(track => track.stop());
+      localStreamRef.current = null;
       setLocalStream(null);
     }
     
@@ -376,10 +312,10 @@ export function useDirectVoiceChat() {
   };
 
   const toggleMute = () => {
-    if (localStream) {
-      const audioTrack = localStream.getAudioTracks()[0];
+    if (localStreamRef.current) {
+      const audioTrack = localStreamRef.current.getAudioTracks()[0];
       if (audioTrack) {
-        audioTrack.enabled = isMuted; // isMuted is current state, so we flip it
+        audioTrack.enabled = isMuted;
         setIsMuted(!isMuted);
         console.log(`🎤 Microphone ${!isMuted ? 'muted' : 'unmuted'}`);
       }
