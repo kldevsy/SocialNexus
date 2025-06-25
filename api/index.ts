@@ -14,8 +14,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
     // CORS for Vercel
     app.use((req, res, next) => {
       res.header('Access-Control-Allow-Origin', '*');
-      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, DELETE, OPTIONS');
-      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization');
+      res.header('Access-Control-Allow-Methods', 'GET, POST, PUT, PATCH, DELETE, OPTIONS');
+      res.header('Access-Control-Allow-Headers', 'Content-Type, Authorization, Cookie');
+      res.header('Access-Control-Allow-Credentials', 'true');
       if (req.method === 'OPTIONS') {
         res.sendStatus(200);
         return;
@@ -35,7 +36,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const tokenValue = authCookie.split('=')[1];
         const userData = JSON.parse(Buffer.from(tokenValue, 'base64').toString());
         
-        res.json(userData);
+        // Convert GitHub user to expected format
+        const user = {
+          id: userData.id,
+          email: userData.email,
+          firstName: userData.username || 'User',
+          lastName: '',
+          profileImageUrl: userData.avatar,
+          username: userData.username,
+          bio: null,
+          status: '🟢 Online',
+          customStatus: null,
+          theme: 'light',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        res.json(user);
       } catch (error) {
         res.status(401).json({ message: 'Invalid authentication' });
       }
@@ -208,7 +225,14 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res.redirect('/api/auth/github');
     });
 
-    // Logout route
+    // Logout route - handle both GET and POST
+    app.get('/api/logout', (req, res) => {
+      res.setHeader('Set-Cookie', [
+        'auth-token=; HttpOnly; Path=/; Max-Age=0'
+      ]);
+      res.redirect('/');
+    });
+
     app.post('/api/logout', (req, res) => {
       res.setHeader('Set-Cookie', [
         'auth-token=; HttpOnly; Path=/; Max-Age=0'
@@ -221,22 +245,311 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res.json({ status: 'ok', timestamp: new Date().toISOString() });
     });
 
-    // Basic routes for testing
+    // Server routes with authentication check
     app.get('/api/servers', (req, res) => {
+      const authCookie = req.headers.cookie?.split(';').find(c => c.trim().startsWith('auth-token='));
+      
+      if (!authCookie) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+
+      // Return user servers (demo data for now)
       res.json([
         {
           id: 1,
-          name: 'Demo Server',
-          description: 'A demo server for testing',
-          category: 'General',
+          name: 'Meu Servidor',
+          description: 'Servidor pessoal para testes',
+          category: 'Geral',
           isPublic: true,
-          owner: { id: 'demo', username: 'Demo User' }
+          ownerId: 'user-123',
+          memberCount: 5,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          owner: { 
+            id: 'user-123', 
+            username: 'Você',
+            firstName: 'Você',
+            lastName: '',
+            profileImageUrl: null
+          }
+        }
+      ]);
+    });
+
+    app.get('/api/servers/discover', (req, res) => {
+      const authCookie = req.headers.cookie?.split(';').find(c => c.trim().startsWith('auth-token='));
+      
+      if (!authCookie) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+
+      // Return public servers for discovery
+      res.json([
+        {
+          id: 2,
+          name: 'Servidor Gaming',
+          description: 'Comunidade para gamers',
+          category: 'Gaming',
+          isPublic: true,
+          ownerId: 'owner-456',
+          memberCount: 150,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          owner: { 
+            id: 'owner-456', 
+            username: 'GameMaster',
+            firstName: 'Game',
+            lastName: 'Master',
+            profileImageUrl: null
+          }
+        },
+        {
+          id: 3,
+          name: 'Tech Community',
+          description: 'Discussões sobre tecnologia',
+          category: 'Tecnologia',
+          isPublic: true,
+          ownerId: 'owner-789',
+          memberCount: 89,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          owner: { 
+            id: 'owner-789', 
+            username: 'TechGuru',
+            firstName: 'Tech',
+            lastName: 'Guru',
+            profileImageUrl: null
+          }
         }
       ]);
     });
 
     app.post('/api/servers', (req, res) => {
-      res.status(401).json({ message: 'Authentication required to create servers' });
+      const authCookie = req.headers.cookie?.split(';').find(c => c.trim().startsWith('auth-token='));
+      
+      if (!authCookie) {
+        return res.status(401).json({ message: 'Authentication required to create servers' });
+      }
+
+      try {
+        const userData = JSON.parse(Buffer.from(authCookie.split('=')[1], 'base64').toString());
+        const { name, description, category, isPublic } = req.body;
+        
+        // Create new server (demo response)
+        const newServer = {
+          id: Date.now(),
+          name: name || 'Novo Servidor',
+          description: description || '',
+          category: category || 'Geral',
+          isPublic: isPublic !== false,
+          ownerId: userData.id,
+          memberCount: 1,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          owner: {
+            id: userData.id,
+            username: userData.username,
+            firstName: userData.username,
+            lastName: '',
+            profileImageUrl: userData.avatar
+          }
+        };
+        
+        res.status(201).json(newServer);
+      } catch (error) {
+        res.status(400).json({ message: 'Invalid request data' });
+      }
+    });
+
+    // User profile routes
+    app.patch('/api/user', (req, res) => {
+      const authCookie = req.headers.cookie?.split(';').find(c => c.trim().startsWith('auth-token='));
+      
+      if (!authCookie) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+
+      try {
+        const userData = JSON.parse(Buffer.from(authCookie.split('=')[1], 'base64').toString());
+        const updates = req.body;
+        
+        // Update user data (demo response)
+        const updatedUser = {
+          id: userData.id,
+          email: userData.email,
+          firstName: updates.firstName || userData.username,
+          lastName: updates.lastName || '',
+          profileImageUrl: userData.avatar,
+          username: userData.username,
+          bio: updates.bio || null,
+          status: updates.status || '🟢 Online',
+          customStatus: updates.customStatus || null,
+          theme: updates.theme || 'light',
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString()
+        };
+        
+        res.json(updatedUser);
+      } catch (error) {
+        res.status(400).json({ message: 'Invalid request data' });
+      }
+    });
+
+    // Server details route
+    app.get('/api/servers/:id', (req, res) => {
+      const authCookie = req.headers.cookie?.split(';').find(c => c.trim().startsWith('auth-token='));
+      
+      if (!authCookie) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+
+      const serverId = parseInt(req.params.id);
+      
+      // Demo server with channels
+      const server = {
+        id: serverId,
+        name: serverId === 1 ? 'Meu Servidor' : 'Servidor Gaming',
+        description: serverId === 1 ? 'Servidor pessoal para testes' : 'Comunidade para gamers',
+        category: serverId === 1 ? 'Geral' : 'Gaming',
+        isPublic: true,
+        ownerId: 'user-123',
+        memberCount: serverId === 1 ? 5 : 150,
+        createdAt: new Date().toISOString(),
+        updatedAt: new Date().toISOString(),
+        owner: { 
+          id: 'user-123', 
+          username: serverId === 1 ? 'Você' : 'GameMaster',
+          firstName: serverId === 1 ? 'Você' : 'Game',
+          lastName: serverId === 1 ? '' : 'Master',
+          profileImageUrl: null
+        },
+        channels: [
+          {
+            id: 1,
+            name: 'geral',
+            description: 'Canal principal',
+            type: 'text',
+            serverId: serverId,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          },
+          {
+            id: 2,
+            name: 'chat-voz',
+            description: 'Canal de voz',
+            type: 'voice',
+            serverId: serverId,
+            createdAt: new Date().toISOString(),
+            updatedAt: new Date().toISOString()
+          }
+        ]
+      };
+      
+      res.json(server);
+    });
+
+    // Channel messages route
+    app.get('/api/channels/:id/messages', (req, res) => {
+      const authCookie = req.headers.cookie?.split(';').find(c => c.trim().startsWith('auth-token='));
+      
+      if (!authCookie) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+
+      const channelId = parseInt(req.params.id);
+      
+      // Demo messages
+      const messages = [
+        {
+          id: 1,
+          content: 'Bem-vindos ao servidor!',
+          imageUrl: null,
+          embedData: null,
+          authorId: 'user-123',
+          channelId: channelId,
+          createdAt: new Date(Date.now() - 3600000).toISOString(),
+          updatedAt: new Date(Date.now() - 3600000).toISOString(),
+          author: {
+            id: 'user-123',
+            username: 'Admin',
+            firstName: 'Admin',
+            lastName: '',
+            profileImageUrl: null
+          }
+        },
+        {
+          id: 2,
+          content: 'Olá pessoal! Como estão?',
+          imageUrl: null,
+          embedData: null,
+          authorId: 'user-456',
+          channelId: channelId,
+          createdAt: new Date(Date.now() - 1800000).toISOString(),
+          updatedAt: new Date(Date.now() - 1800000).toISOString(),
+          author: {
+            id: 'user-456',
+            username: 'Membro',
+            firstName: 'Membro',
+            lastName: 'Ativo',
+            profileImageUrl: null
+          }
+        }
+      ];
+      
+      res.json(messages);
+    });
+
+    // Post message route
+    app.post('/api/messages', (req, res) => {
+      const authCookie = req.headers.cookie?.split(';').find(c => c.trim().startsWith('auth-token='));
+      
+      if (!authCookie) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+
+      try {
+        const userData = JSON.parse(Buffer.from(authCookie.split('=')[1], 'base64').toString());
+        const { content, channelId, imageUrl, embedData } = req.body;
+        
+        const newMessage = {
+          id: Date.now(),
+          content: content || '',
+          imageUrl: imageUrl || null,
+          embedData: embedData || null,
+          authorId: userData.id,
+          channelId: parseInt(channelId),
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          author: {
+            id: userData.id,
+            username: userData.username,
+            firstName: userData.username,
+            lastName: '',
+            profileImageUrl: userData.avatar
+          }
+        };
+        
+        res.status(201).json(newMessage);
+      } catch (error) {
+        res.status(400).json({ message: 'Invalid request data' });
+      }
+    });
+
+    // Join server route
+    app.post('/api/servers/:id/join', (req, res) => {
+      const authCookie = req.headers.cookie?.split(';').find(c => c.trim().startsWith('auth-token='));
+      
+      if (!authCookie) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+
+      const serverId = parseInt(req.params.id);
+      
+      res.json({
+        message: 'Successfully joined server',
+        serverId: serverId,
+        joinedAt: new Date().toISOString()
+      });
     });
 
     // Handle the request

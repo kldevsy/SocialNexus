@@ -104,6 +104,8 @@ CommunityHub is a modern full-stack web application that provides a Discord-styl
 
 ## Recent Changes
 
+- **Deploy Vercel 100% funcional** (25/06/2025): API completa implementada, autenticação GitHub OAuth funcionando, rotas de logout GET/POST, CORS configurado, dados compatíveis com frontend, script de deploy automático criado
+- **API Vercel corrigida para autenticação GitHub** (25/06/2025): Rotas de logout GET/POST funcionando, formato de dados de usuário compatível com frontend, rotas completas de servidores/mensagens, CORS configurado corretamente
 - **Ícones faltantes corrigidos no EmbedCreator** (25/06/2025): Adicionadas importações para Square, BarChart3, MessageSquare, Settings, Trash, Copy, Check. Modal agora abre sem erros de referência
 - **Sistema de embeds funcionando corretamente** (25/06/2025): Corrigido bug do botão criar embed que não abria o modal, função handleEmbedSave atualizada, modal abrindo e fechando corretamente
 - **Bugs de tela branca corrigidos** (25/06/2025): Adicionado tratamento de erros nos componentes Select e EmbedCreator, try-catch para prevenir crashes, logs de depuração implementados
