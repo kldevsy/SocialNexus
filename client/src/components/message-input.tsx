@@ -4,6 +4,7 @@ import { Textarea } from "@/components/ui/textarea";
 import { ImageIcon, Send } from "lucide-react";
 import { QuickActionsMenu } from "./quick-actions-menu";
 import { EmbedCreatorModal } from "./embed-creator-modal";
+import { TestEmbedModal } from "./test-embed-modal";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -33,6 +34,7 @@ export function MessageInput({
   const [selectedImage, setSelectedImage] = useState<File | null>(null);
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [embedModalOpen, setEmbedModalOpen] = useState(false);
+  const [testModalOpen, setTestModalOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -204,7 +206,9 @@ export function MessageInput({
   };
 
   const handleEmbedSelect = () => {
-    setEmbedModalOpen(true);
+    console.log("Opening embed modal...");
+    setTestModalOpen(true); // Primeiro vamos testar com modal simples
+    // setEmbedModalOpen(true);
   };
 
   const handleEmbedSave = (embedData: any) => {
@@ -304,6 +308,19 @@ export function MessageInput({
           )}
         </Button>
       </div>
+
+      {/* Test Modal */}
+      <TestEmbedModal
+        open={testModalOpen}
+        onOpenChange={setTestModalOpen}
+      />
+
+      {/* Embed Creator Modal */}
+      <EmbedCreatorModal
+        open={embedModalOpen}
+        onOpenChange={setEmbedModalOpen}
+        onSave={handleEmbedSave}
+      />
     </div>
   );
 }

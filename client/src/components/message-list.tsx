@@ -6,6 +6,7 @@ import { ptBR } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
 import type { MessageWithAuthor } from "@shared/schema";
 import { TypingDots } from "./typing-dots";
+import { EmbedMessage } from "./embed-message";
 
 interface MessageListProps {
   channelId: number;
