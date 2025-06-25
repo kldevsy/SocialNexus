@@ -5,7 +5,7 @@ import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
 import { Textarea } from "@/components/ui/textarea";
 import { Label } from "@/components/ui/label";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SafeSelect, SafeSelectItem } from "@/components/ui/safe-select";
 import { RadioGroup, RadioGroupItem } from "@/components/ui/radio-group";
 import { Dialog, DialogContent, DialogHeader, DialogTitle } from "@/components/ui/dialog";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
@@ -179,30 +179,22 @@ export function CreateServerModal({ open, onOpenChange }: CreateServerModalProps
             
             <div>
               <Label htmlFor="category">Categoria *</Label>
-              <Select 
-                value={formData.category} 
+              <SafeSelect
+                value={formData.category}
                 onValueChange={(value) => {
-                  try {
-                    setFormData({ ...formData, category: value });
-                  } catch (error) {
-                    console.error("Category select error:", error);
-                  }
+                  setFormData(prev => ({ ...prev, category: value }));
                 }}
+                placeholder="Selecione uma categoria"
               >
-                <SelectTrigger>
-                  <SelectValue placeholder="Selecione uma categoria" />
-                </SelectTrigger>
-                <SelectContent>
-                  <SelectItem value="gaming">Gaming</SelectItem>
-                  <SelectItem value="technology">Tecnologia</SelectItem>
-                  <SelectItem value="art">Arte</SelectItem>
-                  <SelectItem value="music">Música</SelectItem>
-                  <SelectItem value="education">Educação</SelectItem>
-                  <SelectItem value="sports">Esportes</SelectItem>
-                  <SelectItem value="entertainment">Entretenimento</SelectItem>
-                  <SelectItem value="other">Outros</SelectItem>
-                </SelectContent>
-              </Select>
+                <SafeSelectItem value="Gaming">Gaming</SafeSelectItem>
+                <SafeSelectItem value="Tecnologia">Tecnologia</SafeSelectItem>
+                <SafeSelectItem value="Arte">Arte</SafeSelectItem>
+                <SafeSelectItem value="Música">Música</SafeSelectItem>
+                <SafeSelectItem value="Educação">Educação</SafeSelectItem>
+                <SafeSelectItem value="Esportes">Esportes</SafeSelectItem>
+                <SafeSelectItem value="Entretenimento">Entretenimento</SafeSelectItem>
+                <SafeSelectItem value="Outros">Outros</SafeSelectItem>
+              </SafeSelect>
             </div>
             
             <div>

@@ -3,7 +3,7 @@ import { motion } from "framer-motion";
 import { Search, Filter, ArrowLeft } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Input } from "@/components/ui/input";
-import { Select, SelectContent, SelectItem, SelectTrigger, SelectValue } from "@/components/ui/select";
+import { SafeSelect, SafeSelectItem } from "@/components/ui/safe-select";
 import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -21,10 +21,17 @@ export default function ServerBrowser({ onBack }: ServerBrowserProps) {
   const { toast } = useToast();
   const queryClient = useQueryClient();
 
-  const { data: servers = [], isLoading } = useQuery<ServerWithOwner[]>({
-    queryKey: ["/api/servers/discover", { category: category === "all" ? "" : category, search, sortBy }],
+  const { data: servers = [], isLoading, error } = useQuery<ServerWithOwner[]>({
+    queryKey: ["/api/servers/discover", { category: category || "", search, sortBy }],
     refetchOnWindowFocus: false,
+    retry: 3,
+    staleTime: 30000,
   });
+
+  // Error handling for query
+  if (error) {
+    console.error("Server discovery error:", error);
+  }
 
   const joinServerMutation = useMutation({
     mutationFn: async (serverId: number) => {
@@ -90,27 +97,26 @@ export default function ServerBrowser({ onBack }: ServerBrowserProps) {
                 className="pl-10"
               />
             </div>
-            <Select value={category} onValueChange={setCategory}>
-              <SelectTrigger className="w-full md:w-48">
-                <SelectValue placeholder="Todas as Categorias" />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="all">Todas as Categorias</SelectItem>
-                {categories.map((cat) => (
-                  <SelectItem key={cat} value={cat}>{cat}</SelectItem>
-                ))}
-              </SelectContent>
-            </Select>
-            <Select value={sortBy} onValueChange={setSortBy}>
-              <SelectTrigger className="w-full md:w-48">
-                <SelectValue />
-              </SelectTrigger>
-              <SelectContent>
-                <SelectItem value="popular">Most Popular</SelectItem>
-                <SelectItem value="recent">Recently Created</SelectItem>
-                <SelectItem value="active">Most Active</SelectItem>
-              </SelectContent>
-            </Select>
+            <SafeSelect
+              value={category}
+              onValueChange={setCategory}
+              placeholder="Todas as Categorias"
+              className="w-full md:w-48"
+            >
+              <SafeSelectItem value="">Todas as Categorias</SafeSelectItem>
+              {categories.map((cat) => (
+                <SafeSelectItem key={cat} value={cat}>{cat}</SafeSelectItem>
+              ))}
+            </SafeSelect>
+            <SafeSelect
+              value={sortBy}
+              onValueChange={setSortBy}
+              className="w-full md:w-48"
+            >
+              <SafeSelectItem value="popular">Most Popular</SafeSelectItem>
+              <SafeSelectItem value="recent">Recently Created</SafeSelectItem>
+              <SafeSelectItem value="active">Most Active</SafeSelectItem>
+            </SafeSelect>
           </div>
         </div>
         
