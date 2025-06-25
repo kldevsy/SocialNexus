@@ -372,7 +372,10 @@ export class DatabaseStorage implements IStorage {
   async createMessage(messageData: InsertMessage): Promise<Message> {
     const [message] = await db
       .insert(messages)
-      .values(messageData)
+      .values({
+        ...messageData,
+        embedData: messageData.embedData ? JSON.stringify(messageData.embedData) : undefined
+      })
       .returning();
     return message;
   }

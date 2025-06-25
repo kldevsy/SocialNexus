@@ -79,6 +79,7 @@ export const messages = pgTable("messages", {
   id: serial("id").primaryKey(),
   content: text("content"),
   imageUrl: text("image_url"),
+  embedData: text("embed_data"), // JSON string for embed data
   authorId: varchar("author_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
   channelId: integer("channel_id").notNull().references(() => channels.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
