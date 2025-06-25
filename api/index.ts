@@ -23,9 +23,23 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       next();
     });
 
-    // Simple auth check for Vercel (without Replit OAuth)
+    // Auth routes for Vercel
     app.get('/api/auth/user', (req, res) => {
       res.status(401).json({ message: 'Authentication not configured for production yet' });
+    });
+
+    // Login route - redirect to GitHub OAuth or show message
+    app.get('/api/login', (req, res) => {
+      res.json({ 
+        message: 'Login will be available soon. For now, you can explore the public content.',
+        loginMethods: ['GitHub OAuth coming soon', 'Google OAuth coming soon'],
+        status: 'development'
+      });
+    });
+
+    // Logout route
+    app.post('/api/logout', (req, res) => {
+      res.json({ message: 'Logged out successfully' });
     });
 
     // Health check
@@ -35,11 +49,20 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
     // Basic routes for testing
     app.get('/api/servers', (req, res) => {
-      res.json([]);
+      res.json([
+        {
+          id: 1,
+          name: 'Demo Server',
+          description: 'A demo server for testing',
+          category: 'General',
+          isPublic: true,
+          owner: { id: 'demo', username: 'Demo User' }
+        }
+      ]);
     });
 
     app.post('/api/servers', (req, res) => {
-      res.status(401).json({ message: 'Authentication required' });
+      res.status(401).json({ message: 'Authentication required to create servers' });
     });
 
     // Handle the request
