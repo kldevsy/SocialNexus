@@ -77,23 +77,40 @@ export function CreateServerModal({ open, onOpenChange }: CreateServerModalProps
 
   const handleSubmit = (e: React.FormEvent) => {
     e.preventDefault();
-    if (!formData.name || !formData.category) {
+    
+    console.log("Dados do formulário:", formData);
+    
+    // Validação dos campos obrigatórios
+    if (!formData.name.trim()) {
       toast({
         title: "Erro",
-        description: "Preencha todos os campos obrigatórios",
+        description: "O nome do servidor é obrigatório",
         variant: "destructive",
       });
       return;
     }
+    
+    if (!formData.category) {
+      toast({
+        title: "Erro",
+        description: "Selecione uma categoria",
+        variant: "destructive",
+      });
+      return;
+    }
+    
     try {
-      createServerMutation.mutate({
-        name: formData.name,
-        description: formData.description,
+      const serverData = {
+        name: formData.name.trim(),
+        description: formData.description.trim(),
         category: formData.category,
         isPublic: formData.isPublic,
-      });
+      };
+      
+      console.log("Criando servidor:", serverData);
+      createServerMutation.mutate(serverData);
     } catch (error) {
-      console.error("Submit error:", error);
+      console.error("Erro no submit:", error);
       toast({
         title: "Erro",
         description: "Erro ao processar formulário",
@@ -179,22 +196,29 @@ export function CreateServerModal({ open, onOpenChange }: CreateServerModalProps
             
             <div>
               <Label htmlFor="category">Categoria *</Label>
-              <SafeSelect
+              <select
+                id="category"
                 value={formData.category}
-                onValueChange={(value) => {
-                  setFormData(prev => ({ ...prev, category: value }));
+                onChange={(e) => {
+                  console.log("Categoria selecionada:", e.target.value);
+                  setFormData(prev => ({ ...prev, category: e.target.value }));
                 }}
-                placeholder="Selecione uma categoria"
+                className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm ring-offset-background focus:outline-none focus:ring-2 focus:ring-ring focus:ring-offset-2 disabled:cursor-not-allowed disabled:opacity-50"
+                required
               >
-                <SafeSelectItem value="Gaming">Gaming</SafeSelectItem>
-                <SafeSelectItem value="Tecnologia">Tecnologia</SafeSelectItem>
-                <SafeSelectItem value="Arte">Arte</SafeSelectItem>
-                <SafeSelectItem value="Música">Música</SafeSelectItem>
-                <SafeSelectItem value="Educação">Educação</SafeSelectItem>
-                <SafeSelectItem value="Esportes">Esportes</SafeSelectItem>
-                <SafeSelectItem value="Entretenimento">Entretenimento</SafeSelectItem>
-                <SafeSelectItem value="Outros">Outros</SafeSelectItem>
-              </SafeSelect>
+                <option value="" disabled>Selecione uma categoria</option>
+                <option value="Gaming">Gaming</option>
+                <option value="Tecnologia">Tecnologia</option>
+                <option value="Arte">Arte</option>
+                <option value="Música">Música</option>
+                <option value="Educação">Educação</option>
+                <option value="Esportes">Esportes</option>
+                <option value="Entretenimento">Entretenimento</option>
+                <option value="Outros">Outros</option>
+              </select>
+              {formData.category && (
+                <p className="text-sm text-green-600 mt-1">Categoria selecionada: {formData.category}</p>
+              )}
             </div>
             
             <div>

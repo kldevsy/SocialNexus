@@ -42,38 +42,28 @@ export function SafeSelect({
   disabled = false 
 }: SafeSelectProps) {
   const { toast } = useToast();
-  const [isOpen, setIsOpen] = React.useState(false);
 
   const handleValueChange = React.useCallback((newValue: string) => {
     try {
-      console.log("SafeSelect: Value changing from", value, "to", newValue);
+      console.log("SafeSelect: Categoria selecionada:", newValue);
       
-      // Validate the new value
-      if (typeof newValue !== 'string') {
-        console.warn("SafeSelect: Invalid value type received:", typeof newValue, newValue);
-        return;
-      }
-      
-      // Call the parent's onChange safely
-      if (typeof onValueChange === 'function') {
+      if (typeof newValue === 'string' && newValue.length > 0) {
         onValueChange(newValue);
       }
-      
-      setIsOpen(false);
     } catch (error) {
-      console.error("SafeSelect: Error in onValueChange:", error);
+      console.error("SafeSelect: Erro ao selecionar:", error);
       toast({
         title: "Erro",
-        description: "Erro ao selecionar opção",
+        description: "Erro ao selecionar categoria",
         variant: "destructive",
       });
     }
-  }, [onValueChange, toast, value]);
+  }, [onValueChange, toast]);
 
   const fallbackElement = (
     <div className={className}>
       <div className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm">
-        <span className="text-muted-foreground">{placeholder || "Selecione uma opção"}</span>
+        <span className="text-muted-foreground">{value || placeholder || "Selecione uma categoria"}</span>
       </div>
     </div>
   );
@@ -81,22 +71,17 @@ export function SafeSelect({
   return (
     <SelectErrorBoundary fallback={fallbackElement}>
       <Select 
-        value={value || ""} 
+        value={value} 
         onValueChange={handleValueChange}
         disabled={disabled}
-        open={isOpen}
-        onOpenChange={setIsOpen}
       >
         <SelectTrigger className={className}>
-          <SelectValue placeholder={placeholder} />
+          <SelectValue placeholder={placeholder}>
+            {value || placeholder}
+          </SelectValue>
         </SelectTrigger>
         <SelectContent>
-          {React.Children.map(children, (child, index) => {
-            if (!React.isValidElement(child)) {
-              return null;
-            }
-            return React.cloneElement(child, { key: index });
-          })}
+          {children}
         </SelectContent>
       </Select>
     </SelectErrorBoundary>
