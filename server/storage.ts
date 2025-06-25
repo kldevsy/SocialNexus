@@ -403,8 +403,27 @@ export class DatabaseStorage implements IStorage {
       .offset(offset);
 
     return messageList.map(msg => ({
-      ...msg,
-      author: msg.author
+      id: msg.id,
+      content: msg.content,
+      imageUrl: msg.imageUrl,
+      authorId: msg.authorId,
+      channelId: msg.channelId,
+      createdAt: msg.createdAt,
+      updatedAt: msg.updatedAt,
+      author: {
+        id: msg.author.id,
+        email: msg.author.email,
+        firstName: msg.author.firstName,
+        lastName: msg.author.lastName,
+        profileImageUrl: msg.author.profileImageUrl,
+        username: null,
+        bio: null,
+        status: null,
+        customStatus: null,
+        theme: null,
+        createdAt: null,
+        updatedAt: null,
+      }
     }));
   }
 
@@ -467,8 +486,24 @@ export class DatabaseStorage implements IStorage {
       );
 
     return typingList.map(typing => ({
-      ...typing,
-      user: typing.user
+      id: typing.id,
+      userId: typing.userId,
+      channelId: typing.channelId,
+      lastTyping: typing.lastTyping,
+      user: {
+        id: typing.user.id,
+        email: typing.user.email,
+        firstName: typing.user.firstName,
+        lastName: typing.user.lastName,
+        profileImageUrl: typing.user.profileImageUrl,
+        username: null,
+        bio: null,
+        status: null,
+        customStatus: null,
+        theme: null,
+        createdAt: null,
+        updatedAt: null,
+      }
     }));
   }
 

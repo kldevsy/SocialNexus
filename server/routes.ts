@@ -3,7 +3,7 @@ import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
 import { setupAuth, isAuthenticated } from "./replitAuth";
-import { insertServerSchema, updateUserSchema, updateServerSchema, insertChannelSchema } from "@shared/schema";
+import { insertServerSchema, updateUserSchema, updateServerSchema, insertChannelSchema, insertMessageSchema, insertTypingIndicatorSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
@@ -310,6 +310,91 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
+  // Message routes
+  
+  // Get channel messages
+  app.get("/api/channels/:id/messages", isAuthenticated, async (req: any, res) => {
+    try {
+      const channelId = parseInt(req.params.id);
+      const limit = parseInt(req.query.limit as string) || 50;
+      const offset = parseInt(req.query.offset as string) || 0;
+      
+      if (isNaN(channelId)) {
+        return res.status(400).json({ error: "Invalid channel ID" });
+      }
+
+      const messages = await storage.getChannelMessages(channelId, limit, offset);
+      res.json(messages);
+    } catch (error) {
+      console.error("Error fetching messages:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Create message
+  app.post("/api/channels/:id/messages", isAuthenticated, async (req: any, res) => {
+    try {
+      const channelId = parseInt(req.params.id);
+      
+      if (isNaN(channelId)) {
+        return res.status(400).json({ error: "Invalid channel ID" });
+      }
+
+      const messageData = insertMessageSchema.parse({
+        ...req.body,
+        channelId,
+        authorId: req.user.claims.sub,
+      });
+
+      const message = await storage.createMessage(messageData);
+      res.status(201).json(message);
+    } catch (error) {
+      console.error("Error creating message:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Typing indicator routes
+  
+  // Set typing indicator
+  app.post("/api/channels/:id/typing", isAuthenticated, async (req: any, res) => {
+    try {
+      const channelId = parseInt(req.params.id);
+      
+      if (isNaN(channelId)) {
+        return res.status(400).json({ error: "Invalid channel ID" });
+      }
+
+      const typingData = insertTypingIndicatorSchema.parse({
+        userId: req.user.claims.sub,
+        channelId,
+      });
+
+      await storage.setTyping(typingData);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error setting typing indicator:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
+  // Clear typing indicator
+  app.delete("/api/channels/:id/typing", isAuthenticated, async (req: any, res) => {
+    try {
+      const channelId = parseInt(req.params.id);
+      
+      if (isNaN(channelId)) {
+        return res.status(400).json({ error: "Invalid channel ID" });
+      }
+
+      await storage.clearTyping(req.user.claims.sub, channelId);
+      res.json({ success: true });
+    } catch (error) {
+      console.error("Error clearing typing indicator:", error);
+      res.status(500).json({ error: "Internal server error" });
+    }
+  });
+
   const httpServer = createServer(app);
   
   // Setup WebSocket for voice channels
@@ -317,6 +402,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   
   // Store voice channel connections
   const voiceChannels = new Map<number, Set<any>>();
+  const connectedClients = new Map<string, WebSocket>();
   
   wss.on('connection', (ws: any, req) => {
     console.log('WebSocket connection established');
@@ -328,6 +414,21 @@ export async function registerRoutes(app: Express): Promise<Server> {
         const message = JSON.parse(data.toString());
         
         switch (message.type) {
+          case 'authenticate':
+            const authUserId = message.userId;
+            (ws as any).userId = authUserId;
+            connectedClients.set(authUserId, ws);
+            console.log(`User ${authUserId} authenticated`);
+            break;
+            
+          case 'join-channel':
+            // User joined a channel for real-time updates
+            ws.send(JSON.stringify({
+              type: 'channel-joined',
+              channelId: message.channelId
+            }));
+            break;
+            
           case 'join-voice':
           case 'join-voice-channel':
             const channelId = message.channelId;
