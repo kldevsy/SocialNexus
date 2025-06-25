@@ -492,7 +492,13 @@ export async function registerRoutes(app: Express): Promise<Server> {
     });
     
     ws.on('close', () => {
-      console.log(`WebSocket closed for user ${userId} in channel ${userChannelId}`);
+      const wsUserId = (ws as any).userId;
+      console.log(`WebSocket closed for user ${wsUserId} in channel ${userChannelId}`);
+      
+      // Remove from connected clients
+      if (wsUserId) {
+        connectedClients.delete(wsUserId);
+      }
       
       // Remove from the specific channel this user was in
       if (userChannelId && voiceChannels.has(userChannelId)) {

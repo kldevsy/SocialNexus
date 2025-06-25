@@ -3,6 +3,8 @@ import {
   servers,
   serverMemberships,
   channels,
+  messages,
+  typingIndicators,
   type User,
   type UpsertUser,
   type InsertServer,
@@ -13,9 +15,15 @@ import {
   type InsertChannel,
   type Channel,
   type ServerWithChannels,
+  type InsertMessage,
+  type Message,
+  type MessageWithAuthor,
+  type InsertTypingIndicator,
+  type TypingIndicator,
+  type TypingIndicatorWithUser,
 } from "@shared/schema";
 import { db } from "./db";
-import { eq, desc, and, or, ilike, sql, count } from "drizzle-orm";
+import { eq, desc, and, or, ilike, sql, count, gte } from "drizzle-orm";
 
 // Interface for storage operations
 export interface IStorage {
@@ -45,6 +53,17 @@ export interface IStorage {
   getServerWithChannels(id: number): Promise<ServerWithChannels | undefined>;
   updateChannel(id: number, updates: Partial<Channel>): Promise<Channel | undefined>;
   deleteChannel(id: number): Promise<boolean>;
+
+  // Message operations
+  createMessage(message: InsertMessage): Promise<Message>;
+  getChannelMessages(channelId: number, limit?: number, offset?: number): Promise<MessageWithAuthor[]>;
+  updateMessage(id: number, updates: Partial<Message>): Promise<Message | undefined>;
+  deleteMessage(id: number): Promise<boolean>;
+
+  // Typing indicator operations
+  setTyping(indicator: InsertTypingIndicator): Promise<TypingIndicator>;
+  getTypingUsers(channelId: number): Promise<TypingIndicatorWithUser[]>;
+  clearTyping(userId: string, channelId: number): Promise<boolean>;
 }
 
 export class DatabaseStorage implements IStorage {
@@ -347,6 +366,127 @@ export class DatabaseStorage implements IStorage {
       .delete(channels)
       .where(eq(channels.id, id));
     return (result.rowCount || 0) > 0;
+  }
+
+  // Message operations
+  async createMessage(messageData: InsertMessage): Promise<Message> {
+    const [message] = await db
+      .insert(messages)
+      .values(messageData)
+      .returning();
+    return message;
+  }
+
+  async getChannelMessages(channelId: number, limit = 50, offset = 0): Promise<MessageWithAuthor[]> {
+    const messageList = await db
+      .select({
+        id: messages.id,
+        content: messages.content,
+        imageUrl: messages.imageUrl,
+        authorId: messages.authorId,
+        channelId: messages.channelId,
+        createdAt: messages.createdAt,
+        updatedAt: messages.updatedAt,
+        author: {
+          id: users.id,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          profileImageUrl: users.profileImageUrl,
+        }
+      })
+      .from(messages)
+      .innerJoin(users, eq(messages.authorId, users.id))
+      .where(eq(messages.channelId, channelId))
+      .orderBy(desc(messages.createdAt))
+      .limit(limit)
+      .offset(offset);
+
+    return messageList.map(msg => ({
+      ...msg,
+      author: msg.author
+    }));
+  }
+
+  async updateMessage(id: number, updates: Partial<Message>): Promise<Message | undefined> {
+    const [message] = await db
+      .update(messages)
+      .set({ ...updates, updatedAt: new Date() })
+      .where(eq(messages.id, id))
+      .returning();
+    return message;
+  }
+
+  async deleteMessage(id: number): Promise<boolean> {
+    try {
+      const result = await db.delete(messages).where(eq(messages.id, id));
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error deleting message:', error);
+      return false;
+    }
+  }
+
+  // Typing indicator operations
+  async setTyping(indicatorData: InsertTypingIndicator): Promise<TypingIndicator> {
+    const [indicator] = await db
+      .insert(typingIndicators)
+      .values({ ...indicatorData, lastTyping: new Date() })
+      .onConflictDoUpdate({
+        target: [typingIndicators.userId, typingIndicators.channelId],
+        set: { lastTyping: new Date() }
+      })
+      .returning();
+    return indicator;
+  }
+
+  async getTypingUsers(channelId: number): Promise<TypingIndicatorWithUser[]> {
+    const fiveSecondsAgo = new Date(Date.now() - 5000);
+    
+    const typingList = await db
+      .select({
+        id: typingIndicators.id,
+        userId: typingIndicators.userId,
+        channelId: typingIndicators.channelId,
+        lastTyping: typingIndicators.lastTyping,
+        user: {
+          id: users.id,
+          email: users.email,
+          firstName: users.firstName,
+          lastName: users.lastName,
+          profileImageUrl: users.profileImageUrl,
+        }
+      })
+      .from(typingIndicators)
+      .innerJoin(users, eq(typingIndicators.userId, users.id))
+      .where(
+        and(
+          eq(typingIndicators.channelId, channelId),
+          gte(typingIndicators.lastTyping, fiveSecondsAgo)
+        )
+      );
+
+    return typingList.map(typing => ({
+      ...typing,
+      user: typing.user
+    }));
+  }
+
+  async clearTyping(userId: string, channelId: number): Promise<boolean> {
+    try {
+      const result = await db
+        .delete(typingIndicators)
+        .where(
+          and(
+            eq(typingIndicators.userId, userId),
+            eq(typingIndicators.channelId, channelId)
+          )
+        );
+      return result.rowCount > 0;
+    } catch (error) {
+      console.error('Error clearing typing indicator:', error);
+      return false;
+    }
   }
 }
 

@@ -9,6 +9,8 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { ArrowLeft, Hash, Volume2, VolumeX, Headphones, Mic, MicOff, Settings, Crown, Users, UserPlus, Menu, X, Plus, Trash2, PhoneCall, PhoneOff } from "lucide-react";
 import { CreateChannelModal } from "@/components/create-channel-modal";
+import { MessageList } from "@/components/message-list";
+import { MessageInput } from "@/components/message-input";
 
 interface ServerViewProps {
   serverId: number;
@@ -34,6 +36,9 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
   
   // Member status tracking - fix for offline status bug
   const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
+  
+  // Typing indicators
+  const [typingUsers, setTypingUsers] = useState<string[]>([]);
 
   // Sistema de drag para sidebars com touch e mouse
   useEffect(() => {
@@ -689,71 +694,12 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
               </div>
             )}
 
-            {/* Sample Messages */}
+            {/* Real Messages */}
             {selectedChannel && selectedChannel.type === "text" && (
-              <div className="space-y-6">
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.5 }}
-                  className="flex items-start space-x-4"
-                  key={`${selectedChannel.id}-welcome`}
-                >
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage 
-                      src={(server.owner?.profileImageUrl) || `https://ui-avatars.com/api/?name=${encodeURIComponent(server.owner?.firstName || 'Owner')}&size=40&background=6366f1&color=ffffff`}
-                      alt={server.owner?.firstName || 'Owner'}
-                    />
-                    <AvatarFallback>{(server.owner?.firstName || 'O').charAt(0)}</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <span className="font-semibold text-gray-900 flex items-center">
-                        {server.owner?.firstName || 'Owner'}
-                        <Crown className="h-3 w-3 ml-1 text-yellow-500" />
-                      </span>
-                      <span className="text-xs text-gray-500">Hoje às 12:00</span>
-                    </div>
-                    <p className="text-gray-700">
-                      Bem-vindos ao canal #{selectedChannel.name}! 
-                      {selectedChannel.name === textChannels[0]?.name 
-                        ? " 🎉 Sintam-se à vontade para conversar e se divertir!" 
-                        : " Este é um ótimo lugar para conversas!"
-                      }
-                    </p>
-                  </div>
-                </motion.div>
-
-                {/* Sample channel-specific message */}
-                <motion.div
-                  initial={{ opacity: 0, y: 20 }}
-                  animate={{ opacity: 1, y: 0 }}
-                  transition={{ delay: 0.7 }}
-                  className="flex items-start space-x-4"
-                  key={`${selectedChannel.id}-sample`}
-                >
-                  <Avatar className="h-10 w-10">
-                    <AvatarImage 
-                      src={`https://ui-avatars.com/api/?name=Bot&size=40&background=22c55e&color=ffffff`}
-                      alt="Bot"
-                    />
-                    <AvatarFallback>🤖</AvatarFallback>
-                  </Avatar>
-                  <div className="flex-1">
-                    <div className="flex items-center space-x-2 mb-1">
-                      <span className="font-semibold text-gray-900">CommunityBot</span>
-                      <span className="px-1.5 py-0.5 bg-green-100 text-green-700 text-xs rounded font-medium">BOT</span>
-                      <span className="text-xs text-gray-500">Hoje às 12:01</span>
-                    </div>
-                    <p className="text-gray-700">
-                      📝 Você está agora no canal <strong>#{selectedChannel.name}</strong>
-                      {selectedChannel.description && (
-                        <><br />📋 <em>{selectedChannel.description}</em></>
-                      )}
-                    </p>
-                  </div>
-                </motion.div>
-              </div>
+              <MessageList 
+                channelId={selectedChannel.id} 
+                typingUsers={typingUsers}
+              />
             )}
 
             {/* Voice Channel UI */}
@@ -784,20 +730,12 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
 
         {/* Message Input */}
         {selectedChannel && selectedChannel.type === "text" && (
-          <div className="p-6 bg-white border-t border-gray-200">
-            <div className="max-w-4xl mx-auto">
-              <div className="flex items-center space-x-4 p-3 bg-gray-50 rounded-lg">
-                <input
-                  type="text"
-                  placeholder={`Enviar mensagem para #${selectedChannel.name}`}
-                  className="flex-1 bg-transparent border-none outline-none text-gray-700 placeholder-gray-500"
-                />
-                <Button size="sm" className="bg-primary hover:bg-primary/90">
-                  Enviar
-                </Button>
-              </div>
-            </div>
-          </div>
+          <MessageInput
+            channelId={selectedChannel.id}
+            userId={user?.id || ''}
+            onTyping={handleTyping}
+            onStopTyping={handleStopTyping}
+          />
         )}
       </div>
 

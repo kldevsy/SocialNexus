@@ -74,6 +74,25 @@ export const channels = pgTable("channels", {
   updatedAt: timestamp("updated_at").defaultNow().notNull(),
 });
 
+// Messages table
+export const messages = pgTable("messages", {
+  id: serial("id").primaryKey(),
+  content: text("content"),
+  imageUrl: text("image_url"),
+  authorId: varchar("author_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  channelId: integer("channel_id").notNull().references(() => channels.id, { onDelete: "cascade" }),
+  createdAt: timestamp("created_at").defaultNow().notNull(),
+  updatedAt: timestamp("updated_at").defaultNow().notNull(),
+});
+
+// Typing indicators table
+export const typingIndicators = pgTable("typing_indicators", {
+  id: serial("id").primaryKey(),
+  userId: varchar("user_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
+  channelId: integer("channel_id").notNull().references(() => channels.id, { onDelete: "cascade" }),
+  lastTyping: timestamp("last_typing").defaultNow().notNull(),
+});
+
 // Relations
 export const usersRelations = relations(users, ({ many }) => ({
   ownedServers: many(servers),
@@ -100,10 +119,33 @@ export const serverMembershipsRelations = relations(serverMemberships, ({ one })
   }),
 }));
 
-export const channelsRelations = relations(channels, ({ one }) => ({
+export const channelsRelations = relations(channels, ({ one, many }) => ({
   server: one(servers, {
     fields: [channels.serverId],
     references: [servers.id],
+  }),
+  messages: many(messages),
+}));
+
+export const messagesRelations = relations(messages, ({ one }) => ({
+  author: one(users, {
+    fields: [messages.authorId],
+    references: [users.id],
+  }),
+  channel: one(channels, {
+    fields: [messages.channelId],
+    references: [channels.id],
+  }),
+}));
+
+export const typingIndicatorsRelations = relations(typingIndicators, ({ one }) => ({
+  user: one(users, {
+    fields: [typingIndicators.userId],
+    references: [users.id],
+  }),
+  channel: one(channels, {
+    fields: [typingIndicators.channelId],
+    references: [channels.id],
   }),
 }));
 
@@ -131,10 +173,22 @@ export const insertChannelSchema = createInsertSchema(channels).omit({
   updatedAt: true,
 });
 
+export const insertMessageSchema = createInsertSchema(messages).omit({
+  id: true,
+  createdAt: true,
+  updatedAt: true,
+});
+
+export const insertTypingIndicatorSchema = createInsertSchema(typingIndicators).omit({
+  id: true,
+  lastTyping: true,
+});
+
 // Update schemas
 export const updateUserSchema = insertUserSchema.partial();
 export const updateServerSchema = insertServerSchema.partial();
 export const updateChannelSchema = insertChannelSchema.partial();
+export const updateMessageSchema = insertMessageSchema.partial();
 
 // Types
 export type UpsertUser = z.infer<typeof insertUserSchema>;
@@ -147,3 +201,9 @@ export type ServerMembership = typeof serverMemberships.$inferSelect;
 export type InsertChannel = z.infer<typeof insertChannelSchema>;
 export type Channel = typeof channels.$inferSelect;
 export type ServerWithChannels = Server & { owner: User; channels: Channel[] };
+export type InsertMessage = z.infer<typeof insertMessageSchema>;
+export type Message = typeof messages.$inferSelect;
+export type MessageWithAuthor = Message & { author: User };
+export type InsertTypingIndicator = z.infer<typeof insertTypingIndicatorSchema>;
+export type TypingIndicator = typeof typingIndicators.$inferSelect;
+export type TypingIndicatorWithUser = TypingIndicator & { user: User };
