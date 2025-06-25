@@ -1,9 +1,9 @@
 # Configuração GitHub OAuth - Passo a Passo
 
-## O que acontece agora:
-Quando você clica em "Login", aparece uma página explicando como configurar.
+## PROBLEMA RESOLVIDO:
+As rotas GitHub OAuth foram integradas no arquivo principal da API.
 
-## Para ativar login de verdade:
+## Se você já configurou as variáveis GITHUB_CLIENT_ID e GITHUB_CLIENT_SECRET:
 
 ### 1. Criar GitHub OAuth App
 - Acesse: https://github.com/settings/applications/new
