@@ -11,6 +11,28 @@ interface SafeSelectProps {
   disabled?: boolean;
 }
 
+class SelectErrorBoundary extends React.Component<{children: React.ReactNode, fallback: React.ReactNode}, {hasError: boolean}> {
+  constructor(props: {children: React.ReactNode, fallback: React.ReactNode}) {
+    super(props);
+    this.state = { hasError: false };
+  }
+
+  static getDerivedStateFromError() {
+    return { hasError: true };
+  }
+
+  componentDidCatch(error: any) {
+    console.error("SelectErrorBoundary caught error:", error);
+  }
+
+  render() {
+    if (this.state.hasError) {
+      return this.props.fallback;
+    }
+    return this.props.children;
+  }
+}
+
 export function SafeSelect({ 
   value, 
   onValueChange, 
@@ -20,16 +42,24 @@ export function SafeSelect({
   disabled = false 
 }: SafeSelectProps) {
   const { toast } = useToast();
+  const [isOpen, setIsOpen] = React.useState(false);
 
   const handleValueChange = React.useCallback((newValue: string) => {
     try {
       console.log("SafeSelect: Value changing from", value, "to", newValue);
-      if (typeof newValue === 'string' || newValue === undefined) {
-        onValueChange(newValue || "");
-      } else {
+      
+      // Validate the new value
+      if (typeof newValue !== 'string') {
         console.warn("SafeSelect: Invalid value type received:", typeof newValue, newValue);
-        onValueChange("");
+        return;
       }
+      
+      // Call the parent's onChange safely
+      if (typeof onValueChange === 'function') {
+        onValueChange(newValue);
+      }
+      
+      setIsOpen(false);
     } catch (error) {
       console.error("SafeSelect: Error in onValueChange:", error);
       toast({
@@ -37,37 +67,40 @@ export function SafeSelect({
         description: "Erro ao selecionar opção",
         variant: "destructive",
       });
-      // Prevent crash by setting empty value
-      onValueChange("");
     }
   }, [onValueChange, toast, value]);
 
-  // Wrap in error boundary
-  try {
-    return (
+  const fallbackElement = (
+    <div className={className}>
+      <div className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm">
+        <span className="text-muted-foreground">{placeholder || "Selecione uma opção"}</span>
+      </div>
+    </div>
+  );
+
+  return (
+    <SelectErrorBoundary fallback={fallbackElement}>
       <Select 
         value={value || ""} 
         onValueChange={handleValueChange}
         disabled={disabled}
+        open={isOpen}
+        onOpenChange={setIsOpen}
       >
         <SelectTrigger className={className}>
           <SelectValue placeholder={placeholder} />
         </SelectTrigger>
         <SelectContent>
-          {children}
+          {React.Children.map(children, (child, index) => {
+            if (!React.isValidElement(child)) {
+              return null;
+            }
+            return React.cloneElement(child, { key: index });
+          })}
         </SelectContent>
       </Select>
-    );
-  } catch (error) {
-    console.error("SafeSelect: Render error:", error);
-    return (
-      <div className={className}>
-        <div className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm">
-          <span className="text-muted-foreground">{placeholder}</span>
-        </div>
-      </div>
-    );
-  }
+    </SelectErrorBoundary>
+  );
 }
 
 interface SafeSelectItemProps {
