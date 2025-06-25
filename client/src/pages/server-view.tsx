@@ -1,6 +1,6 @@
 import { useState, useRef, useEffect } from "react";
 import { useAuth } from "@/hooks/useAuth";
-import { useSimpleVoice } from "@/hooks/useSimpleVoice";
+// Voice chat removed due to WebRTC limitations
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
 import type { ServerWithOwner, User, Channel, ServerWithChannels } from "@shared/schema";
@@ -31,8 +31,7 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
   const [isMuted, setIsMuted] = useState(false);
   const [isDeafened, setIsDeafened] = useState(false);
   
-  // Voice chat functionality
-  const voiceChat = useSimpleVoice();
+  // Voice chat functionality removed due to WebRTC limitations
 
   // Sistema de drag para sidebars com touch e mouse
   useEffect(() => {
