@@ -579,7 +579,65 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
     });
 
-    // Typing indicators route (simplified for serverless)
+    // Server-Sent Events for real-time updates
+    app.get('/api/channels/:id/events', (req, res) => {
+      const authCookie = req.headers.cookie?.split(';').find(c => c.trim().startsWith('auth-token='));
+      
+      if (!authCookie) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+
+      // Set up SSE
+      res.writeHead(200, {
+        'Content-Type': 'text/event-stream',
+        'Cache-Control': 'no-cache',
+        'Connection': 'keep-alive',
+        'Access-Control-Allow-Origin': '*',
+        'Access-Control-Allow-Headers': 'Cache-Control'
+      });
+
+      const channelId = parseInt(req.params.id);
+      console.log(`📡 SSE connection established for channel ${channelId}`);
+
+      // Send initial connection event
+      res.write(`data: ${JSON.stringify({ type: 'connected', channelId })}\n\n`);
+
+      // Send periodic keepalive
+      const keepAlive = setInterval(() => {
+        res.write(`data: ${JSON.stringify({ type: 'ping' })}\n\n`);
+      }, 30000);
+
+      // Clean up on client disconnect
+      req.on('close', () => {
+        clearInterval(keepAlive);
+        console.log(`📡 SSE connection closed for channel ${channelId}`);
+      });
+    });
+
+    // WebSocket-style message broadcast endpoint
+    app.post('/api/channels/:id/broadcast', (req, res) => {
+      const authCookie = req.headers.cookie?.split(';').find(c => c.trim().startsWith('auth-token='));
+      
+      if (!authCookie) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+
+      try {
+        const channelId = parseInt(req.params.id);
+        const { type, data } = req.body;
+        
+        // In a real implementation, this would broadcast to all SSE connections
+        // For now, we'll use polling as fallback
+        console.log(`📢 Broadcasting to channel ${channelId}:`, { type, data });
+        
+        res.json({ success: true, broadcasted: { type, data, channelId } });
+      } catch (error) {
+        console.error('Error broadcasting:', error);
+        res.status(500).json({ message: 'Failed to broadcast' });
+      }
+    });
+
+    // Typing indicators route
     app.post('/api/channels/:id/typing', (req, res) => {
       const authCookie = req.headers.cookie?.split(';').find(c => c.trim().startsWith('auth-token='));
       
@@ -590,6 +648,10 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       try {
         const channelId = parseInt(req.params.id);
         console.log(`⌨️ Typing indicator for channel ${channelId}`);
+        
+        // Broadcast typing event to SSE connections
+        // This would be implemented with a proper message queue in production
+        
         res.json({ success: true });
       } catch (error) {
         console.error('Error setting typing indicator:', error);

@@ -33,25 +33,54 @@ export function MessageList({ channelId }: MessageListProps) {
     refetchOnWindowFocus: false,
   });
 
-  // Check if we're on Vercel (no WebSocket support)
+  // Check if we're on Vercel for SSE vs WebSocket
   const isVercel = window.location.hostname.includes('vercel.app') || 
                    window.location.hostname.includes('.app');
 
-  // WebSocket connection for real-time messages (disabled on Vercel)
+  // Real-time connection (SSE for Vercel, WebSocket for others)
   useEffect(() => {
     if (isVercel) {
-      console.log('🚫 WebSocket not supported on Vercel, using polling instead');
-      setWsConnected(true);
+      console.log('📡 Using Server-Sent Events for Vercel');
       
-      // Use polling instead of WebSocket for Vercel
+      // Use Server-Sent Events for Vercel
+      const eventSource = new EventSource(`/api/channels/${channelId}/events`);
+      
+      eventSource.onopen = () => {
+        console.log(`📡 SSE connected for channel ${channelId}`);
+        setWsConnected(true);
+      };
+      
+      eventSource.onmessage = (event) => {
+        try {
+          const data = JSON.parse(event.data);
+          console.log('📨 SSE message received:', data);
+          
+          if (data.type === 'newMessage' && data.channelId === channelId) {
+            queryClient.invalidateQueries({ queryKey: [`/api/channels/${channelId}/messages`] });
+          } else if (data.type === 'typing' && data.channelId === channelId) {
+            setTypingUsers(data.users || []);
+          }
+        } catch (error) {
+          console.error('Error parsing SSE message:', error);
+        }
+      };
+      
+      eventSource.onerror = (error) => {
+        console.error('❌ SSE error:', error);
+        setWsConnected(false);
+      };
+      
+      // Fallback polling for message updates
       const pollMessages = () => {
         queryClient.invalidateQueries({ queryKey: [`/api/channels/${channelId}/messages`] });
       };
       
-      const pollInterval = setInterval(pollMessages, 3000); // Poll every 3 seconds
+      const pollInterval = setInterval(pollMessages, 5000); // Poll every 5 seconds as backup
       
       return () => {
+        eventSource.close();
         clearInterval(pollInterval);
+        setWsConnected(false);
       };
     }
 
