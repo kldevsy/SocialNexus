@@ -32,52 +32,78 @@ export function useSimpleVoice() {
           to: userId,
           from: currentUserIdRef.current,
           channelId: connectedChannelIdRef.current,
-          signal: { type: 'ice', candidate: event.candidate }
+          signal: { type: 'ice', candidate: event.candidate.toJSON() }
         }));
       }
     };
 
     pc.ontrack = (event) => {
-      console.log(`Received audio track from ${userId}`);
+      console.log(`🎵 Received audio track from ${userId}`, event.track.kind);
       const remoteStream = event.streams[0];
       
       if (remoteStream && remoteStream.getAudioTracks().length > 0) {
-        console.log(`Setting up audio playback for ${userId}`);
+        console.log(`🔊 Setting up audio playback for ${userId}`);
         
         // Create or get existing audio element
         let audio = remoteAudiosRef.current.get(userId);
         if (!audio) {
           audio = new Audio();
           audio.autoplay = true;
-          audio.controls = false;
-          audio.volume = isDeafened ? 0 : 1;
+          audio.controls = true; // Enable controls for debugging
+          audio.volume = isDeafened ? 0 : 0.8;
+          audio.muted = false;
           remoteAudiosRef.current.set(userId, audio);
           
-          // Add to DOM for debugging
+          // Add to DOM visibly for debugging
           audio.id = `audio-${userId}`;
-          audio.style.display = 'none';
+          audio.style.position = 'fixed';
+          audio.style.top = '10px';
+          audio.style.right = '10px';
+          audio.style.zIndex = '9999';
+          audio.style.background = 'white';
+          audio.style.border = '2px solid red';
           document.body.appendChild(audio);
+          
+          console.log(`📺 Audio element created for ${userId}`);
         }
         
         audio.srcObject = remoteStream;
         
-        // Force play
-        const playPromise = audio.play();
-        if (playPromise !== undefined) {
-          playPromise.then(() => {
-            console.log(`Audio playing for ${userId}`);
-          }).catch(error => {
-            console.error(`Audio play failed for ${userId}:`, error);
-            // Try to enable after user interaction
-            const enableAudio = () => {
-              audio?.play().then(() => {
-                console.log(`Audio enabled for ${userId} after interaction`);
-              });
-              document.removeEventListener('click', enableAudio);
+        // Force play with user interaction fallback
+        const attemptPlay = async () => {
+          try {
+            await audio.play();
+            console.log(`✅ Audio playing for ${userId}`);
+          } catch (error) {
+            console.error(`❌ Audio play failed for ${userId}:`, error);
+            
+            // Show click instruction
+            const instruction = document.createElement('div');
+            instruction.innerHTML = `Click to enable audio from ${userId}`;
+            instruction.style.position = 'fixed';
+            instruction.style.top = '50px';
+            instruction.style.right = '10px';
+            instruction.style.background = 'yellow';
+            instruction.style.padding = '10px';
+            instruction.style.cursor = 'pointer';
+            instruction.style.zIndex = '10000';
+            
+            instruction.onclick = async () => {
+              try {
+                await audio.play();
+                console.log(`✅ Audio enabled for ${userId} after user interaction`);
+                instruction.remove();
+              } catch (e) {
+                console.error(`❌ Still failed to play audio:`, e);
+              }
             };
-            document.addEventListener('click', enableAudio, { once: true });
-          });
-        }
+            
+            document.body.appendChild(instruction);
+            setTimeout(() => instruction.remove(), 10000);
+          }
+        };
+        
+        attemptPlay();
       }
     };
 
@@ -113,7 +139,7 @@ export function useSimpleVoice() {
             });
           }
           
-          await pc.setRemoteDescription(signal.offer);
+          await pc.setRemoteDescription(new RTCSessionDescription(signal.offer));
           const answer = await pc.createAnswer();
           await pc.setLocalDescription(answer);
           
@@ -122,20 +148,20 @@ export function useSimpleVoice() {
             to: from,
             from: currentUserIdRef.current,
             channelId: connectedChannelIdRef.current,
-            signal: { type: 'answer', answer }
+            signal: { type: 'answer', answer: answer.toJSON() }
           }));
           break;
 
         case 'answer':
           if (pc) {
-            await pc.setRemoteDescription(signal.answer);
+            await pc.setRemoteDescription(new RTCSessionDescription(signal.answer));
           }
           break;
 
         case 'ice':
-          if (pc) {
+          if (pc && signal.candidate) {
             try {
-              await pc.addIceCandidate(signal.candidate);
+              await pc.addIceCandidate(new RTCIceCandidate(signal.candidate));
             } catch (e) {
               console.warn(`ICE candidate error:`, e);
             }
@@ -175,7 +201,7 @@ export function useSimpleVoice() {
         to: userId,
         from: currentUserIdRef.current,
         channelId: connectedChannelIdRef.current,
-        signal: { type: 'offer', offer }
+        signal: { type: 'offer', offer: offer.toJSON() }
       }));
     } catch (error) {
       console.error(`Error creating offer:`, error);
