@@ -46,11 +46,78 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       const { GITHUB_CLIENT_ID } = process.env;
       
       if (!GITHUB_CLIENT_ID) {
-        return res.json({ 
-          message: 'GitHub OAuth not configured. Please add GITHUB_CLIENT_ID and GITHUB_CLIENT_SECRET environment variables.',
-          loginMethods: ['GitHub OAuth (configuration needed)'],
-          status: 'configuration_required'
-        });
+        return res.status(200).send(`
+          <!DOCTYPE html>
+          <html>
+          <head>
+            <title>Login Setup Required</title>
+            <style>
+              body { font-family: -apple-system, BlinkMacSystemFont, 'Segoe UI', sans-serif; max-width: 800px; margin: 0 auto; padding: 20px; }
+              .container { background: #f8f9fa; border-radius: 8px; padding: 30px; margin: 20px 0; }
+              .step { background: white; margin: 15px 0; padding: 20px; border-radius: 6px; border-left: 4px solid #0969da; }
+              code { background: #f6f8fa; padding: 2px 4px; border-radius: 3px; font-family: monospace; }
+              .success { color: #0969da; font-weight: bold; }
+              h1 { color: #24292f; }
+              h2 { color: #656d76; font-size: 18px; }
+            </style>
+          </head>
+          <body>
+            <h1>🚀 Configurar Login GitHub</h1>
+            <div class="container">
+              <p>Para ativar o login, siga estes passos:</p>
+              
+              <div class="step">
+                <h2>1. Criar GitHub OAuth App</h2>
+                <p>Vá para <a href="https://github.com/settings/applications/new" target="_blank">GitHub Developer Settings</a></p>
+                <p>Preencha:</p>
+                <ul>
+                  <li><strong>Application name:</strong> CommunityHub</li>
+                  <li><strong>Homepage URL:</strong> <code>https://seu-projeto.vercel.app</code></li>
+                  <li><strong>Authorization callback URL:</strong> <code>https://seu-projeto.vercel.app/api/auth/github/callback</code></li>
+                </ul>
+              </div>
+              
+              <div class="step">
+                <h2>2. Copiar Credenciais</h2>
+                <p>Após criar o app, copie:</p>
+                <ul>
+                  <li><strong>Client ID</strong></li>
+                  <li><strong>Client Secret</strong></li>
+                </ul>
+              </div>
+              
+              <div class="step">
+                <h2>3. Configurar no Vercel</h2>
+                <p>No dashboard do Vercel, vá em <strong>Settings → Environment Variables</strong></p>
+                <p>Adicione:</p>
+                <ul>
+                  <li><code>GITHUB_CLIENT_ID</code> = seu client id</li>
+                  <li><code>GITHUB_CLIENT_SECRET</code> = seu client secret</li>
+                </ul>
+              </div>
+              
+              <div class="step">
+                <h2>4. Redeploy</h2>
+                <p>O Vercel fará redeploy automático após adicionar as variáveis.</p>
+                <p class="success">✅ Login funcionará automaticamente!</p>
+              </div>
+            </div>
+            
+            <p><a href="/">← Voltar ao site</a></p>
+            
+            <script>
+              // Auto refresh every 30 seconds to check if configured
+              setTimeout(() => {
+                fetch('/api/login').then(r => r.text()).then(html => {
+                  if (!html.includes('Configurar Login')) {
+                    window.location.href = '/api/login';
+                  }
+                });
+              }, 30000);
+            </script>
+          </body>
+          </html>
+        `);
       }
 
       res.redirect('/api/auth/github');
