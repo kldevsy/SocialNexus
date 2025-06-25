@@ -23,10 +23,11 @@ export function SafeSelect({
 
   const handleValueChange = React.useCallback((newValue: string) => {
     try {
-      if (typeof newValue === 'string') {
-        onValueChange(newValue);
+      console.log("SafeSelect: Value changing from", value, "to", newValue);
+      if (typeof newValue === 'string' || newValue === undefined) {
+        onValueChange(newValue || "");
       } else {
-        console.warn("SafeSelect: Invalid value type received:", typeof newValue);
+        console.warn("SafeSelect: Invalid value type received:", typeof newValue, newValue);
         onValueChange("");
       }
     } catch (error) {
@@ -36,23 +37,37 @@ export function SafeSelect({
         description: "Erro ao selecionar opção",
         variant: "destructive",
       });
+      // Prevent crash by setting empty value
+      onValueChange("");
     }
-  }, [onValueChange, toast]);
+  }, [onValueChange, toast, value]);
 
-  return (
-    <Select 
-      value={value || ""} 
-      onValueChange={handleValueChange}
-      disabled={disabled}
-    >
-      <SelectTrigger className={className}>
-        <SelectValue placeholder={placeholder} />
-      </SelectTrigger>
-      <SelectContent>
-        {children}
-      </SelectContent>
-    </Select>
-  );
+  // Wrap in error boundary
+  try {
+    return (
+      <Select 
+        value={value || ""} 
+        onValueChange={handleValueChange}
+        disabled={disabled}
+      >
+        <SelectTrigger className={className}>
+          <SelectValue placeholder={placeholder} />
+        </SelectTrigger>
+        <SelectContent>
+          {children}
+        </SelectContent>
+      </Select>
+    );
+  } catch (error) {
+    console.error("SafeSelect: Render error:", error);
+    return (
+      <div className={className}>
+        <div className="flex h-10 w-full items-center justify-between rounded-md border border-input bg-background px-3 py-2 text-sm">
+          <span className="text-muted-foreground">{placeholder}</span>
+        </div>
+      </div>
+    );
+  }
 }
 
 interface SafeSelectItemProps {

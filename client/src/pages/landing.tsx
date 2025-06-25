@@ -5,7 +5,7 @@ import { GlassCard } from "@/components/glass-card";
 
 export default function Landing() {
   const handleLogin = () => {
-    window.location.href = "/api/login";
+    window.location.href = "/api/auth/github";
   };
 
   return (
@@ -103,7 +103,7 @@ export default function Landing() {
                 className="bg-gradient-to-r from-white to-gray-100 text-primary hover:from-gray-100 hover:to-gray-200 px-10 py-6 text-lg font-semibold rounded-xl shadow-2xl transform hover:-translate-y-2 transition-all duration-300"
               >
                 <Rocket className="mr-3 h-6 w-6" />
-                Comece Agora - É Grátis
+                Entrar com GitHub
               </Button>
             </motion.div>
             <motion.div
