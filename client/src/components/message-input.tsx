@@ -211,6 +211,8 @@ export function MessageInput({
   };
 
   const handleEmbedSave = (embedData: any) => {
+    console.log("Saving embed:", embedData);
+    
     // Enviar mensagem com embed
     sendMessageMutation.mutate({
       content: message.trim() || undefined,

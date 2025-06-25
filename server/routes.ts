@@ -335,20 +335,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/channels/:id/messages", isAuthenticated, async (req: any, res) => {
     try {
       const channelId = parseInt(req.params.id);
+      const userId = req.session.user!.id;
       
       if (isNaN(channelId)) {
         return res.status(400).json({ error: "Invalid channel ID" });
       }
 
+      console.log("Creating message with data:", req.body);
+
       const messageData = insertMessageSchema.parse({
         ...req.body,
         channelId,
-        authorId: req.user.claims.sub,
+        authorId: userId,
+        embedData: req.body.embedData ? JSON.stringify(req.body.embedData) : undefined
       });
 
       const message = await storage.createMessage(messageData);
       
       // Broadcast new message to all connected clients in the channel
+      const messageWithAuthor = {
+        ...message,
+        author: req.session.user!,
+        embedData: message.embedData ? JSON.parse(message.embedData) : undefined
+      };
+      
       console.log(`📣 Broadcasting new message to channel ${channelId}`);
       let messageBroadcastCount = 0;
       wss.clients.forEach((client) => {
@@ -356,7 +366,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
           client.send(JSON.stringify({
             type: 'new-message',
             channelId: channelId,
-            message: message
+            message: messageWithAuthor
           }));
           messageBroadcastCount++;
         }

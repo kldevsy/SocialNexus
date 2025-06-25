@@ -271,41 +271,41 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
 
   return (
     <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-4xl max-h-[80vh] overflow-hidden flex flex-col">
+      <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
               <Sparkles className="h-4 w-4 text-white" />
             </div>
             <div>
-              <DialogTitle className="text-xl font-bold">Criador de Embeds Avançado</DialogTitle>
-              <DialogDescription>
-                Crie embeds profissionais com recursos avançados e pré-visualização em tempo real
+              <DialogTitle className="text-lg sm:text-xl font-bold">Criador de Embeds</DialogTitle>
+              <DialogDescription className="hidden sm:block">
+                Crie embeds profissionais com recursos avançados
               </DialogDescription>
             </div>
           </div>
         </DialogHeader>
 
-        <div className="flex-1 flex gap-4 overflow-hidden">
+        <div className="flex-1 flex flex-col lg:flex-row gap-4 overflow-hidden">
           {/* Editor Panel */}
-          <div className="flex-1 overflow-y-auto max-h-[60vh]">
+          <div className="flex-1 overflow-y-auto max-h-[50vh] lg:max-h-[60vh]">
             <Tabs value={activeTab} onValueChange={setActiveTab} className="space-y-4">
               <TabsList className="grid w-full grid-cols-4">
-                <TabsTrigger value="basic" className="flex items-center space-x-2">
-                  <Hash className="h-4 w-4" />
-                  <span>Básico</span>
+                <TabsTrigger value="basic" className="flex items-center space-x-1 text-xs sm:text-sm">
+                  <Hash className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Básico</span>
                 </TabsTrigger>
-                <TabsTrigger value="media" className="flex items-center space-x-2">
-                  <Image className="h-4 w-4" />
-                  <span>Mídia</span>
+                <TabsTrigger value="media" className="flex items-center space-x-1 text-xs sm:text-sm">
+                  <Image className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Mídia</span>
                 </TabsTrigger>
-                <TabsTrigger value="fields" className="flex items-center space-x-2">
-                  <Plus className="h-4 w-4" />
-                  <span>Campos</span>
+                <TabsTrigger value="fields" className="flex items-center space-x-1 text-xs sm:text-sm">
+                  <Plus className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Campos</span>
                 </TabsTrigger>
-                <TabsTrigger value="templates" className="flex items-center space-x-2">
-                  <Star className="h-4 w-4" />
-                  <span>Templates</span>
+                <TabsTrigger value="templates" className="flex items-center space-x-1 text-xs sm:text-sm">
+                  <Star className="h-3 w-3 sm:h-4 sm:w-4" />
+                  <span className="hidden sm:inline">Templates</span>
                 </TabsTrigger>
               </TabsList>
 
@@ -606,13 +606,13 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
                     </CardDescription>
                   </CardHeader>
                   <CardContent>
-                    <div className="grid grid-cols-2 gap-4">
+                    <div className="grid grid-cols-1 sm:grid-cols-2 gap-4">
                       {embedTemplates.map((template) => (
                         <motion.div
                           key={template.id}
                           whileHover={{ scale: 1.02 }}
                           whileTap={{ scale: 0.98 }}
-                          className="p-4 border rounded-lg cursor-pointer hover:border-blue-500 hover:shadow-md transition-all"
+                          className="p-3 sm:p-4 border rounded-lg cursor-pointer hover:border-blue-500 hover:shadow-md transition-all"
                           onClick={() => loadTemplate(template)}
                         >
                           <div className="flex items-center space-x-3 mb-2">
@@ -640,8 +640,8 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
           </div>
 
           {/* Preview Panel */}
-          <div className="w-80 border-l pl-4">
-            <div className="sticky top-0 max-h-[60vh] overflow-y-auto">
+          <div className="w-full lg:w-80 lg:border-l lg:pl-4 border-t lg:border-t-0 pt-4 lg:pt-0">
+            <div className="sticky top-0 max-h-[40vh] lg:max-h-[60vh] overflow-y-auto">
               <div className="flex items-center space-x-2 mb-4">
                 <Eye className="h-4 w-4" />
                 <h3 className="font-semibold">Pré-visualização</h3>
@@ -765,11 +765,11 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
           </div>
         </div>
 
-        <DialogFooter>
-          <Button variant="outline" onClick={() => onOpenChange(false)}>
+        <DialogFooter className="flex flex-col sm:flex-row gap-2">
+          <Button variant="outline" onClick={() => onOpenChange(false)} className="w-full sm:w-auto">
             Cancelar
           </Button>
-          <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700">
+          <Button onClick={handleSave} className="bg-blue-600 hover:bg-blue-700 w-full sm:w-auto">
             <Sparkles className="h-4 w-4 mr-2" />
             Enviar Embed
           </Button>
