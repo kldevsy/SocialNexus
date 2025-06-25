@@ -7,14 +7,21 @@ let pool: Pool | null = null;
 function initDatabase() {
   if (!pool && process.env.DATABASE_URL) {
     try {
+      console.log('Initializing database connection for Vercel...');
+      
+      // For Vercel + Supabase/Neon, always use SSL
       pool = new Pool({
         connectionString: process.env.DATABASE_URL,
-        ssl: { rejectUnauthorized: false },
-        max: 3,
+        ssl: {
+          rejectUnauthorized: false
+        },
+        max: 5,
         idleTimeoutMillis: 30000,
-        connectionTimeoutMillis: 10000,
+        connectionTimeoutMillis: 15000,
       });
-      console.log('Database pool initialized');
+      
+      console.log('Database pool created successfully');
+      
     } catch (error) {
       console.error('Failed to initialize database:', error);
       pool = null;
@@ -49,21 +56,35 @@ async function createServerWithDB(serverData: any, userData: any) {
   
   if (db) {
     try {
-      // Try database first
+      console.log('Attempting to create server in database...');
+      
+      // Create user first
       await db.query(`
-        INSERT INTO users (id, username, "firstName", "lastName", "profileImageUrl", email, status, theme)
-        VALUES ($1, $2, $3, $4, $5, $6, $7, $8)
-        ON CONFLICT (id) DO UPDATE SET "updatedAt" = NOW()
+        INSERT INTO users (id, username, "firstName", "lastName", "profileImageUrl", email, status, theme, "createdAt", "updatedAt")
+        VALUES ($1, $2, $3, $4, $5, $6, $7, $8, NOW(), NOW())
+        ON CONFLICT (id) DO UPDATE SET 
+          username = EXCLUDED.username,
+          "profileImageUrl" = EXCLUDED."profileImageUrl",
+          "updatedAt" = NOW()
       `, [userData.id, userData.username, userData.firstName, userData.lastName, userData.profileImageUrl, userData.email, '🟢 Online', 'light']);
 
+      // Create server
       const result = await db.query(`
-        INSERT INTO servers (name, description, category, "isPublic", "ownerId")
-        VALUES ($1, $2, $3, $4, $5)
+        INSERT INTO servers (name, description, category, "isPublic", "ownerId", "createdAt", "updatedAt")
+        VALUES ($1, $2, $3, $4, $5, NOW(), NOW())
         RETURNING *
       `, [serverData.name, serverData.description, serverData.category, serverData.isPublic, userData.id]);
 
       const server = result.rows[0];
-      console.log('Server created in database:', server.id);
+      console.log('Server created successfully in database:', server.id);
+      
+      // Create default channels
+      await db.query(`
+        INSERT INTO channels (name, type, "serverId", "createdAt", "updatedAt")
+        VALUES 
+          ('geral', 'text', $1, NOW(), NOW()),
+          ('Sala de Voz', 'voice', $1, NOW(), NOW())
+      `, [server.id]);
       
       return {
         id: server.id,
@@ -78,7 +99,8 @@ async function createServerWithDB(serverData: any, userData: any) {
         owner: userData
       };
     } catch (error) {
-      console.error('Database error, using memory storage:', error);
+      console.error('Database error details:', error);
+      console.log('Falling back to memory storage...');
     }
   }
 
@@ -174,25 +196,39 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
   console.log(`${req.method} ${url}`);
 
   try {
-    // Health check
+    // Health check with detailed database info
     if (url === '/api/health') {
       const db = initDatabase();
       let dbStatus = 'disconnected';
+      let dbError: string | null = null;
+      let dbUrl: string | null = null;
+      
+      if (process.env.DATABASE_URL) {
+        dbUrl = process.env.DATABASE_URL.substring(0, 50) + '...';
+      }
       
       if (db) {
         try {
-          await db.query('SELECT 1');
+          const result = await db.query('SELECT version(), current_database()');
           dbStatus = 'connected';
-        } catch {
+          console.log('Database connection successful:', result.rows[0]);
+        } catch (error) {
           dbStatus = 'error';
+          dbError = error instanceof Error ? error.message : 'Unknown error';
+          console.error('Database health check error:', error);
         }
       }
       
       return res.json({
         status: 'ok',
         timestamp: new Date().toISOString(),
-        database: dbStatus,
-        hasEnvVar: !!process.env.DATABASE_URL
+        database: {
+          status: dbStatus,
+          error: dbError,
+          hasEnvVar: !!process.env.DATABASE_URL,
+          urlPrefix: dbUrl,
+          poolExists: !!pool
+        }
       });
     }
 

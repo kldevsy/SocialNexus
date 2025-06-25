@@ -104,6 +104,7 @@ CommunityHub is a modern full-stack web application that provides a Discord-styl
 
 ## Recent Changes
 
+- **Conexão PostgreSQL no Vercel otimizada para Supabase/Neon** (25/06/2025): Configuração SSL simplificada para funcionar com provedores de banco em nuvem, criação automática de canais padrão, logs detalhados de debugging, e fallback robusto para armazenamento em memória. Sistema funcionando tanto com DATABASE_URL configurada quanto sem banco
 - **Erro 500 na criação de servidores no Vercel completamente corrigido** (25/06/2025): API reescrita com sistema robusto de fallback automático para armazenamento em memória quando banco PostgreSQL não está disponível. Função createServerWithDB com tratamento de erro completo, logs detalhados para debugging, e compatibilidade total com Vercel serverless functions
 - **Problemas críticos do Vercel e embeds corrigidos** (25/06/2025): Tela branca ao selecionar categoria resolvida com select HTML nativo. Embeds aparecendo vazios corrigidos com parser JSON automático. Sistema completo funcionando tanto no Replit quanto no Vercel
 - **API Vercel otimizada** (25/06/2025): Perda de dados nos deploys resolvida substituindo armazenamento em memória por persistência em banco PostgreSQL real. API Vercel completamente reescrita com funções de banco dedicadas e fallbacks seguros

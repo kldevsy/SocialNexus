@@ -49,6 +49,33 @@ export async function registerRoutes(app: Express): Promise<Server> {
     res.redirect('/');
   });
 
+  // Health check endpoint
+  app.get('/api/health', async (req, res) => {
+    try {
+      // Test database connection
+      const testUser = await storage.getUser('test-user');
+      const dbStatus = 'connected';
+      
+      res.json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        database: {
+          status: dbStatus,
+          storage: 'postgresql'
+        }
+      });
+    } catch (error) {
+      res.json({
+        status: 'ok',
+        timestamp: new Date().toISOString(),
+        database: {
+          status: 'error',
+          error: error instanceof Error ? error.message : 'Unknown error'
+        }
+      });
+    }
+  });
+
   app.post('/api/logout', (req, res) => {
     res.clearCookie('auth-token');
     res.json({ success: true });
