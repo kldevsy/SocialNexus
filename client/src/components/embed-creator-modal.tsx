@@ -40,7 +40,13 @@ import {
   Trophy,
   Target,
   Rocket,
-  Square
+  Square,
+  BarChart3,
+  MessageSquare,
+  Settings,
+  Trash,
+  Copy,
+  Check
 } from "lucide-react";
 
 interface EmbedField {
