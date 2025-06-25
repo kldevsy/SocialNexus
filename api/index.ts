@@ -476,6 +476,44 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       res.json(serverWithChannels);
     });
 
+    // In-memory message storage for Vercel
+    let channelMessages: any[] = [
+      {
+        id: 1,
+        content: 'Bem-vindos ao servidor! 🎮',
+        imageUrl: null,
+        embedData: null,
+        authorId: 'demo-user',
+        channelId: 1,
+        createdAt: new Date(Date.now() - 3600000).toISOString(),
+        updatedAt: new Date(Date.now() - 3600000).toISOString(),
+        author: {
+          id: 'demo-user',
+          username: 'DemoUser',
+          firstName: 'Demo',
+          lastName: 'User',
+          profileImageUrl: null
+        }
+      },
+      {
+        id: 2,
+        content: 'Como estão todos?',
+        imageUrl: null,
+        embedData: null,
+        authorId: 'demo-user-2',
+        channelId: 1,
+        createdAt: new Date(Date.now() - 1800000).toISOString(),
+        updatedAt: new Date(Date.now() - 1800000).toISOString(),
+        author: {
+          id: 'demo-user-2',
+          username: 'TechUser',
+          firstName: 'Tech',
+          lastName: 'User',
+          profileImageUrl: null
+        }
+      }
+    ];
+
     // Channel messages route
     app.get('/api/channels/:id/messages', (req, res) => {
       const authCookie = req.headers.cookie?.split(';').find(c => c.trim().startsWith('auth-token='));
@@ -484,47 +522,96 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(401).json({ message: 'Authentication required' });
       }
 
-      const channelId = parseInt(req.params.id);
+      try {
+        const channelId = parseInt(req.params.id);
+        const messages = channelMessages.filter(m => m.channelId === channelId);
+        
+        console.log(`📨 Fetching ${messages.length} messages for channel ${channelId}`);
+        res.json(messages);
+      } catch (error) {
+        console.error('Error fetching messages:', error);
+        res.status(500).json({ message: 'Failed to fetch messages' });
+      }
+    });
+
+    // Send message route
+    app.post('/api/channels/:id/messages', (req, res) => {
+      const authCookie = req.headers.cookie?.split(';').find(c => c.trim().startsWith('auth-token='));
       
-      // Demo messages
-      const messages = [
-        {
-          id: 1,
-          content: 'Bem-vindos ao servidor!',
-          imageUrl: null,
-          embedData: null,
-          authorId: 'user-123',
-          channelId: channelId,
-          createdAt: new Date(Date.now() - 3600000).toISOString(),
-          updatedAt: new Date(Date.now() - 3600000).toISOString(),
-          author: {
-            id: 'user-123',
-            username: 'Admin',
-            firstName: 'Admin',
-            lastName: '',
-            profileImageUrl: null
-          }
-        },
-        {
-          id: 2,
-          content: 'Olá pessoal! Como estão?',
-          imageUrl: null,
-          embedData: null,
-          authorId: 'user-456',
-          channelId: channelId,
-          createdAt: new Date(Date.now() - 1800000).toISOString(),
-          updatedAt: new Date(Date.now() - 1800000).toISOString(),
-          author: {
-            id: 'user-456',
-            username: 'Membro',
-            firstName: 'Membro',
-            lastName: 'Ativo',
-            profileImageUrl: null
-          }
+      if (!authCookie) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+
+      try {
+        const userData = JSON.parse(Buffer.from(authCookie.split('=')[1], 'base64').toString());
+        const channelId = parseInt(req.params.id);
+        const { content, embedData } = req.body;
+        
+        if (!content && !embedData) {
+          return res.status(400).json({ message: 'Message content or embed data required' });
         }
-      ];
+        
+        const newMessage = {
+          id: Date.now() + Math.random(),
+          content: content || '',
+          imageUrl: null,
+          embedData: embedData || null,
+          authorId: userData.id,
+          channelId: channelId,
+          createdAt: new Date().toISOString(),
+          updatedAt: new Date().toISOString(),
+          author: {
+            id: userData.id,
+            username: userData.username,
+            firstName: userData.firstName,
+            lastName: userData.lastName,
+            profileImageUrl: userData.profileImageUrl
+          }
+        };
+        
+        channelMessages.push(newMessage);
+        
+        console.log('💬 Message created:', newMessage);
+        res.status(201).json(newMessage);
+      } catch (error) {
+        console.error('Error creating message:', error);
+        res.status(500).json({ message: 'Failed to create message' });
+      }
+    });
+
+    // Typing indicators route (simplified for serverless)
+    app.post('/api/channels/:id/typing', (req, res) => {
+      const authCookie = req.headers.cookie?.split(';').find(c => c.trim().startsWith('auth-token='));
       
-      res.json(messages);
+      if (!authCookie) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+
+      try {
+        const channelId = parseInt(req.params.id);
+        console.log(`⌨️ Typing indicator for channel ${channelId}`);
+        res.json({ success: true });
+      } catch (error) {
+        console.error('Error setting typing indicator:', error);
+        res.status(500).json({ message: 'Failed to set typing indicator' });
+      }
+    });
+
+    app.delete('/api/channels/:id/typing', (req, res) => {
+      const authCookie = req.headers.cookie?.split(';').find(c => c.trim().startsWith('auth-token='));
+      
+      if (!authCookie) {
+        return res.status(401).json({ message: 'Authentication required' });
+      }
+
+      try {
+        const channelId = parseInt(req.params.id);
+        console.log(`🛑 Stop typing for channel ${channelId}`);
+        res.json({ success: true });
+      } catch (error) {
+        console.error('Error clearing typing indicator:', error);
+        res.status(500).json({ message: 'Failed to clear typing indicator' });
+      }
     });
 
     // Post message route

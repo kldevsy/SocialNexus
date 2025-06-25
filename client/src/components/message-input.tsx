@@ -103,11 +103,29 @@ export function MessageInput({
   });
 
   const handleSubmit = () => {
-    if (!message.trim() && !selectedImage) return;
+    const messageContent = message.trim();
     
-    sendMessageMutation.mutate({
-      content: message.trim() || undefined,
-    });
+    if (!messageContent && !selectedImage && !pendingEmbed) {
+      console.log('❌ No message content, image, or embed to send');
+      return;
+    }
+    
+    const messageData: { content?: string; embedData?: any } = {};
+    
+    if (messageContent) {
+      messageData.content = messageContent;
+    }
+    
+    if (pendingEmbed) {
+      messageData.embedData = pendingEmbed;
+      console.log('📎 Sending embed:', pendingEmbed);
+    }
+    
+    console.log('📤 Attempting to send message:', messageData);
+    sendMessageMutation.mutate(messageData);
+    
+    // Clear pending embed after sending
+    setPendingEmbed(null);
   };
 
   const handleKeyDown = (e: React.KeyboardEvent<HTMLTextAreaElement>) => {

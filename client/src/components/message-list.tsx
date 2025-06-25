@@ -33,8 +33,29 @@ export function MessageList({ channelId }: MessageListProps) {
     refetchOnWindowFocus: false,
   });
 
-  // WebSocket connection for real-time messages
+  // Check if we're on Vercel (no WebSocket support)
+  const isVercel = window.location.hostname.includes('vercel.app') || 
+                   window.location.hostname.includes('.app');
+
+  // WebSocket connection for real-time messages (disabled on Vercel)
   useEffect(() => {
+    if (isVercel) {
+      console.log('🚫 WebSocket not supported on Vercel, using polling instead');
+      setWsConnected(true);
+      
+      // Use polling instead of WebSocket for Vercel
+      const pollMessages = () => {
+        queryClient.invalidateQueries({ queryKey: [`/api/channels/${channelId}/messages`] });
+      };
+      
+      const pollInterval = setInterval(pollMessages, 3000); // Poll every 3 seconds
+      
+      return () => {
+        clearInterval(pollInterval);
+      };
+    }
+
+    // WebSocket for non-Vercel environments
     const protocol = location.protocol === 'https:' ? 'wss:' : 'ws:';
     const ws = new WebSocket(`${protocol}//${location.host}/ws`);
     wsRef.current = ws;
@@ -43,7 +64,6 @@ export function MessageList({ channelId }: MessageListProps) {
       setWsConnected(true);
       console.log(`📡 WebSocket connected for channel ${channelId}`);
       
-      // First authenticate user if available
       if (user?.id) {
         ws.send(JSON.stringify({
           type: 'authenticate',
