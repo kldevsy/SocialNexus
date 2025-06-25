@@ -23,45 +23,14 @@ function getPool() {
 async function getServersFromDB(userId?: string) {
   const db = getPool();
   if (!db) {
-    // Fallback to static data if no database
-    return [
-      {
-        id: 2,
-        name: 'Servidor Gaming',
-        description: 'Comunidade para gamers',
-        category: 'Gaming',
-        isPublic: true,
-        ownerId: 'owner-456',
-        memberCount: 150,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        owner: { 
-          id: 'owner-456', 
-          username: 'GameMaster',
-          firstName: 'Game',
-          lastName: 'Master',
-          profileImageUrl: null
-        }
-      },
-      {
-        id: 3,
-        name: 'Tech Community',
-        description: 'Discussões sobre tecnologia',
-        category: 'Tecnologia',
-        isPublic: true,
-        ownerId: 'owner-789',
-        memberCount: 89,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        owner: { 
-          id: 'owner-789', 
-          username: 'TechGuru',
-          firstName: 'Tech',
-          lastName: 'Guru',
-          profileImageUrl: null
-        }
-      }
-    ];
+    // Use in-memory storage for Vercel
+    if (userId) {
+      // Return servers owned by the user
+      return vercelServers.filter(server => server.ownerId === userId);
+    } else {
+      // Return public servers
+      return vercelServers.filter(server => server.isPublic);
+    }
   }
 
   try {
@@ -111,11 +80,14 @@ async function getServersFromDB(userId?: string) {
   }
 }
 
+// In-memory storage for Vercel when no database
+let vercelServers: any[] = [];
+
 async function createServerInDB(serverData: any, userData: any) {
   const db = getPool();
   if (!db) {
-    // Fallback to in-memory if no database
-    return {
+    // Fallback to in-memory storage for Vercel
+    const newServer = {
       id: Date.now(),
       ...serverData,
       ownerId: userData.id,
@@ -130,6 +102,10 @@ async function createServerInDB(serverData: any, userData: any) {
         profileImageUrl: userData.avatar
       }
     };
+    
+    vercelServers.push(newServer);
+    console.log('Created server in memory for Vercel:', newServer.id);
+    return newServer;
   }
 
   try {
