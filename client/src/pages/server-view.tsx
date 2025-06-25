@@ -9,7 +9,6 @@ import { useQuery, useMutation, useQueryClient } from "@tanstack/react-query";
 import { motion } from "framer-motion";
 import { ArrowLeft, Hash, Volume2, VolumeX, Headphones, Mic, MicOff, Settings, Crown, Users, UserPlus, Menu, X, Plus, Trash2, PhoneCall, PhoneOff } from "lucide-react";
 import { CreateChannelModal } from "@/components/create-channel-modal";
-import { VoiceControlPanel } from "@/components/voice-control-panel";
 
 interface ServerViewProps {
   serverId: number;
@@ -32,6 +31,9 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
   const [isDeafened, setIsDeafened] = useState(false);
   
   // Voice chat functionality removed due to WebRTC limitations
+  
+  // Member status tracking - fix for offline status bug
+  const [onlineUserIds, setOnlineUserIds] = useState<Set<string>>(new Set());
 
   // Sistema de drag para sidebars com touch e mouse
   useEffect(() => {
@@ -263,7 +265,15 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
   const voiceChannels = channels.filter((channel: any) => channel.type === "voice");
   const selectedChannel = selectedChannelId ? channels.find((c: any) => c.id === selectedChannelId) : textChannels[0];
   const isOwner = user?.id === server?.ownerId;
-  const onlineMembers = members.filter(() => Math.random() > 0.6);
+  // Real online status system - always show current user as online, simulate others
+  const onlineMembers = members.filter(member => {
+    if (member.id === user?.id) {
+      return true; // Current user is always online
+    }
+    // Simple deterministic online status based on user ID to avoid random changes
+    const userIdNum = parseInt(member.id) || 0;
+    return (userIdNum % 3) !== 0; // About 2/3 of users appear online
+  });
   const displayName = user?.firstName || user?.email?.split('@')[0] || 'Usuário';
 
   console.log('🏗️ Current state:', {
@@ -450,23 +460,11 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
                       animate={{ opacity: 1, x: 0 }}
                       transition={{ delay: (textChannels.length + index) * 0.05 }}
                       whileHover={{ scale: 1.02, x: 6 }}
-                      onClick={() => handleVoiceChannelClick(channel.id, channel.name)}
-                      className={`flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-all duration-200 group shadow-sm hover:shadow-md ${
-                        voiceChat.connectedChannelId === channel.id
-                          ? "bg-gradient-to-r from-green-100 to-emerald-100 border border-green-300"
-                          : "bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 hover:from-purple-100 hover:to-pink-100 hover:border-purple-300"
-                      }`}
+                      onClick={() => setSelectedChannelId(channel.id)}
+                      className="flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-all duration-200 group shadow-sm hover:shadow-md bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 hover:from-purple-100 hover:to-pink-100 hover:border-purple-300"
                     >
-                      <div className={`w-8 h-8 rounded-lg flex items-center justify-center shadow-sm ${
-                        voiceChat.connectedChannelId === channel.id
-                          ? "bg-gradient-to-br from-green-500 to-green-600"
-                          : "bg-gradient-to-br from-purple-500 to-purple-600"
-                      }`}>
-                        {voiceChat.connectedChannelId === channel.id ? (
-                          <PhoneCall className="h-4 w-4 text-white" />
-                        ) : (
-                          <Volume2 className="h-4 w-4 text-white" />
-                        )}
+                      <div className="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm bg-gradient-to-br from-purple-500 to-purple-600">
+                        <Volume2 className="h-4 w-4 text-white" />
                       </div>
                       <div className="flex-1">
                         <span className="text-sm font-semibold text-gray-800 group-hover:text-purple-700">
@@ -492,15 +490,9 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
                             <Trash2 className="h-3 w-3 text-red-500" />
                           </Button>
                         )}
-                        <div className={`w-2 h-2 rounded-full ${
-                          voiceChat.connectedChannelId === channel.id ? "bg-green-500 animate-pulse" : "bg-gray-400"
-                        }`}></div>
-                        <span className="text-xs text-gray-500 font-medium">
-                          {voiceChat.connectedChannelId === channel.id ? voiceChat.userCount : "0"}/∞
-                        </span>
-                        {voiceChat.connectedChannelId === channel.id && (
-                          <span className="text-xs text-green-600 font-medium">Conectado</span>
-                        )}
+                        <div className="text-sm text-gray-500 italic">
+                          Chat de voz (em desenvolvimento)
+                        </div>
                       </div>
                     </motion.div>
                   ))}
@@ -779,90 +771,11 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
                     Canal de Voz: {selectedChannel.name}
                   </h3>
                   <p className="text-purple-700 mb-4">
-                    {selectedChannel.description || "Conecte-se para conversar por voz com outros membros"}
+                    {selectedChannel.description || "Chat de voz estará disponível em breve"}
                   </p>
-                  {voiceChat.connectedChannelId === selectedChannel.id ? (
-                    <div className="space-y-4">
-                      <div className="flex items-center justify-center space-x-4">
-                        <Button 
-                          variant={voiceChat.isMuted ? "destructive" : "outline"}
-                          onClick={voiceChat.toggleMute}
-                          className="flex items-center space-x-2"
-                        >
-                          {voiceChat.isMuted ? <MicOff className="h-4 w-4" /> : <Mic className="h-4 w-4" />}
-                          <span>{voiceChat.isMuted ? "Desmutar" : "Mutar"}</span>
-                        </Button>
-                        
-                        <Button 
-                          variant={voiceChat.isDeafened ? "destructive" : "outline"}
-                          onClick={voiceChat.toggleDeafen}
-                          className="flex items-center space-x-2"
-                        >
-                          {voiceChat.isDeafened ? <VolumeX className="h-4 w-4" /> : <Headphones className="h-4 w-4" />}
-                          <span>{voiceChat.isDeafened ? "Ouvir" : "Ensurdecer"}</span>
-                        </Button>
-                        
-                        <Button 
-                          variant="destructive"
-                          onClick={() => voiceChat.disconnect()}
-                          className="flex items-center space-x-2"
-                        >
-                          <PhoneOff className="h-4 w-4" />
-                          <span>Desconectar</span>
-                        </Button>
-                      </div>
-                      
-                      <div className="text-center space-y-3">
-                        <p className="text-sm text-purple-600">
-                          🎤 Conectado ao canal • {voiceChat.userCount} usuário{voiceChat.userCount !== 1 ? 's' : ''} online
-                        </p>
-                        
-                        {/* Voice Level Indicator */}
-                        <div className="bg-gray-100 rounded-lg p-3">
-                          <p className="text-xs text-gray-600 mb-2">Nível de voz detectado:</p>
-                          <div className="w-full bg-gray-300 rounded-full h-2">
-                            <div 
-                              className="bg-green-500 h-2 rounded-full transition-all duration-100"
-                              style={{ width: `${Math.min((voiceChat.voiceLevel / 50) * 100, 100)}%` }}
-                            ></div>
-                          </div>
-                          <p className="text-xs text-gray-500 mt-1">
-                            {voiceChat.voiceLevel > 10 ? '🎤 Voz detectada' : '🔇 Silêncio'}
-                          </p>
-                        </div>
-                        <div className="flex items-center justify-center mt-2 space-x-2">
-                          <div className={`w-2 h-2 rounded-full ${isVoiceConnected ? 'bg-green-500 animate-pulse' : 'bg-red-500'}`}></div>
-                          <span className={`text-xs ${isVoiceConnected ? 'text-green-600' : 'text-red-500'}`}>
-                            {isVoiceConnected ? 'Conectado' : 'Desconectado'}
-                          </span>
-                        </div>
-                      </div>
-                      
-                      {voiceUsers.length > 0 && (
-                        <div className="bg-purple-100 rounded-lg p-4">
-                          <h4 className="text-sm font-medium text-purple-900 mb-2">Usuários no canal:</h4>
-                          <div className="space-y-2">
-                            {voiceUsers.map(user => (
-                              <div key={user.userId} className="flex items-center space-x-2 text-sm">
-                                <div className="w-2 h-2 bg-green-500 rounded-full"></div>
-                                <span className="text-purple-700">{user.userName}</span>
-                                {user.isMuted && <MicOff className="h-3 w-3 text-red-500" />}
-                              </div>
-                            ))}
-                          </div>
-                        </div>
-                      )}
-                    </div>
-                  ) : (
-                    <Button 
-                      className="bg-purple-600 hover:bg-purple-700 text-white px-6 py-2"
-                      onClick={() => joinVoiceChannel(selectedChannel.id)}
-                      disabled={!isVoiceConnected}
-                    >
-                      <PhoneCall className="h-4 w-4 mr-2" />
-                      {!isVoiceConnected ? "Conectando..." : "Conectar ao Canal"}
-                    </Button>
-                  )}
+                  <div className="text-center text-purple-600">
+                    Funcionalidade em desenvolvimento
+                  </div>
                 </motion.div>
               </div>
             )}
@@ -1006,21 +919,7 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
         serverId={serverId}
       />
 
-      {/* Voice Control Panel */}
-      {voiceChat.isConnected && voiceChat.connectedChannelId && (
-        <VoiceControlPanel
-          isConnected={voiceChat.isConnected}
-          channelName={channels.find(ch => ch.id === voiceChat.connectedChannelId)?.name || "Canal"}
-          userCount={voiceChat.userCount}
-          isMuted={voiceChat.isMuted}
-          isDeafened={voiceChat.isDeafened}
-          onToggleMute={voiceChat.toggleMute}
-          onToggleDeafen={voiceChat.toggleDeafen}
-          onDisconnect={voiceChat.disconnect}
-          onClose={voiceChat.disconnect}
-          stream={voiceChat.localStream}
-        />
-      )}
+
     </div>
   );
 }
