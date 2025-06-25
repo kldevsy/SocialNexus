@@ -104,6 +104,7 @@ CommunityHub is a modern full-stack web application that provides a Discord-styl
 
 ## Recent Changes
 
+- **Callback URL GitHub OAuth corrigida** (25/06/2025): Corrigido erro "redirect_uri não está associado" ajustando detecção da URL do Vercel. Instruções para atualizar callback URL no GitHub OAuth App fornecidas
 - **Rotas GitHub OAuth integradas na API principal** (25/06/2025): Corrigido erro "Não é possível obter /api/auth/github" movendo todas as rotas OAuth para o arquivo principal da API. Sistema funcionando com variáveis já configuradas pelo usuário
 - **Página de configuração GitHub OAuth criada** (25/06/2025): Interface amigável que explica passo a passo como configurar GitHub OAuth, auto-refresh para detectar configuração, instruções visuais claras. Sistema pronto para ativar login
 - **GitHub OAuth implementado para Vercel** (25/06/2025): Sistema completo de autenticação com GitHub, sessões por cookie, rotas protegidas, login/logout funcionando. Pronto para produção com configuração de GitHub OAuth App

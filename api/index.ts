@@ -53,7 +53,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
       }
 
       // Redirect to GitHub OAuth
-      const redirectUri = `${req.headers.origin || req.headers.host}/api/auth/github/callback`;
+      const protocol = req.headers['x-forwarded-proto'] || 'https';
+      const host = req.headers['x-forwarded-host'] || req.headers.host;
+      const redirectUri = `${protocol}://${host}/api/auth/github/callback`;
       const scope = 'user:email';
       const state = Math.random().toString(36).substring(7);
       
