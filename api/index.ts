@@ -2,6 +2,47 @@
 import { VercelRequest, VercelResponse } from '@vercel/node';
 import express from 'express';
 
+// In-memory storage for demo (resets with each deployment)
+let userServers: any[] = [];
+let allServers: any[] = [
+  {
+    id: 2,
+    name: 'Servidor Gaming',
+    description: 'Comunidade para gamers',
+    category: 'Gaming',
+    isPublic: true,
+    ownerId: 'owner-456',
+    memberCount: 150,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    owner: { 
+      id: 'owner-456', 
+      username: 'GameMaster',
+      firstName: 'Game',
+      lastName: 'Master',
+      profileImageUrl: null
+    }
+  },
+  {
+    id: 3,
+    name: 'Tech Community',
+    description: 'Discussões sobre tecnologia',
+    category: 'Tecnologia',
+    isPublic: true,
+    ownerId: 'owner-789',
+    memberCount: 89,
+    createdAt: new Date().toISOString(),
+    updatedAt: new Date().toISOString(),
+    owner: { 
+      id: 'owner-789', 
+      username: 'TechGuru',
+      firstName: 'Tech',
+      lastName: 'Guru',
+      profileImageUrl: null
+    }
+  }
+];
+
 // Create app instance per request for serverless
 export default async function handler(req: VercelRequest, res: VercelResponse) {
   try {
@@ -253,27 +294,16 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(401).json({ message: 'Authentication required' });
       }
 
-      // Return user servers (demo data for now)
-      res.json([
-        {
-          id: 1,
-          name: 'Meu Servidor',
-          description: 'Servidor pessoal para testes',
-          category: 'Geral',
-          isPublic: true,
-          ownerId: 'user-123',
-          memberCount: 5,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          owner: { 
-            id: 'user-123', 
-            username: 'Você',
-            firstName: 'Você',
-            lastName: '',
-            profileImageUrl: null
-          }
-        }
-      ]);
+      try {
+        const userData = JSON.parse(Buffer.from(authCookie.split('=')[1], 'base64').toString());
+        
+        // Return servers owned by the user
+        const userOwnedServers = userServers.filter(server => server.ownerId === userData.id);
+        
+        res.json(userOwnedServers);
+      } catch (error) {
+        res.status(401).json({ message: 'Invalid authentication' });
+      }
     });
 
     app.get('/api/servers/discover', (req, res) => {
@@ -283,45 +313,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         return res.status(401).json({ message: 'Authentication required' });
       }
 
-      // Return public servers for discovery
-      res.json([
-        {
-          id: 2,
-          name: 'Servidor Gaming',
-          description: 'Comunidade para gamers',
-          category: 'Gaming',
-          isPublic: true,
-          ownerId: 'owner-456',
-          memberCount: 150,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          owner: { 
-            id: 'owner-456', 
-            username: 'GameMaster',
-            firstName: 'Game',
-            lastName: 'Master',
-            profileImageUrl: null
-          }
-        },
-        {
-          id: 3,
-          name: 'Tech Community',
-          description: 'Discussões sobre tecnologia',
-          category: 'Tecnologia',
-          isPublic: true,
-          ownerId: 'owner-789',
-          memberCount: 89,
-          createdAt: new Date().toISOString(),
-          updatedAt: new Date().toISOString(),
-          owner: { 
-            id: 'owner-789', 
-            username: 'TechGuru',
-            firstName: 'Tech',
-            lastName: 'Guru',
-            profileImageUrl: null
-          }
-        }
-      ]);
+      try {
+        const userData = JSON.parse(Buffer.from(authCookie.split('=')[1], 'base64').toString());
+        
+        // Return public servers (both static and user-created ones)
+        const publicServers = [
+          ...allServers.filter(server => server.isPublic),
+          ...userServers.filter(server => server.isPublic && server.ownerId !== userData.id)
+        ];
+        
+        res.json(publicServers);
+      } catch (error) {
+        res.status(401).json({ message: 'Invalid authentication' });
+      }
     });
 
     app.post('/api/servers', (req, res) => {
@@ -335,7 +339,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         const userData = JSON.parse(Buffer.from(authCookie.split('=')[1], 'base64').toString());
         const { name, description, category, isPublic } = req.body;
         
-        // Create new server (demo response)
+        // Create new server and add to memory
         const newServer = {
           id: Date.now(),
           name: name || 'Novo Servidor',
@@ -354,6 +358,9 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
             profileImageUrl: userData.avatar
           }
         };
+        
+        // Add to user servers list
+        userServers.push(newServer);
         
         res.status(201).json(newServer);
       } catch (error) {
@@ -405,24 +412,19 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
 
       const serverId = parseInt(req.params.id);
       
-      // Demo server with channels
-      const server = {
-        id: serverId,
-        name: serverId === 1 ? 'Meu Servidor' : 'Servidor Gaming',
-        description: serverId === 1 ? 'Servidor pessoal para testes' : 'Comunidade para gamers',
-        category: serverId === 1 ? 'Geral' : 'Gaming',
-        isPublic: true,
-        ownerId: 'user-123',
-        memberCount: serverId === 1 ? 5 : 150,
-        createdAt: new Date().toISOString(),
-        updatedAt: new Date().toISOString(),
-        owner: { 
-          id: 'user-123', 
-          username: serverId === 1 ? 'Você' : 'GameMaster',
-          firstName: serverId === 1 ? 'Você' : 'Game',
-          lastName: serverId === 1 ? '' : 'Master',
-          profileImageUrl: null
-        },
+      // Find server in user servers or static servers
+      let server = userServers.find(s => s.id === serverId);
+      if (!server) {
+        server = allServers.find(s => s.id === serverId);
+      }
+      
+      if (!server) {
+        return res.status(404).json({ message: 'Server not found' });
+      }
+      
+      // Add channels to server
+      const serverWithChannels = {
+        ...server,
         channels: [
           {
             id: 1,
@@ -445,7 +447,7 @@ export default async function handler(req: VercelRequest, res: VercelResponse) {
         ]
       };
       
-      res.json(server);
+      res.json(serverWithChannels);
     });
 
     // Channel messages route
