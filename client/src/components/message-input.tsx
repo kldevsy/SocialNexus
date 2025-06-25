@@ -8,6 +8,7 @@ import { TestEmbedModal } from "./test-embed-modal";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import type { MessageWithAuthor } from "@shared/schema";
 
 interface MessageInputProps {
   channelId: number;
@@ -35,6 +36,7 @@ export function MessageInput({
   const [imagePreview, setImagePreview] = useState<string | null>(null);
   const [embedModalOpen, setEmbedModalOpen] = useState(false);
   const [testModalOpen, setTestModalOpen] = useState(false);
+  const [pendingEmbed, setPendingEmbed] = useState<any>(null);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -229,18 +231,40 @@ export function MessageInput({
   };
 
   const handleEmbedSave = (embedData: any) => {
-    // Enviar mensagem com embed
+    setPendingEmbed(embedData);
+    setEmbedModalOpen(false);
+    
+    // Enviar mensagem com embed imediatamente
     sendMessageMutation.mutate({
       content: message.trim() || undefined,
       embedData: embedData
     });
     
     setMessage("");
-    setEmbedModalOpen(false);
+    setPendingEmbed(null);
     toast({
       title: "Embed enviado!",
       description: "Seu embed foi criado e enviado com sucesso.",
     });
+  };
+
+  const handleSendMessage = () => {
+    const messageContent = message.trim();
+    
+    if (!messageContent && !selectedImage && !pendingEmbed) {
+      return;
+    }
+
+    const messageData: any = {
+      content: messageContent || undefined,
+    };
+
+    if (pendingEmbed) {
+      messageData.embedData = pendingEmbed;
+      console.log('📎 Sending embed:', pendingEmbed);
+    }
+
+    sendMessageMutation.mutate(messageData);
   };
 
   const handleKeyPress = (e: React.KeyboardEvent) => {
