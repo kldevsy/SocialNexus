@@ -273,31 +273,41 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
   };
 
   const handleSave = () => {
-    onSave(embedData);
-    onOpenChange(false);
-    // Reset form
-    setEmbedData({
-      title: '',
-      description: '',
-      color: '#3b82f6',
-      url: '',
-      thumbnail: '',
-      image: '',
-      authorName: '',
-      authorIcon: '',
-      authorUrl: '',
-      footerText: '',
-      footerIcon: '',
-      timestamp: false,
-      fields: []
-    });
+    try {
+      onSave(embedData);
+      onOpenChange(false);
+      // Reset form
+      setEmbedData({
+        title: '',
+        description: '',
+        color: '#3b82f6',
+        colorPulsing: false,
+        url: '',
+        thumbnail: '',
+        image: '',
+        authorName: '',
+        authorIcon: '',
+        authorUrl: '',
+        footerText: '',
+        footerIcon: '',
+        timestamp: false,
+        fields: [],
+        buttons: [],
+        progressBars: [],
+        selectedIcon: undefined
+      });
+    } catch (error) {
+      console.error("Embed save error:", error);
+    }
   };
 
+  // Error boundary protection
   if (!open) return null;
 
-  return (
-    <Dialog open={open} onOpenChange={onOpenChange}>
-      <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
+  try {
+    return (
+      <Dialog open={open} onOpenChange={onOpenChange}>
+        <DialogContent className="max-w-[95vw] sm:max-w-4xl max-h-[90vh] overflow-hidden flex flex-col">
         <DialogHeader>
           <div className="flex items-center space-x-2">
             <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-purple-600 rounded-lg flex items-center justify-center">
@@ -811,4 +821,8 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
       </DialogContent>
     </Dialog>
   );
+  } catch (error) {
+    console.error("EmbedCreatorModal render error:", error);
+    return null;
+  }
 }

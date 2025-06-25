@@ -104,6 +104,7 @@ CommunityHub is a modern full-stack web application that provides a Discord-styl
 
 ## Recent Changes
 
+- **Bugs de tela branca corrigidos** (25/06/2025): Adicionado tratamento de erros nos componentes Select e EmbedCreator, try-catch para prevenir crashes, logs de depuração implementados
 - **Projeto convertido para Supabase** (25/06/2025): Driver Neon substituído por PostgreSQL padrão, SSL configurado, dependências atualizadas. Pronto para conectar com URL do Supabase
 - **Configuração Supabase documentada** (25/06/2025): Instruções detalhadas para conectar ao Supabase, URL correta do connection pooling, SSL configurado para produção
 - **Callback URL GitHub OAuth corrigida** (25/06/2025): Corrigido erro "redirect_uri não está associado" ajustando detecção da URL do Vercel. Instruções para atualizar callback URL no GitHub OAuth App fornecidas

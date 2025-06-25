@@ -85,7 +85,21 @@ export function CreateServerModal({ open, onOpenChange }: CreateServerModalProps
       });
       return;
     }
-    createServerMutation.mutate(formData);
+    try {
+      createServerMutation.mutate({
+        name: formData.name,
+        description: formData.description,
+        category: formData.category,
+        isPublic: formData.isPublic,
+      });
+    } catch (error) {
+      console.error("Submit error:", error);
+      toast({
+        title: "Erro",
+        description: "Erro ao processar formulário",
+        variant: "destructive",
+      });
+    }
   };
 
   return (
@@ -165,7 +179,16 @@ export function CreateServerModal({ open, onOpenChange }: CreateServerModalProps
             
             <div>
               <Label htmlFor="category">Categoria *</Label>
-              <Select value={formData.category} onValueChange={(value) => setFormData({ ...formData, category: value })}>
+              <Select 
+                value={formData.category} 
+                onValueChange={(value) => {
+                  try {
+                    setFormData({ ...formData, category: value });
+                  } catch (error) {
+                    console.error("Category select error:", error);
+                  }
+                }}
+              >
                 <SelectTrigger>
                   <SelectValue placeholder="Selecione uma categoria" />
                 </SelectTrigger>
