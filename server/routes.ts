@@ -352,13 +352,30 @@ export async function registerRoutes(app: Express): Promise<Server> {
       }
 
       console.log("Creating message with data:", req.body);
+      console.log("UserId from auth:", userId);
+      console.log("ChannelId:", channelId);
 
-      const messageData = insertMessageSchema.parse({
+      const messagePayload = {
         ...req.body,
         channelId,
         authorId: userId,
         embedData: req.body.embedData ? JSON.stringify(req.body.embedData) : undefined
-      });
+      };
+      
+      console.log("Message payload before validation:", messagePayload);
+
+      try {
+        const messageData = insertMessageSchema.parse(messagePayload);
+        console.log("Message data after validation:", messageData);
+      } catch (validationError) {
+        console.error("Validation error details:", validationError);
+        return res.status(400).json({ 
+          error: "Validation failed", 
+          details: validationError instanceof Error ? validationError.message : 'Unknown validation error'
+        });
+      }
+
+      const messageData = insertMessageSchema.parse(messagePayload);
 
       const message = await storage.createMessage(messageData);
       
