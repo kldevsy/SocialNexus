@@ -5,7 +5,7 @@ import { GlassCard } from "@/components/glass-card";
 
 export default function Landing() {
   const handleLogin = () => {
-    window.location.href = "/api/auth/github";
+    window.location.href = "/api/login";
   };
 
   return (

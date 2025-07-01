@@ -2,87 +2,14 @@ import type { Express } from "express";
 import { createServer, type Server } from "http";
 import { WebSocketServer, WebSocket } from "ws";
 import { storage } from "./storage";
-// GitHub OAuth authentication will be used instead
+import { isAuthenticated } from "./replitAuth";
 import { insertServerSchema, updateUserSchema, updateServerSchema, insertChannelSchema, insertMessageSchema, insertTypingIndicatorSchema } from "@shared/schema";
 import { z } from "zod";
 
 export async function registerRoutes(app: Express): Promise<Server> {
-  // Auth middleware for GitHub OAuth
-  const requireAuth = (req: any, res: any, next: any) => {
-    const authCookie = req.headers.cookie?.split(';').find((c: string) => c.trim().startsWith('auth-token='));
-    
-    if (!authCookie) {
-      return res.status(401).json({ message: 'Authentication required' });
-    }
-
-    try {
-      const userData = JSON.parse(Buffer.from(authCookie.split('=')[1], 'base64').toString());
-      req.user = { claims: { sub: userData.id }, ...userData };
-      next();
-    } catch (error) {
-      return res.status(401).json({ message: 'Invalid authentication' });
-    }
-  };
-
-  // GitHub OAuth routes
-  app.get('/api/auth/github', (req, res) => {
-    // For development, create demo user
-    const demoUser = {
-      id: 'demo-user-' + Date.now(),
-      username: 'DemoUser',
-      firstName: 'Demo',
-      lastName: 'User',
-      profileImageUrl: 'https://github.com/github.png'
-    };
-    
-    const authToken = Buffer.from(JSON.stringify(demoUser)).toString('base64');
-    res.cookie('auth-token', authToken, { 
-      httpOnly: false, 
-      secure: false,
-      maxAge: 24 * 60 * 60 * 1000
-    });
-    res.redirect('/');
-  });
-
-  app.get('/api/logout', (req, res) => {
-    res.clearCookie('auth-token');
-    res.redirect('/');
-  });
-
-  // Health check endpoint
-  app.get('/api/health', async (req, res) => {
-    try {
-      // Test database connection
-      const testUser = await storage.getUser('test-user');
-      const dbStatus = 'connected';
-      
-      res.json({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        database: {
-          status: dbStatus,
-          storage: 'postgresql'
-        }
-      });
-    } catch (error) {
-      res.json({
-        status: 'ok',
-        timestamp: new Date().toISOString(),
-        database: {
-          status: 'error',
-          error: error instanceof Error ? error.message : 'Unknown error'
-        }
-      });
-    }
-  });
-
-  app.post('/api/logout', (req, res) => {
-    res.clearCookie('auth-token');
-    res.json({ success: true });
-  });
 
   // Auth routes
-  app.get('/api/auth/user', requireAuth, async (req: any, res) => {
+  app.get('/api/auth/user', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       
@@ -106,7 +33,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // User routes
-  app.patch('/api/user', requireAuth, async (req: any, res) => {
+  app.patch('/api/user', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const updates = updateUserSchema.parse(req.body);
@@ -127,7 +54,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Server routes
-  app.post('/api/servers', requireAuth, async (req: any, res) => {
+  app.post('/api/servers', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const serverData = insertServerSchema.parse({
@@ -146,7 +73,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/servers', requireAuth, async (req: any, res) => {
+  app.get('/api/servers', isAuthenticated, async (req: any, res) => {
     try {
       const userId = req.user.claims.sub;
       const servers = await storage.getUserServers(userId);
@@ -157,7 +84,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/servers/discover', requireAuth, async (req: any, res) => {
+  app.get('/api/servers/discover', isAuthenticated, async (req: any, res) => {
     try {
       const { category, search, limit } = req.query;
       const servers = await storage.getPublicServers(
@@ -172,7 +99,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/servers/:id', requireAuth, async (req: any, res) => {
+  app.get('/api/servers/:id', isAuthenticated, async (req: any, res) => {
     try {
       const serverId = parseInt(req.params.id);
       const userId = req.user.claims.sub;
@@ -199,7 +126,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.patch('/api/servers/:id', requireAuth, async (req: any, res) => {
+  app.patch('/api/servers/:id', isAuthenticated, async (req: any, res) => {
     try {
       const serverId = parseInt(req.params.id);
       const userId = req.user.claims.sub;
@@ -223,7 +150,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/servers/:id', requireAuth, async (req: any, res) => {
+  app.delete('/api/servers/:id', isAuthenticated, async (req: any, res) => {
     try {
       const serverId = parseInt(req.params.id);
       const userId = req.user.claims.sub;
@@ -247,7 +174,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Membership routes
-  app.post('/api/servers/:id/join', requireAuth, async (req: any, res) => {
+  app.post('/api/servers/:id/join', isAuthenticated, async (req: any, res) => {
     try {
       const serverId = parseInt(req.params.id);
       const userId = req.user.claims.sub;
@@ -272,7 +199,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.delete('/api/servers/:id/leave', requireAuth, async (req: any, res) => {
+  app.delete('/api/servers/:id/leave', isAuthenticated, async (req: any, res) => {
     try {
       const serverId = parseInt(req.params.id);
       const userId = req.user.claims.sub;
@@ -289,7 +216,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     }
   });
 
-  app.get('/api/servers/:id/members', requireAuth, async (req: any, res) => {
+  app.get('/api/servers/:id/members', isAuthenticated, async (req: any, res) => {
     try {
       const serverId = parseInt(req.params.id);
       const members = await storage.getServerMembers(serverId);
@@ -301,7 +228,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Get server channels
-  app.get('/api/servers/:id/channels', requireAuth, async (req: any, res) => {
+  app.get('/api/servers/:id/channels', isAuthenticated, async (req: any, res) => {
     try {
       const serverId = parseInt(req.params.id);
       console.log(`🔍 Fetching channels for server ${serverId}`);
@@ -317,7 +244,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create channel (owner only)
-  app.post("/api/servers/:id/channels", requireAuth, async (req: any, res) => {
+  app.post("/api/servers/:id/channels", isAuthenticated, async (req: any, res) => {
     try {
       const serverId = parseInt(req.params.id);
       if (isNaN(serverId)) {
@@ -355,7 +282,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Delete channel (owner only)
-  app.delete("/api/channels/:id", requireAuth, async (req: any, res) => {
+  app.delete("/api/channels/:id", isAuthenticated, async (req: any, res) => {
     try {
       const channelId = parseInt(req.params.id);
       if (isNaN(channelId)) {
@@ -396,7 +323,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Message routes
   
   // Get channel messages
-  app.get("/api/channels/:id/messages", requireAuth, async (req: any, res) => {
+  app.get("/api/channels/:id/messages", isAuthenticated, async (req: any, res) => {
     try {
       const channelId = parseInt(req.params.id);
       const limit = parseInt(req.query.limit as string) || 50;
@@ -415,7 +342,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   });
 
   // Create message
-  app.post("/api/channels/:id/messages", requireAuth, async (req: any, res) => {
+  app.post("/api/channels/:id/messages", isAuthenticated, async (req: any, res) => {
     try {
       const channelId = parseInt(req.params.id);
       const userId = req.user?.id || req.session?.user?.id;
@@ -466,7 +393,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
   // Typing indicator routes
   
   // Set typing indicator (simplified - no database storage)
-  app.post("/api/channels/:id/typing", requireAuth, async (req: any, res) => {
+  app.post("/api/channels/:id/typing", isAuthenticated, async (req: any, res) => {
     try {
       const channelId = parseInt(req.params.id);
       console.log(`📥 Received typing indicator request for channel ${channelId} from user ${req.user.claims.sub}`);
@@ -508,12 +435,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, broadcastCount });
     } catch (error) {
       console.error("❌ Error setting typing indicator:", error);
-      res.status(500).json({ error: "Internal server error", details: error.message });
+      res.status(500).json({ error: "Internal server error", details: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
   // Clear typing indicator (simplified - no database storage)
-  app.delete("/api/channels/:id/typing", requireAuth, async (req: any, res) => {
+  app.delete("/api/channels/:id/typing", isAuthenticated, async (req: any, res) => {
     try {
       const channelId = parseInt(req.params.id);
       console.log(`🛑 Received stop typing request for channel ${channelId} from user ${req.user.claims.sub}`);
@@ -547,12 +474,12 @@ export async function registerRoutes(app: Express): Promise<Server> {
       res.json({ success: true, stopBroadcastCount });
     } catch (error) {
       console.error("❌ Error clearing typing indicator:", error);
-      res.status(500).json({ error: "Internal server error", details: error.message });
+      res.status(500).json({ error: "Internal server error", details: error instanceof Error ? error.message : 'Unknown error' });
     }
   });
 
   // Update message (edit)
-  app.patch("/api/messages/:id", requireAuth, async (req: any, res) => {
+  app.patch("/api/messages/:id", isAuthenticated, async (req: any, res) => {
     try {
       const messageId = parseInt(req.params.id);
       
@@ -599,7 +526,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
     let userChannelId: number | null = null;
     let userId: string | null = null;
     
-    ws.on('message', (data) => {
+    ws.on('message', (data: any) => {
       try {
         const message = JSON.parse(data.toString());
         
@@ -738,7 +665,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             let actualChannelId = signalChannelId || userChannelId;
             if (!actualChannelId) {
               // Search for the user in all channels
-              for (const [channelId, clients] of voiceChannels.entries()) {
+              for (const [channelId, clients] of Array.from(voiceChannels.entries())) {
                 for (const client of clients) {
                   if ((client as any).userId === targetUserId || (client as any).userId === fromUserId) {
                     actualChannelId = channelId;
