@@ -15,6 +15,7 @@ interface EmbedButton {
   url?: string;
   emoji?: string;
   disabled?: boolean;
+  position: 'bottom' | 'top-above' | 'top-below';
 }
 
 interface EmbedProgressBar {
@@ -34,6 +35,9 @@ interface EmbedData {
   url?: string;
   thumbnail?: string;
   image?: string;
+  imagePosition?: 'current' | 'above-title' | 'below-title';
+  imageSpoiler?: boolean;
+  imageExplicit?: boolean;
   authorName?: string;
   authorIcon?: string;
   authorUrl?: string;
@@ -71,6 +75,109 @@ export function EmbedMessage({ embedData, createdAt }: EmbedMessageProps) {
     console.error('EmbedMessage: Error parsing embedData:', error);
     return null;
   }
+
+  // Helper function to render buttons by position
+  const renderButtonsByPosition = (position: 'bottom' | 'top-above' | 'top-below') => {
+    const buttonsAtPosition = parsedEmbedData.buttons?.filter(button => button.position === position) || [];
+    
+    if (buttonsAtPosition.length === 0) return null;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, y: position === 'top-above' ? -10 : 10 }}
+        animate={{ opacity: 1, y: 0 }}
+        transition={{ delay: 0.4 }}
+        className="mb-3"
+      >
+        <div className="flex flex-wrap gap-2">
+          {buttonsAtPosition.map((button, index) => {
+            const getButtonStyle = (style: string) => {
+              switch (style) {
+                case 'primary':
+                  return 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600';
+                case 'secondary':
+                  return 'bg-gray-500 hover:bg-gray-600 text-white border-gray-500';
+                case 'success':
+                  return 'bg-green-600 hover:bg-green-700 text-white border-green-600';
+                case 'danger':
+                  return 'bg-red-600 hover:bg-red-700 text-white border-red-600';
+                case 'link':
+                  return 'bg-transparent hover:bg-gray-100 text-blue-600 border-blue-600';
+                default:
+                  return 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600';
+              }
+            };
+
+            return (
+              <motion.button
+                key={button.id}
+                initial={{ opacity: 0, scale: 0.8 }}
+                animate={{ opacity: 1, scale: 1 }}
+                transition={{ delay: 0.45 + index * 0.1 }}
+                whileHover={{ scale: 1.05 }}
+                whileTap={{ scale: 0.95 }}
+                className={`
+                  px-4 py-2 rounded-lg border text-sm font-medium 
+                  transition-all duration-200 shadow-sm hover:shadow-md
+                  ${getButtonStyle(button.style)}
+                  ${button.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                `}
+                onClick={() => {
+                  if (!button.disabled && button.url) {
+                    window.open(button.url, '_blank', 'noopener,noreferrer');
+                  }
+                }}
+                disabled={button.disabled}
+              >
+                {button.emoji && <span className="mr-1">{button.emoji}</span>}
+                {button.label}
+              </motion.button>
+            );
+          })}
+        </div>
+      </motion.div>
+    );
+  };
+
+  // Helper function to render image with spoiler/explicit handling
+  const renderImage = (className = "mb-3 overflow-hidden rounded-lg border border-gray-200") => {
+    if (!parsedEmbedData.image) return null;
+
+    return (
+      <motion.div
+        initial={{ opacity: 0, scale: 0.95 }}
+        animate={{ opacity: 1, scale: 1 }}
+        transition={{ delay: 0.35 }}
+        className={className}
+      >
+        {(parsedEmbedData.imageSpoiler || parsedEmbedData.imageExplicit) && (
+          <div className="bg-gray-100 p-3 border-b border-gray-200 flex items-center justify-between">
+            <div className="flex items-center space-x-2 text-sm text-gray-700">
+              {parsedEmbedData.imageSpoiler && (
+                <span className="bg-yellow-100 text-yellow-800 px-2 py-1 rounded text-xs font-medium">
+                  SPOILER
+                </span>
+              )}
+              {parsedEmbedData.imageExplicit && (
+                <span className="bg-red-100 text-red-800 px-2 py-1 rounded text-xs font-medium">
+                  +18
+                </span>
+              )}
+              <span>Clique para revelar</span>
+            </div>
+          </div>
+        )}
+        <img 
+          src={parsedEmbedData.image} 
+          alt="" 
+          className={`max-w-full h-auto transition-transform duration-300 hover:scale-105 ${
+            (parsedEmbedData.imageSpoiler || parsedEmbedData.imageExplicit) ? 'blur-sm hover:blur-none' : ''
+          }`}
+          loading="lazy"
+        />
+      </motion.div>
+    );
+  };
 
   return (
     <motion.div
@@ -124,6 +231,12 @@ export function EmbedMessage({ embedData, createdAt }: EmbedMessageProps) {
             </motion.div>
           )}
 
+          {/* Buttons Above Title */}
+          {renderButtonsByPosition('top-above')}
+
+          {/* Image Above Title */}
+          {parsedEmbedData.imagePosition === 'above-title' && renderImage()}
+
           {/* Title */}
           {parsedEmbedData.title && (
             <motion.h3
@@ -147,6 +260,12 @@ export function EmbedMessage({ embedData, createdAt }: EmbedMessageProps) {
               )}
             </motion.h3>
           )}
+
+          {/* Buttons Below Title */}
+          {renderButtonsByPosition('top-below')}
+
+          {/* Image Below Title */}
+          {parsedEmbedData.imagePosition === 'below-title' && renderImage()}
 
           {/* Description */}
           {parsedEmbedData.description && (
@@ -196,79 +315,8 @@ export function EmbedMessage({ embedData, createdAt }: EmbedMessageProps) {
             </motion.div>
           )}
 
-          {/* Image */}
-          {parsedEmbedData.image && (
-            <motion.div
-              initial={{ opacity: 0, scale: 0.95 }}
-              animate={{ opacity: 1, scale: 1 }}
-              transition={{ delay: 0.35 }}
-              className="mb-3 overflow-hidden rounded-lg border border-gray-200"
-            >
-              <img 
-                src={parsedEmbedData.image} 
-                alt="" 
-                className="max-w-full h-auto transition-transform duration-300 hover:scale-105"
-                loading="lazy"
-              />
-            </motion.div>
-          )}
-
-          {/* Buttons */}
-          {parsedEmbedData.buttons && parsedEmbedData.buttons.length > 0 && (
-            <motion.div
-              initial={{ opacity: 0, y: 10 }}
-              animate={{ opacity: 1, y: 0 }}
-              transition={{ delay: 0.4 }}
-              className="mb-3"
-            >
-              <div className="flex flex-wrap gap-2">
-                {parsedEmbedData.buttons.map((button, index) => {
-                  const getButtonStyle = (style: string) => {
-                    switch (style) {
-                      case 'primary':
-                        return 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600';
-                      case 'secondary':
-                        return 'bg-gray-500 hover:bg-gray-600 text-white border-gray-500';
-                      case 'success':
-                        return 'bg-green-600 hover:bg-green-700 text-white border-green-600';
-                      case 'danger':
-                        return 'bg-red-600 hover:bg-red-700 text-white border-red-600';
-                      case 'link':
-                        return 'bg-transparent hover:bg-gray-100 text-blue-600 border-blue-600';
-                      default:
-                        return 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600';
-                    }
-                  };
-
-                  return (
-                    <motion.button
-                      key={button.id}
-                      initial={{ opacity: 0, scale: 0.8 }}
-                      animate={{ opacity: 1, scale: 1 }}
-                      transition={{ delay: 0.45 + index * 0.1 }}
-                      whileHover={{ scale: 1.05 }}
-                      whileTap={{ scale: 0.95 }}
-                      className={`
-                        px-4 py-2 rounded-lg border text-sm font-medium 
-                        transition-all duration-200 shadow-sm hover:shadow-md
-                        ${getButtonStyle(button.style)}
-                        ${button.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
-                      `}
-                      onClick={() => {
-                        if (!button.disabled && button.url) {
-                          window.open(button.url, '_blank', 'noopener,noreferrer');
-                        }
-                      }}
-                      disabled={button.disabled}
-                    >
-                      {button.emoji && <span className="mr-1">{button.emoji}</span>}
-                      {button.label}
-                    </motion.button>
-                  );
-                })}
-              </div>
-            </motion.div>
-          )}
+          {/* Image in Current Position */}
+          {(!parsedEmbedData.imagePosition || parsedEmbedData.imagePosition === 'current') && renderImage()}
 
           {/* Progress Bars */}
           {parsedEmbedData.progressBars && parsedEmbedData.progressBars.length > 0 && (
@@ -280,19 +328,6 @@ export function EmbedMessage({ embedData, createdAt }: EmbedMessageProps) {
             >
               {parsedEmbedData.progressBars.map((progressBar, index) => {
                 const percentage = Math.min(100, Math.max(0, (progressBar.value / progressBar.max) * 100));
-                
-                const getProgressStyle = (style: string) => {
-                  switch (style) {
-                    case 'striped':
-                      return 'bg-striped';
-                    case 'animated':
-                      return 'animate-pulse';
-                    case 'gradient':
-                      return 'bg-gradient-to-r';
-                    default:
-                      return '';
-                  }
-                };
 
                 return (
                   <motion.div
@@ -311,27 +346,46 @@ export function EmbedMessage({ embedData, createdAt }: EmbedMessageProps) {
                       </span>
                     </div>
                     
-                    <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                    <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden relative">
                       <motion.div
                         initial={{ width: 0 }}
                         animate={{ width: `${percentage}%` }}
-                        transition={{ delay: 0.6 + index * 0.1, duration: 0.8, ease: "easeOut" }}
-                        className={`
-                          h-2 rounded-full transition-all duration-300
-                          ${getProgressStyle(progressBar.style)}
-                        `}
+                        transition={{ delay: 0.6 + index * 0.1, duration: 1.2, ease: "easeOut" }}
+                        className={`h-3 rounded-full relative overflow-hidden transition-all duration-300`}
                         style={{ 
                           backgroundColor: progressBar.color,
-                          backgroundImage: progressBar.style === 'gradient' 
-                            ? `linear-gradient(90deg, ${progressBar.color}, ${progressBar.color}aa)` 
+                          backgroundImage: progressBar.style === 'striped' 
+                            ? `repeating-linear-gradient(45deg, transparent, transparent 8px, rgba(255,255,255,0.3) 8px, rgba(255,255,255,0.3) 16px)`
+                            : progressBar.style === 'gradient'
+                            ? `linear-gradient(90deg, ${progressBar.color}, ${progressBar.color}cc, ${progressBar.color})`
+                            : undefined,
+                          animation: progressBar.style === 'animated' 
+                            ? 'progress-pulse 2s ease-in-out infinite' 
+                            : progressBar.style === 'striped'
+                            ? 'progress-stripes 1s linear infinite'
                             : undefined
                         }}
-                      />
+                      >
+                        {progressBar.style === 'animated' && (
+                          <motion.div 
+                            className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-40"
+                            animate={{ x: ['-100%', '100%'] }}
+                            transition={{ 
+                              duration: 2, 
+                              repeat: Infinity, 
+                              ease: "linear",
+                              delay: 0.8 + index * 0.1
+                            }}
+                          />
+                        )}
+                      </motion.div>
                     </div>
                     
-                    <div className="mt-1 flex justify-between text-xs text-gray-500">
+                    <div className="mt-2 flex justify-between text-xs text-gray-500">
                       <span>0</span>
-                      <span className="font-medium">{percentage.toFixed(1)}%</span>
+                      <span className="font-medium text-gray-700">
+                        {percentage.toFixed(1)}%
+                      </span>
                       <span>{progressBar.max}</span>
                     </div>
                   </motion.div>
@@ -339,6 +393,9 @@ export function EmbedMessage({ embedData, createdAt }: EmbedMessageProps) {
               })}
             </motion.div>
           )}
+
+          {/* Buttons at Bottom */}
+          {renderButtonsByPosition('bottom')}
 
           {/* Footer */}
           {(parsedEmbedData.footerText || parsedEmbedData.timestamp) && (

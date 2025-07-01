@@ -26,6 +26,7 @@ import {
   Link2, 
   Eye, 
   Sparkles,
+  AlertTriangle,
   Clock,
   User,
   Hash,
@@ -62,6 +63,7 @@ interface EmbedButton {
   url?: string;
   emoji?: string;
   disabled?: boolean;
+  position: 'bottom' | 'top-above' | 'top-below';
 }
 
 interface EmbedProgressBar {
@@ -81,6 +83,9 @@ interface EmbedData {
   url: string;
   thumbnail: string;
   image: string;
+  imagePosition: 'current' | 'above-title' | 'below-title';
+  imageSpoiler: boolean;
+  imageExplicit: boolean;
   authorName: string;
   authorIcon: string;
   authorUrl: string;
@@ -218,6 +223,9 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
     url: '',
     thumbnail: '',
     image: '',
+    imagePosition: 'current',
+    imageSpoiler: false,
+    imageExplicit: false,
     authorName: '',
     authorIcon: '',
     authorUrl: '',
@@ -304,7 +312,10 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
         fields: [],
         buttons: [],
         progressBars: [],
-        selectedIcon: undefined
+        selectedIcon: undefined,
+        imagePosition: 'current',
+        imageSpoiler: false,
+        imageExplicit: false
       });
     } catch (error) {
       console.error("Embed save error:", error);
@@ -551,24 +562,85 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
                       </div>
                     </div>
 
-                    <div className="space-y-2">
-                      <Label htmlFor="image">Imagem Principal (grande, embaixo)</Label>
-                      <div className="flex items-center space-x-2">
-                        <Input
-                          id="image"
-                          value={embedData.image}
-                          onChange={(e) => setEmbedData(prev => ({ ...prev, image: e.target.value }))}
-                          placeholder="URL da imagem..."
-                          className="flex-1"
-                        />
-                        <Button
-                          type="button"
-                          variant="outline"
-                          onClick={() => handleImageUpload('image')}
-                        >
-                          <Image className="h-4 w-4" />
-                        </Button>
+                    <div className="space-y-4">
+                      <div className="space-y-2">
+                        <Label htmlFor="image">Imagem Principal</Label>
+                        <div className="flex items-center space-x-2">
+                          <Input
+                            id="image"
+                            value={embedData.image}
+                            onChange={(e) => setEmbedData(prev => ({ ...prev, image: e.target.value }))}
+                            placeholder="URL da imagem..."
+                            className="flex-1"
+                          />
+                          <Button
+                            type="button"
+                            variant="outline"
+                            onClick={() => handleImageUpload('image')}
+                          >
+                            <Image className="h-4 w-4" />
+                          </Button>
+                        </div>
                       </div>
+
+                      {embedData.image && (
+                        <div className="space-y-4 p-4 border rounded-lg bg-gray-50">
+                          <h4 className="font-medium text-sm">Configurações da Imagem</h4>
+                          
+                          <div className="space-y-2">
+                            <Label>Posição da Imagem</Label>
+                            <Select 
+                              value={embedData.imagePosition} 
+                              onValueChange={(value: 'current' | 'above-title' | 'below-title') => {
+                                setEmbedData(prev => ({ ...prev, imagePosition: value }));
+                              }}
+                            >
+                              <SelectTrigger>
+                                <SelectValue />
+                              </SelectTrigger>
+                              <SelectContent>
+                                <SelectItem value="current">Posição Atual (após descrição)</SelectItem>
+                                <SelectItem value="above-title">Acima do Título</SelectItem>
+                                <SelectItem value="below-title">Abaixo do Título</SelectItem>
+                              </SelectContent>
+                            </Select>
+                          </div>
+
+                          <div className="flex flex-col space-y-3">
+                            <div className="flex items-center space-x-2">
+                              <Switch
+                                checked={embedData.imageSpoiler}
+                                onCheckedChange={(checked) => setEmbedData(prev => ({ ...prev, imageSpoiler: checked }))}
+                              />
+                              <Label className="text-sm">Marcar como Spoiler (ocultar inicialmente)</Label>
+                            </div>
+
+                            <div className="flex items-center space-x-2">
+                              <Switch
+                                checked={embedData.imageExplicit}
+                                onCheckedChange={(checked) => setEmbedData(prev => ({ ...prev, imageExplicit: checked }))}
+                              />
+                              <Label className="text-sm">Conteúdo Explícito (aviso de idade)</Label>
+                            </div>
+                          </div>
+
+                          {(embedData.imageSpoiler || embedData.imageExplicit) && (
+                            <div className="p-3 bg-yellow-50 border border-yellow-200 rounded-lg">
+                              <div className="flex items-center space-x-2 text-yellow-800">
+                                <AlertTriangle className="h-4 w-4" />
+                                <span className="text-sm font-medium">
+                                  {embedData.imageSpoiler && embedData.imageExplicit 
+                                    ? 'Imagem marcada como spoiler e conteúdo explícito'
+                                    : embedData.imageSpoiler 
+                                    ? 'Imagem marcada como spoiler'
+                                    : 'Imagem marcada como conteúdo explícito'
+                                  }
+                                </span>
+                              </div>
+                            </div>
+                          )}
+                        </div>
+                      )}
                     </div>
                   </CardContent>
                 </Card>
@@ -674,7 +746,8 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
                               style: 'primary', 
                               url: '', 
                               emoji: '', 
-                              disabled: false 
+                              disabled: false,
+                              position: 'bottom'
                             }]
                           }));
                         }}
@@ -742,30 +815,56 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
                               </div>
                             </div>
                             
-                            <div className="space-y-2">
-                              <Label>Estilo do Botão</Label>
-                              <Select 
-                                value={button.style} 
-                                onValueChange={(value: 'primary' | 'secondary' | 'success' | 'danger' | 'link') => {
-                                  setEmbedData(prev => ({
-                                    ...prev,
-                                    buttons: prev.buttons.map((b, i) => 
-                                      i === index ? { ...b, style: value } : b
-                                    )
-                                  }));
-                                }}
-                              >
-                                <SelectTrigger>
-                                  <SelectValue />
-                                </SelectTrigger>
-                                <SelectContent>
-                                  <SelectItem value="primary">Primário (Azul)</SelectItem>
-                                  <SelectItem value="secondary">Secundário (Cinza)</SelectItem>
-                                  <SelectItem value="success">Sucesso (Verde)</SelectItem>
-                                  <SelectItem value="danger">Perigo (Vermelho)</SelectItem>
-                                  <SelectItem value="link">Link (Transparente)</SelectItem>
-                                </SelectContent>
-                              </Select>
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label>Estilo do Botão</Label>
+                                <Select 
+                                  value={button.style} 
+                                  onValueChange={(value: 'primary' | 'secondary' | 'success' | 'danger' | 'link') => {
+                                    setEmbedData(prev => ({
+                                      ...prev,
+                                      buttons: prev.buttons.map((b, i) => 
+                                        i === index ? { ...b, style: value } : b
+                                      )
+                                    }));
+                                  }}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="primary">Primário (Azul)</SelectItem>
+                                    <SelectItem value="secondary">Secundário (Cinza)</SelectItem>
+                                    <SelectItem value="success">Sucesso (Verde)</SelectItem>
+                                    <SelectItem value="danger">Perigo (Vermelho)</SelectItem>
+                                    <SelectItem value="link">Link (Transparente)</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
+
+                              <div className="space-y-2">
+                                <Label>Posição do Botão</Label>
+                                <Select 
+                                  value={button.position} 
+                                  onValueChange={(value: 'bottom' | 'top-above' | 'top-below') => {
+                                    setEmbedData(prev => ({
+                                      ...prev,
+                                      buttons: prev.buttons.map((b, i) => 
+                                        i === index ? { ...b, position: value } : b
+                                      )
+                                    }));
+                                  }}
+                                >
+                                  <SelectTrigger>
+                                    <SelectValue />
+                                  </SelectTrigger>
+                                  <SelectContent>
+                                    <SelectItem value="bottom">Parte inferior (padrão)</SelectItem>
+                                    <SelectItem value="top-above">Acima do título</SelectItem>
+                                    <SelectItem value="top-below">Abaixo do título</SelectItem>
+                                  </SelectContent>
+                                </Select>
+                              </div>
                             </div>
                           </motion.div>
                         ))}
@@ -944,14 +1043,44 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
                                   <span>{progressBar.label}</span>
                                   <span>{progressBar.value}/{progressBar.max}</span>
                                 </div>
-                                <div className="w-full bg-gray-200 rounded-full h-2">
-                                  <div 
-                                    className="h-2 rounded-full transition-all duration-300"
-                                    style={{ 
-                                      width: `${(progressBar.value / progressBar.max) * 100}%`,
-                                      backgroundColor: progressBar.color 
+                                <div className="w-full bg-gray-200 rounded-full h-3 overflow-hidden relative">
+                                  <motion.div 
+                                    initial={{ width: 0 }}
+                                    animate={{ 
+                                      width: `${(progressBar.value / progressBar.max) * 100}%`
                                     }}
-                                  />
+                                    transition={{ duration: 1, ease: "easeOut" }}
+                                    className={`
+                                      h-3 rounded-full relative overflow-hidden
+                                      ${progressBar.style === 'animated' ? 'animate-pulse' : ''}
+                                      ${progressBar.style === 'striped' ? 'bg-striped' : ''}
+                                    `}
+                                    style={{ 
+                                      backgroundColor: progressBar.color,
+                                      backgroundImage: progressBar.style === 'striped' 
+                                        ? `repeating-linear-gradient(45deg, transparent, transparent 5px, rgba(255,255,255,0.2) 5px, rgba(255,255,255,0.2) 10px)`
+                                        : progressBar.style === 'gradient'
+                                        ? `linear-gradient(90deg, ${progressBar.color}, ${progressBar.color}dd, ${progressBar.color})`
+                                        : undefined,
+                                      animation: progressBar.style === 'animated' 
+                                        ? 'progress-fill 2s ease-in-out infinite alternate' 
+                                        : undefined
+                                    }}
+                                  >
+                                    {progressBar.style === 'animated' && (
+                                      <div 
+                                        className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-30 animate-ping"
+                                        style={{ animationDuration: '1.5s' }}
+                                      />
+                                    )}
+                                  </motion.div>
+                                </div>
+                                <div className="flex justify-between text-xs text-gray-500 mt-1">
+                                  <span>0</span>
+                                  <span className="font-medium">
+                                    {((progressBar.value / progressBar.max) * 100).toFixed(1)}%
+                                  </span>
+                                  <span>{progressBar.max}</span>
                                 </div>
                               </div>
                             </div>

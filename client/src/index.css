@@ -2,6 +2,22 @@
 @tailwind components;
 @tailwind utilities;
 
+/* Progress Bar Animations */
+@keyframes progress-pulse {
+  0%, 100% { opacity: 1; }
+  50% { opacity: 0.7; }
+}
+
+@keyframes progress-stripes {
+  0% { background-position: 0 0; }
+  100% { background-position: 30px 0; }
+}
+
+@keyframes progress-fill {
+  0% { transform: scaleX(0.95); }
+  100% { transform: scaleX(1); }
+}
+
 :root {
   --background: hsl(0, 0%, 100%);
   --foreground: hsl(240, 10%, 3.9%);
