@@ -178,6 +178,9 @@ export const insertMessageSchema = createInsertSchema(messages).omit({
   id: true,
   createdAt: true,
   updatedAt: true,
+}).partial().extend({
+  authorId: z.string(),
+  channelId: z.number(),
 });
 
 export const insertTypingIndicatorSchema = createInsertSchema(typingIndicators).omit({

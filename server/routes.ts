@@ -666,7 +666,7 @@ export async function registerRoutes(app: Express): Promise<Server> {
             if (!actualChannelId) {
               // Search for the user in all channels
               for (const [channelId, clients] of Array.from(voiceChannels.entries())) {
-                for (const client of clients) {
+                for (const client of Array.from(clients)) {
                   if ((client as any).userId === targetUserId || (client as any).userId === fromUserId) {
                     actualChannelId = channelId;
                     break;
