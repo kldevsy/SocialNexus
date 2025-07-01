@@ -8,10 +8,29 @@ interface EmbedField {
   inline: boolean;
 }
 
+interface EmbedButton {
+  id: string;
+  label: string;
+  style: 'primary' | 'secondary' | 'success' | 'danger' | 'link';
+  url?: string;
+  emoji?: string;
+  disabled?: boolean;
+}
+
+interface EmbedProgressBar {
+  id: string;
+  label: string;
+  value: number;
+  max: number;
+  style: 'default' | 'striped' | 'animated' | 'gradient';
+  color: string;
+}
+
 interface EmbedData {
   title?: string;
   description?: string;
   color?: string;
+  colorPulsing?: boolean;
   url?: string;
   thumbnail?: string;
   image?: string;
@@ -22,6 +41,8 @@ interface EmbedData {
   footerIcon?: string;
   timestamp?: boolean;
   fields?: EmbedField[];
+  buttons?: EmbedButton[];
+  progressBars?: EmbedProgressBar[];
 }
 
 interface EmbedMessageProps {
@@ -189,6 +210,133 @@ export function EmbedMessage({ embedData, createdAt }: EmbedMessageProps) {
                 className="max-w-full h-auto transition-transform duration-300 hover:scale-105"
                 loading="lazy"
               />
+            </motion.div>
+          )}
+
+          {/* Buttons */}
+          {parsedEmbedData.buttons && parsedEmbedData.buttons.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.4 }}
+              className="mb-3"
+            >
+              <div className="flex flex-wrap gap-2">
+                {parsedEmbedData.buttons.map((button, index) => {
+                  const getButtonStyle = (style: string) => {
+                    switch (style) {
+                      case 'primary':
+                        return 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600';
+                      case 'secondary':
+                        return 'bg-gray-500 hover:bg-gray-600 text-white border-gray-500';
+                      case 'success':
+                        return 'bg-green-600 hover:bg-green-700 text-white border-green-600';
+                      case 'danger':
+                        return 'bg-red-600 hover:bg-red-700 text-white border-red-600';
+                      case 'link':
+                        return 'bg-transparent hover:bg-gray-100 text-blue-600 border-blue-600';
+                      default:
+                        return 'bg-blue-600 hover:bg-blue-700 text-white border-blue-600';
+                    }
+                  };
+
+                  return (
+                    <motion.button
+                      key={button.id}
+                      initial={{ opacity: 0, scale: 0.8 }}
+                      animate={{ opacity: 1, scale: 1 }}
+                      transition={{ delay: 0.45 + index * 0.1 }}
+                      whileHover={{ scale: 1.05 }}
+                      whileTap={{ scale: 0.95 }}
+                      className={`
+                        px-4 py-2 rounded-lg border text-sm font-medium 
+                        transition-all duration-200 shadow-sm hover:shadow-md
+                        ${getButtonStyle(button.style)}
+                        ${button.disabled ? 'opacity-50 cursor-not-allowed' : 'cursor-pointer'}
+                      `}
+                      onClick={() => {
+                        if (!button.disabled && button.url) {
+                          window.open(button.url, '_blank', 'noopener,noreferrer');
+                        }
+                      }}
+                      disabled={button.disabled}
+                    >
+                      {button.emoji && <span className="mr-1">{button.emoji}</span>}
+                      {button.label}
+                    </motion.button>
+                  );
+                })}
+              </div>
+            </motion.div>
+          )}
+
+          {/* Progress Bars */}
+          {parsedEmbedData.progressBars && parsedEmbedData.progressBars.length > 0 && (
+            <motion.div
+              initial={{ opacity: 0, y: 10 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: 0.5 }}
+              className="mb-3 space-y-3"
+            >
+              {parsedEmbedData.progressBars.map((progressBar, index) => {
+                const percentage = Math.min(100, Math.max(0, (progressBar.value / progressBar.max) * 100));
+                
+                const getProgressStyle = (style: string) => {
+                  switch (style) {
+                    case 'striped':
+                      return 'bg-striped';
+                    case 'animated':
+                      return 'animate-pulse';
+                    case 'gradient':
+                      return 'bg-gradient-to-r';
+                    default:
+                      return '';
+                  }
+                };
+
+                return (
+                  <motion.div
+                    key={progressBar.id}
+                    initial={{ opacity: 0, x: -20 }}
+                    animate={{ opacity: 1, x: 0 }}
+                    transition={{ delay: 0.55 + index * 0.1 }}
+                    className="bg-gray-50 rounded-lg p-3 border border-gray-100"
+                  >
+                    <div className="flex justify-between items-center mb-2">
+                      <span className="text-sm font-medium text-gray-800">
+                        {progressBar.label}
+                      </span>
+                      <span className="text-xs text-gray-600">
+                        {progressBar.value}/{progressBar.max}
+                      </span>
+                    </div>
+                    
+                    <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
+                      <motion.div
+                        initial={{ width: 0 }}
+                        animate={{ width: `${percentage}%` }}
+                        transition={{ delay: 0.6 + index * 0.1, duration: 0.8, ease: "easeOut" }}
+                        className={`
+                          h-2 rounded-full transition-all duration-300
+                          ${getProgressStyle(progressBar.style)}
+                        `}
+                        style={{ 
+                          backgroundColor: progressBar.color,
+                          backgroundImage: progressBar.style === 'gradient' 
+                            ? `linear-gradient(90deg, ${progressBar.color}, ${progressBar.color}aa)` 
+                            : undefined
+                        }}
+                      />
+                    </div>
+                    
+                    <div className="mt-1 flex justify-between text-xs text-gray-500">
+                      <span>0</span>
+                      <span className="font-medium">{percentage.toFixed(1)}%</span>
+                      <span>{progressBar.max}</span>
+                    </div>
+                  </motion.div>
+                );
+              })}
             </motion.div>
           )}
 

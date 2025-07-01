@@ -1100,6 +1100,85 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
                     </div>
                   )}
 
+                  {/* Buttons Preview */}
+                  {embedData.buttons.length > 0 && (
+                    <div className="mb-3">
+                      <div className="flex flex-wrap gap-2">
+                        {embedData.buttons.map((button, index) => {
+                          const getButtonStyle = (style: string) => {
+                            switch (style) {
+                              case 'primary':
+                                return 'bg-blue-600 text-white border-blue-600';
+                              case 'secondary':
+                                return 'bg-gray-500 text-white border-gray-500';
+                              case 'success':
+                                return 'bg-green-600 text-white border-green-600';
+                              case 'danger':
+                                return 'bg-red-600 text-white border-red-600';
+                              case 'link':
+                                return 'bg-transparent text-blue-600 border-blue-600';
+                              default:
+                                return 'bg-blue-600 text-white border-blue-600';
+                            }
+                          };
+
+                          return (
+                            <button
+                              key={button.id}
+                              className={`
+                                px-3 py-1.5 rounded border text-xs font-medium transition-colors
+                                ${getButtonStyle(button.style)}
+                                ${button.disabled ? 'opacity-50' : ''}
+                              `}
+                              disabled={button.disabled}
+                            >
+                              {button.emoji && <span className="mr-1">{button.emoji}</span>}
+                              {button.label}
+                            </button>
+                          );
+                        })}
+                      </div>
+                    </div>
+                  )}
+
+                  {/* Progress Bars Preview */}
+                  {embedData.progressBars.length > 0 && (
+                    <div className="mb-3 space-y-2">
+                      {embedData.progressBars.map((progressBar, index) => {
+                        const percentage = Math.min(100, Math.max(0, (progressBar.value / progressBar.max) * 100));
+                        
+                        return (
+                          <div key={progressBar.id} className="bg-gray-50 rounded p-2 border border-gray-100">
+                            <div className="flex justify-between items-center mb-1">
+                              <span className="text-xs font-medium text-gray-800">
+                                {progressBar.label}
+                              </span>
+                              <span className="text-xs text-gray-600">
+                                {progressBar.value}/{progressBar.max}
+                              </span>
+                            </div>
+                            
+                            <div className="w-full bg-gray-200 rounded-full h-1.5">
+                              <div 
+                                className="h-1.5 rounded-full transition-all duration-300"
+                                style={{ 
+                                  width: `${percentage}%`,
+                                  backgroundColor: progressBar.color 
+                                }}
+                              />
+                            </div>
+                            
+                            <div className="mt-1 flex justify-between text-xs text-gray-500">
+                              <span>0</span>
+                              <span className="font-medium">{percentage.toFixed(1)}%</span>
+                              <span>{progressBar.max}</span>
+                            </div>
+                          </div>
+                        );
+                      })}
+                    </div>
+                  )}
+
                   {/* Footer */}
                   {(embedData.footerText || embedData.timestamp) && (
                     <div className="flex items-center justify-between pt-2 border-t">
