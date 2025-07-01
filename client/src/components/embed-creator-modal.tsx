@@ -650,6 +650,327 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
                 </Card>
               </TabsContent>
 
+              <TabsContent value="buttons" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center space-x-2">
+                      <Square className="h-5 w-5" />
+                      <span>Botões Interativos</span>
+                    </CardTitle>
+                    <CardDescription>
+                      Adicione botões clicáveis ao embed
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setEmbedData(prev => ({
+                            ...prev,
+                            buttons: [...prev.buttons, { 
+                              id: crypto.randomUUID(), 
+                              label: 'Novo Botão', 
+                              style: 'primary', 
+                              url: '', 
+                              emoji: '', 
+                              disabled: false 
+                            }]
+                          }));
+                        }}
+                        className="w-full"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Adicionar Botão
+                      </Button>
+
+                      <AnimatePresence>
+                        {embedData.buttons.map((button, index) => (
+                          <motion.div
+                            key={button.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            className="p-4 border rounded-lg space-y-4"
+                          >
+                            <div className="flex items-center justify-between">
+                              <Badge variant="outline">Botão {index + 1}</Badge>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setEmbedData(prev => ({
+                                    ...prev,
+                                    buttons: prev.buttons.filter((_, i) => i !== index)
+                                  }));
+                                }}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label>Texto do Botão</Label>
+                                <Input
+                                  value={button.label}
+                                  onChange={(e) => {
+                                    setEmbedData(prev => ({
+                                      ...prev,
+                                      buttons: prev.buttons.map((b, i) => 
+                                        i === index ? { ...b, label: e.target.value } : b
+                                      )
+                                    }));
+                                  }}
+                                  placeholder="Clique aqui"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label>URL (opcional)</Label>
+                                <Input
+                                  value={button.url}
+                                  onChange={(e) => {
+                                    setEmbedData(prev => ({
+                                      ...prev,
+                                      buttons: prev.buttons.map((b, i) => 
+                                        i === index ? { ...b, url: e.target.value } : b
+                                      )
+                                    }));
+                                  }}
+                                  placeholder="https://..."
+                                />
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <Label>Estilo do Botão</Label>
+                              <Select 
+                                value={button.style} 
+                                onValueChange={(value: 'primary' | 'secondary' | 'success' | 'danger' | 'link') => {
+                                  setEmbedData(prev => ({
+                                    ...prev,
+                                    buttons: prev.buttons.map((b, i) => 
+                                      i === index ? { ...b, style: value } : b
+                                    )
+                                  }));
+                                }}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="primary">Primário (Azul)</SelectItem>
+                                  <SelectItem value="secondary">Secundário (Cinza)</SelectItem>
+                                  <SelectItem value="success">Sucesso (Verde)</SelectItem>
+                                  <SelectItem value="danger">Perigo (Vermelho)</SelectItem>
+                                  <SelectItem value="link">Link (Transparente)</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
+                      
+                      {embedData.buttons.length === 0 && (
+                        <div className="text-center py-8 text-gray-500">
+                          <Square className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p>Nenhum botão adicionado ainda</p>
+                          <p className="text-sm">Clique em "Adicionar Botão" para começar</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
+              <TabsContent value="progress" className="space-y-4">
+                <Card>
+                  <CardHeader>
+                    <CardTitle className="text-lg flex items-center space-x-2">
+                      <BarChart3 className="h-5 w-5" />
+                      <span>Barras de Progresso</span>
+                    </CardTitle>
+                    <CardDescription>
+                      Adicione barras de progresso animadas
+                    </CardDescription>
+                  </CardHeader>
+                  <CardContent>
+                    <div className="space-y-4">
+                      <Button 
+                        variant="outline" 
+                        onClick={() => {
+                          setEmbedData(prev => ({
+                            ...prev,
+                            progressBars: [...prev.progressBars, { 
+                              id: crypto.randomUUID(), 
+                              label: 'Progresso', 
+                              value: 50, 
+                              max: 100, 
+                              style: 'default', 
+                              color: '#3b82f6' 
+                            }]
+                          }));
+                        }}
+                        className="w-full"
+                      >
+                        <Plus className="h-4 w-4 mr-2" />
+                        Adicionar Barra de Progresso
+                      </Button>
+
+                      <AnimatePresence>
+                        {embedData.progressBars.map((progressBar, index) => (
+                          <motion.div
+                            key={progressBar.id}
+                            initial={{ opacity: 0, y: 20 }}
+                            animate={{ opacity: 1, y: 0 }}
+                            exit={{ opacity: 0, y: -20 }}
+                            className="p-4 border rounded-lg space-y-4"
+                          >
+                            <div className="flex items-center justify-between">
+                              <Badge variant="outline">Barra {index + 1}</Badge>
+                              <Button
+                                variant="ghost"
+                                size="sm"
+                                onClick={() => {
+                                  setEmbedData(prev => ({
+                                    ...prev,
+                                    progressBars: prev.progressBars.filter((_, i) => i !== index)
+                                  }));
+                                }}
+                              >
+                                <X className="h-4 w-4" />
+                              </Button>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label>Rótulo</Label>
+                                <Input
+                                  value={progressBar.label}
+                                  onChange={(e) => {
+                                    setEmbedData(prev => ({
+                                      ...prev,
+                                      progressBars: prev.progressBars.map((p, i) => 
+                                        i === index ? { ...p, label: e.target.value } : p
+                                      )
+                                    }));
+                                  }}
+                                  placeholder="Nome da barra"
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label>Cor</Label>
+                                <Input
+                                  type="color"
+                                  value={progressBar.color}
+                                  onChange={(e) => {
+                                    setEmbedData(prev => ({
+                                      ...prev,
+                                      progressBars: prev.progressBars.map((p, i) => 
+                                        i === index ? { ...p, color: e.target.value } : p
+                                      )
+                                    }));
+                                  }}
+                                />
+                              </div>
+                            </div>
+                            
+                            <div className="grid grid-cols-2 gap-4">
+                              <div className="space-y-2">
+                                <Label>Valor Atual</Label>
+                                <Input
+                                  type="number"
+                                  value={progressBar.value}
+                                  onChange={(e) => {
+                                    setEmbedData(prev => ({
+                                      ...prev,
+                                      progressBars: prev.progressBars.map((p, i) => 
+                                        i === index ? { ...p, value: parseInt(e.target.value) || 0 } : p
+                                      )
+                                    }));
+                                  }}
+                                  min="0"
+                                  max={progressBar.max}
+                                />
+                              </div>
+                              <div className="space-y-2">
+                                <Label>Valor Máximo</Label>
+                                <Input
+                                  type="number"
+                                  value={progressBar.max}
+                                  onChange={(e) => {
+                                    setEmbedData(prev => ({
+                                      ...prev,
+                                      progressBars: prev.progressBars.map((p, i) => 
+                                        i === index ? { ...p, max: parseInt(e.target.value) || 100 } : p
+                                      )
+                                    }));
+                                  }}
+                                  min="1"
+                                />
+                              </div>
+                            </div>
+                            
+                            <div className="space-y-2">
+                              <Label>Estilo</Label>
+                              <Select 
+                                value={progressBar.style} 
+                                onValueChange={(value: 'default' | 'striped' | 'animated' | 'gradient') => {
+                                  setEmbedData(prev => ({
+                                    ...prev,
+                                    progressBars: prev.progressBars.map((p, i) => 
+                                      i === index ? { ...p, style: value } : p
+                                    )
+                                  }));
+                                }}
+                              >
+                                <SelectTrigger>
+                                  <SelectValue />
+                                </SelectTrigger>
+                                <SelectContent>
+                                  <SelectItem value="default">Padrão</SelectItem>
+                                  <SelectItem value="striped">Listrado</SelectItem>
+                                  <SelectItem value="animated">Animado</SelectItem>
+                                  <SelectItem value="gradient">Gradiente</SelectItem>
+                                </SelectContent>
+                              </Select>
+                            </div>
+                            
+                            {/* Preview da barra */}
+                            <div className="space-y-2">
+                              <Label>Preview</Label>
+                              <div className="space-y-1">
+                                <div className="flex justify-between text-sm">
+                                  <span>{progressBar.label}</span>
+                                  <span>{progressBar.value}/{progressBar.max}</span>
+                                </div>
+                                <div className="w-full bg-gray-200 rounded-full h-2">
+                                  <div 
+                                    className="h-2 rounded-full transition-all duration-300"
+                                    style={{ 
+                                      width: `${(progressBar.value / progressBar.max) * 100}%`,
+                                      backgroundColor: progressBar.color 
+                                    }}
+                                  />
+                                </div>
+                              </div>
+                            </div>
+                          </motion.div>
+                        ))}
+                      </AnimatePresence>
+                      
+                      {embedData.progressBars.length === 0 && (
+                        <div className="text-center py-8 text-gray-500">
+                          <BarChart3 className="h-12 w-12 mx-auto mb-4 opacity-50" />
+                          <p>Nenhuma barra de progresso adicionada ainda</p>
+                          <p className="text-sm">Clique em "Adicionar Barra de Progresso" para começar</p>
+                        </div>
+                      )}
+                    </div>
+                  </CardContent>
+                </Card>
+              </TabsContent>
+
               <TabsContent value="templates" className="space-y-4">
                 <Card>
                   <CardHeader>
