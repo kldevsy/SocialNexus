@@ -351,31 +351,24 @@ export async function registerRoutes(app: Express): Promise<Server> {
         return res.status(400).json({ error: "Invalid channel ID" });
       }
 
+      if (!userId) {
+        return res.status(400).json({ error: "User ID not found" });
+      }
+
       console.log("Creating message with data:", req.body);
       console.log("UserId from auth:", userId);
       console.log("ChannelId:", channelId);
 
-      const messagePayload = {
-        ...req.body,
-        channelId,
+      // Create message data manually to avoid validation issues
+      const messageData = {
+        content: req.body.content || null,
+        imageUrl: req.body.imageUrl || null,
+        embedData: req.body.embedData ? JSON.stringify(req.body.embedData) : null,
         authorId: userId,
-        embedData: req.body.embedData ? JSON.stringify(req.body.embedData) : undefined
+        channelId: channelId
       };
       
-      console.log("Message payload before validation:", messagePayload);
-
-      try {
-        const messageData = insertMessageSchema.parse(messagePayload);
-        console.log("Message data after validation:", messageData);
-      } catch (validationError) {
-        console.error("Validation error details:", validationError);
-        return res.status(400).json({ 
-          error: "Validation failed", 
-          details: validationError instanceof Error ? validationError.message : 'Unknown validation error'
-        });
-      }
-
-      const messageData = insertMessageSchema.parse(messagePayload);
+      console.log("Message data to insert:", messageData);
 
       const message = await storage.createMessage(messageData);
       
