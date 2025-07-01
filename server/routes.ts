@@ -345,13 +345,20 @@ export async function registerRoutes(app: Express): Promise<Server> {
   app.post("/api/channels/:id/messages", isAuthenticated, async (req: any, res) => {
     try {
       const channelId = parseInt(req.params.id);
-      const userId = req.user?.id || req.session?.user?.id;
+      
+      // Debug user object structure
+      console.log("Full user object:", JSON.stringify(req.user, null, 2));
+      console.log("Session user:", JSON.stringify(req.session?.user, null, 2));
+      
+      // Try multiple ways to get user ID
+      const userId = req.user?.id || req.user?.claims?.sub || req.session?.user?.id;
       
       if (isNaN(channelId)) {
         return res.status(400).json({ error: "Invalid channel ID" });
       }
 
       if (!userId) {
+        console.error("User ID not found in request. User object:", req.user);
         return res.status(400).json({ error: "User ID not found" });
       }
 
