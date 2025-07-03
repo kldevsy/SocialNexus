@@ -10,7 +10,8 @@ import {
   Server,
   Users,
   MessageCircle,
-  Circle
+  Circle,
+  Sparkles
 } from "lucide-react";
 import { Button } from "@/components/ui/button";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
@@ -20,6 +21,7 @@ import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
 import { CreateServerModal } from "@/components/create-server-modal";
 import { ProfileModal } from "@/components/profile-modal";
+import { OnboardingTutorial } from "@/components/onboarding-tutorial";
 import ServerBrowser from "@/pages/server-browser";
 import ServerView from "@/pages/server-view";
 import { isUnauthorizedError } from "@/lib/authUtils";
@@ -33,12 +35,37 @@ export default function Dashboard() {
   const [profileOpen, setProfileOpen] = useState(false);
   const [showServerBrowser, setShowServerBrowser] = useState(false);
   const [selectedServerId, setSelectedServerId] = useState<number | null>(null);
+  const [showOnboarding, setShowOnboarding] = useState(false);
 
   const { data: userServers = [], isLoading: serversLoading } = useQuery<ServerWithOwner[]>({
     queryKey: ["/api/servers"],
     enabled: !!user,
     refetchOnWindowFocus: false,
   });
+
+  // Check if user is new (show onboarding)
+  useEffect(() => {
+    if (user && !serversLoading && userServers?.length === 0) {
+      const hasSeenOnboarding = localStorage.getItem('hasSeenOnboarding');
+      if (!hasSeenOnboarding) {
+        setShowOnboarding(true);
+      }
+    }
+  }, [user, userServers, serversLoading]);
+
+  const handleOnboardingComplete = () => {
+    setShowOnboarding(false);
+    localStorage.setItem('hasSeenOnboarding', 'true');
+    toast({
+      title: "Tutorial completo!",
+      description: "Agora você está pronto para usar o CommunityHub!",
+    });
+  };
+
+  const handleOnboardingSkip = () => {
+    setShowOnboarding(false);
+    localStorage.setItem('hasSeenOnboarding', 'true');
+  };
 
   const { data: trendingServers = [] } = useQuery<ServerWithOwner[]>({
     queryKey: ["/api/servers/discover"],
@@ -73,7 +100,7 @@ export default function Dashboard() {
     );
   }
 
-  const displayName = `${user.firstName} ${user.lastName}`.trim() || "User";
+  const displayName = `${(user as any).firstName || ''} ${(user as any).lastName || ''}`.trim() || "User";
   const stats = {
     servers: userServers.length,
     members: userServers.reduce((total, server) => total + (server.memberCount || 0), 0),
@@ -110,22 +137,33 @@ export default function Dashboard() {
             <div className="flex items-center space-x-4">
               <Avatar className="h-12 w-12">
                 <AvatarImage 
-                  src={user.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&size=48&background=6366f1&color=ffffff`} 
+                  src={(user as any).profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(displayName)}&size=48&background=6366f1&color=ffffff`} 
                   alt={displayName} 
                 />
                 <AvatarFallback>{displayName.charAt(0)}</AvatarFallback>
               </Avatar>
               <div className="flex-1">
                 <h3 className="font-semibold text-gray-900">{displayName}</h3>
-                <p className="text-sm text-gray-500">{user.status || "Online"}</p>
+                <p className="text-sm text-gray-500">{(user as any).status || "Online"}</p>
               </div>
-              <Button 
-                variant="ghost" 
-                size="sm"
-                onClick={() => setProfileOpen(true)}
-              >
-                <Settings className="h-4 w-4" />
-              </Button>
+              <div className="flex space-x-1">
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setShowOnboarding(true)}
+                  title="Iniciar tutorial"
+                >
+                  <Sparkles className="h-4 w-4" />
+                </Button>
+                <Button 
+                  variant="ghost" 
+                  size="sm"
+                  onClick={() => setProfileOpen(true)}
+                  data-tutorial="profile-button"
+                >
+                  <Settings className="h-4 w-4" />
+                </Button>
+              </div>
             </div>
           </div>
 
@@ -143,6 +181,7 @@ export default function Dashboard() {
                 variant="ghost"
                 className="w-full justify-start"
                 onClick={() => setShowServerBrowser(true)}
+                data-tutorial="discover-servers"
               >
                 <Compass className="mr-3 h-4 w-4" />
                 Discover Servers
@@ -150,6 +189,7 @@ export default function Dashboard() {
               <Button
                 className="w-full justify-start"
                 onClick={() => setCreateServerOpen(true)}
+                data-tutorial="create-server"
               >
                 <Plus className="mr-3 h-4 w-4" />
                 Create Server
@@ -157,7 +197,7 @@ export default function Dashboard() {
             </div>
 
             {/* Server List */}
-            <div className="mt-8">
+            <div className="mt-8" data-tutorial="servers-list">
               <h4 className="text-xs font-semibold text-gray-500 uppercase tracking-wider mb-4">
                 Your Servers
               </h4>
@@ -335,6 +375,13 @@ export default function Dashboard() {
 
       <CreateServerModal open={createServerOpen} onOpenChange={setCreateServerOpen} />
       <ProfileModal open={profileOpen} onOpenChange={setProfileOpen} />
+      
+      {/* Onboarding Tutorial */}
+      <OnboardingTutorial 
+        isVisible={showOnboarding}
+        onComplete={handleOnboardingComplete}
+        onSkip={handleOnboardingSkip}
+      />
     </div>
   );
 }
