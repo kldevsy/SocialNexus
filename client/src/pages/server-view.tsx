@@ -12,6 +12,7 @@ import { CreateChannelModal } from "@/components/create-channel-modal";
 import { MessageList } from "@/components/message-list";
 import { MessageInput } from "@/components/message-input";
 
+
 interface ServerViewProps {
   serverId: number;
   onBack: () => void;
@@ -470,7 +471,7 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
                       transition={{ delay: index * 0.05 }}
                       whileHover={{ scale: 1.02, x: 6 }}
                       onClick={() => setSelectedChannelId(channel.id)}
-                      className={`flex items-center space-x-3 p-2 rounded-lg cursor-pointer transition-all duration-200 group shadow-sm hover:shadow-md ${
+                      className={`channel-item flex items-center space-x-3 p-2 rounded-lg cursor-pointer transition-all duration-200 group shadow-sm hover:shadow-md ${
                         selectedChannelId === channel.id
                           ? "bg-gradient-to-r from-blue-100 to-indigo-100 border border-blue-300"
                           : "bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 hover:from-blue-50 hover:to-indigo-50 hover:border-blue-200"

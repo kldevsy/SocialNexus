@@ -177,3 +177,36 @@
 .animate-scale-in {
   animation: scaleIn 0.2s ease-out;
 }
+
+/* Mobile touch hint for channel preview */
+@media (max-width: 768px) {
+  .channel-item {
+    position: relative;
+  }
+  
+  .channel-item::after {
+    content: '👆';
+    position: absolute;
+    right: 8px;
+    top: 50%;
+    transform: translateY(-50%);
+    opacity: 0.3;
+    font-size: 12px;
+    pointer-events: none;
+    animation: touchHint 3s infinite;
+  }
+  
+  @keyframes touchHint {
+    0%, 80%, 100% {
+      opacity: 0.3;
+    }
+    40% {
+      opacity: 0.7;
+    }
+  }
+  
+  .channel-item:hover::after,
+  .channel-item:active::after {
+    display: none;
+  }
+}

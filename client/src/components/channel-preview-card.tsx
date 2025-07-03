@@ -1,5 +1,6 @@
 import { useState, useEffect } from "react";
 import { motion, AnimatePresence } from "framer-motion";
+import { useIsMobile } from "@/hooks/use-mobile";
 import { Card, CardContent, CardHeader, CardTitle } from "@/components/ui/card";
 import { Badge } from "@/components/ui/badge";
 import { Avatar, AvatarFallback, AvatarImage } from "@/components/ui/avatar";
@@ -28,6 +29,8 @@ export function ChannelPreviewCard({ channel, children, delay = 300 }: ChannelPr
   const [isHovered, setIsHovered] = useState(false);
   const [showPreview, setShowPreview] = useState(false);
   const [hoverTimer, setHoverTimer] = useState<NodeJS.Timeout | null>(null);
+  const [isTouched, setIsTouched] = useState(false);
+  const isMobile = useIsMobile();
 
   // Fetch recent messages for text channels
   const { data: recentMessages = [] } = useQuery<MessageWithAuthor[]>({
@@ -44,19 +47,41 @@ export function ChannelPreviewCard({ channel, children, delay = 300 }: ChannelPr
   });
 
   const handleMouseEnter = () => {
-    setIsHovered(true);
-    const timer = setTimeout(() => {
-      setShowPreview(true);
-    }, delay);
-    setHoverTimer(timer);
+    if (!isMobile) {
+      setIsHovered(true);
+      const timer = setTimeout(() => {
+        setShowPreview(true);
+      }, delay);
+      setHoverTimer(timer);
+    }
   };
 
   const handleMouseLeave = () => {
-    setIsHovered(false);
-    setShowPreview(false);
-    if (hoverTimer) {
-      clearTimeout(hoverTimer);
-      setHoverTimer(null);
+    if (!isMobile) {
+      setIsHovered(false);
+      setShowPreview(false);
+      if (hoverTimer) {
+        clearTimeout(hoverTimer);
+        setHoverTimer(null);
+      }
+    }
+  };
+
+  const handleTouchStart = () => {
+    if (isMobile) {
+      setIsTouched(true);
+      setIsHovered(true);
+      setShowPreview(true);
+    }
+  };
+
+  const handleTouchEnd = () => {
+    if (isMobile) {
+      setTimeout(() => {
+        setIsTouched(false);
+        setIsHovered(false);
+        setShowPreview(false);
+      }, 2000); // Mostra preview por 2 segundos no mobile
     }
   };
 
@@ -201,6 +226,8 @@ export function ChannelPreviewCard({ channel, children, delay = 300 }: ChannelPr
       <div
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
+        onTouchStart={handleTouchStart}
+        onTouchEnd={handleTouchEnd}
         className="w-full"
       >
         {children}
@@ -213,7 +240,11 @@ export function ChannelPreviewCard({ channel, children, delay = 300 }: ChannelPr
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className="absolute left-full ml-2 top-0 z-50 w-80"
+            className={`absolute z-50 ${
+              isMobile 
+                ? "left-1/2 transform -translate-x-1/2 top-full mt-2 w-72" 
+                : "left-full ml-2 top-0 w-80"
+            }`}
             style={{ pointerEvents: 'none' }}
           >
             <Card className="shadow-lg border bg-background/95 backdrop-blur-sm">
