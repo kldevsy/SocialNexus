@@ -1154,11 +1154,81 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
                 layout
                 className="bg-gray-50 p-4 rounded-lg"
               >
+                {/* Buttons Preview - Top Above (outside embed) */}
+                {embedData.buttons.filter(b => b.position === 'top-above').length > 0 && (
+                  <div className="mb-3">
+                    <div className="flex flex-wrap gap-2">
+                      {embedData.buttons.filter(b => b.position === 'top-above').map((button, index) => {
+                        const getButtonStyle = (style: string) => {
+                          switch (style) {
+                            case 'primary':
+                              return 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700';
+                            case 'secondary':
+                              return 'bg-gray-500 text-white border-gray-500 hover:bg-gray-600';
+                            case 'success':
+                              return 'bg-green-600 text-white border-green-600 hover:bg-green-700';
+                            case 'danger':
+                              return 'bg-red-600 text-white border-red-600 hover:bg-red-700';
+                            case 'link':
+                              return 'bg-transparent text-blue-600 border-blue-600 hover:bg-blue-50';
+                            default:
+                              return 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700';
+                          }
+                        };
+
+                        return (
+                          <button
+                            key={button.id}
+                            className={`
+                              px-3 py-1.5 rounded border text-xs font-medium transition-colors cursor-pointer
+                              ${getButtonStyle(button.style)}
+                              ${button.disabled ? 'opacity-50 cursor-not-allowed' : ''}
+                            `}
+                            disabled={button.disabled}
+                          >
+                            {button.emoji && <span className="mr-1">{button.emoji}</span>}
+                            {button.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
+
                 {/* Embed Preview */}
                 <div 
-                  className="bg-white rounded-lg p-4 border-l-4 shadow-sm"
+                  className={`bg-white rounded-lg p-4 border-l-4 shadow-sm relative ${embedData.colorPulsing ? 'animate-pulse' : ''}`}
                   style={{ borderLeftColor: embedData.color }}
                 >
+                  {/* Image above title */}
+                  {embedData.image && embedData.imagePosition === 'above-title' && (
+                    <div className="mb-3">
+                      {embedData.imageSpoiler ? (
+                        <div className="bg-gray-800 text-white p-4 rounded cursor-pointer hover:bg-gray-700 transition-colors">
+                          <div className="text-center">
+                            <AlertTriangle className="h-6 w-6 mx-auto mb-2" />
+                            <p className="text-sm font-medium">SPOILER</p>
+                            <p className="text-xs opacity-75">Clique para revelar</p>
+                          </div>
+                        </div>
+                      ) : embedData.imageExplicit ? (
+                        <div className="bg-red-100 border border-red-300 p-4 rounded">
+                          <div className="text-center text-red-800">
+                            <AlertTriangle className="h-6 w-6 mx-auto mb-2" />
+                            <p className="text-sm font-medium">CONTEÚDO EXPLÍCITO</p>
+                            <p className="text-xs">Conteúdo sensível - visualize com cuidado</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <img 
+                          src={embedData.image} 
+                          alt="" 
+                          className="max-w-full h-auto rounded"
+                        />
+                      )}
+                    </div>
+                  )}
+
                   {/* Author */}
                   {embedData.authorName && (
                     <div className="flex items-center space-x-2 mb-2">
@@ -1194,6 +1264,35 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
                     </h3>
                   )}
 
+                  {/* Image below title */}
+                  {embedData.image && embedData.imagePosition === 'below-title' && (
+                    <div className="mb-3">
+                      {embedData.imageSpoiler ? (
+                        <div className="bg-gray-800 text-white p-4 rounded cursor-pointer hover:bg-gray-700 transition-colors">
+                          <div className="text-center">
+                            <AlertTriangle className="h-6 w-6 mx-auto mb-2" />
+                            <p className="text-sm font-medium">SPOILER</p>
+                            <p className="text-xs opacity-75">Clique para revelar</p>
+                          </div>
+                        </div>
+                      ) : embedData.imageExplicit ? (
+                        <div className="bg-red-100 border border-red-300 p-4 rounded">
+                          <div className="text-center text-red-800">
+                            <AlertTriangle className="h-6 w-6 mx-auto mb-2" />
+                            <p className="text-sm font-medium">CONTEÚDO EXPLÍCITO</p>
+                            <p className="text-xs">Conteúdo sensível - visualize com cuidado</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <img 
+                          src={embedData.image} 
+                          alt="" 
+                          className="max-w-full h-auto rounded"
+                        />
+                      )}
+                    </div>
+                  )}
+
                   {/* Description */}
                   {embedData.description && (
                     <p className="text-gray-700 mb-3 whitespace-pre-wrap">
@@ -1218,36 +1317,54 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
                     </div>
                   )}
 
-                  {/* Image */}
-                  {embedData.image && (
+                  {/* Image current position (after description) */}
+                  {embedData.image && embedData.imagePosition === 'current' && (
                     <div className="mb-3">
-                      <img 
-                        src={embedData.image} 
-                        alt="" 
-                        className="max-w-full h-auto rounded"
-                      />
+                      {embedData.imageSpoiler ? (
+                        <div className="bg-gray-800 text-white p-4 rounded cursor-pointer hover:bg-gray-700 transition-colors">
+                          <div className="text-center">
+                            <AlertTriangle className="h-6 w-6 mx-auto mb-2" />
+                            <p className="text-sm font-medium">SPOILER</p>
+                            <p className="text-xs opacity-75">Clique para revelar</p>
+                          </div>
+                        </div>
+                      ) : embedData.imageExplicit ? (
+                        <div className="bg-red-100 border border-red-300 p-4 rounded">
+                          <div className="text-center text-red-800">
+                            <AlertTriangle className="h-6 w-6 mx-auto mb-2" />
+                            <p className="text-sm font-medium">CONTEÚDO EXPLÍCITO</p>
+                            <p className="text-xs">Conteúdo sensível - visualize com cuidado</p>
+                          </div>
+                        </div>
+                      ) : (
+                        <img 
+                          src={embedData.image} 
+                          alt="" 
+                          className="max-w-full h-auto rounded"
+                        />
+                      )}
                     </div>
                   )}
 
-                  {/* Buttons Preview */}
-                  {embedData.buttons.length > 0 && (
+                  {/* Buttons Preview - Top Below (inside embed, after title) */}
+                  {embedData.buttons.filter(b => b.position === 'top-below').length > 0 && (
                     <div className="mb-3">
                       <div className="flex flex-wrap gap-2">
-                        {embedData.buttons.map((button, index) => {
+                        {embedData.buttons.filter(b => b.position === 'top-below').map((button, index) => {
                           const getButtonStyle = (style: string) => {
                             switch (style) {
                               case 'primary':
-                                return 'bg-blue-600 text-white border-blue-600';
+                                return 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700';
                               case 'secondary':
-                                return 'bg-gray-500 text-white border-gray-500';
+                                return 'bg-gray-500 text-white border-gray-500 hover:bg-gray-600';
                               case 'success':
-                                return 'bg-green-600 text-white border-green-600';
+                                return 'bg-green-600 text-white border-green-600 hover:bg-green-700';
                               case 'danger':
-                                return 'bg-red-600 text-white border-red-600';
+                                return 'bg-red-600 text-white border-red-600 hover:bg-red-700';
                               case 'link':
-                                return 'bg-transparent text-blue-600 border-blue-600';
+                                return 'bg-transparent text-blue-600 border-blue-600 hover:bg-blue-50';
                               default:
-                                return 'bg-blue-600 text-white border-blue-600';
+                                return 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700';
                             }
                           };
 
@@ -1255,9 +1372,9 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
                             <button
                               key={button.id}
                               className={`
-                                px-3 py-1.5 rounded border text-xs font-medium transition-colors
+                                px-3 py-1.5 rounded border text-xs font-medium transition-colors cursor-pointer
                                 ${getButtonStyle(button.style)}
-                                ${button.disabled ? 'opacity-50' : ''}
+                                ${button.disabled ? 'opacity-50 cursor-not-allowed' : ''}
                               `}
                               disabled={button.disabled}
                             >
@@ -1272,41 +1389,64 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
 
                   {/* Progress Bars Preview */}
                   {embedData.progressBars.length > 0 && (
-                    <div className="mb-3 space-y-2">
+                    <div className="mb-3 space-y-3">
                       {embedData.progressBars.map((progressBar, index) => {
                         const percentage = Math.min(100, Math.max(0, (progressBar.value / progressBar.max) * 100));
                         
+                        const getProgressBarClass = (style: string) => {
+                          let baseClass = "h-2 rounded-full transition-all duration-500";
+                          switch (style) {
+                            case 'striped':
+                              return `${baseClass} bg-gradient-to-r from-transparent via-white to-transparent bg-size-200 animate-shimmer`;
+                            case 'animated':
+                              return `${baseClass} animate-pulse`;
+                            case 'gradient':
+                              return `${baseClass} bg-gradient-to-r`;
+                            default:
+                              return baseClass;
+                          }
+                        };
+
                         return (
-                          <div key={progressBar.id} className="bg-gray-50 rounded p-2 border border-gray-100">
-                            <div className="flex justify-between items-center mb-1">
-                              <span className="text-xs font-medium text-gray-800">
+                          <div key={progressBar.id} className="bg-gray-50 rounded-lg p-3 border border-gray-200">
+                            <div className="flex justify-between items-center mb-2">
+                              <span className="text-sm font-medium text-gray-800">
                                 {progressBar.label}
                               </span>
-                              <span className="text-xs text-gray-600">
+                              <span className="text-sm text-gray-600 font-mono">
                                 {progressBar.value}/{progressBar.max}
                               </span>
                             </div>
                             
-                            <div className="w-full bg-gray-200 rounded-full h-1.5">
+                            <div className="w-full bg-gray-200 rounded-full h-2 overflow-hidden">
                               <div 
-                                className="h-1.5 rounded-full transition-all duration-300"
+                                className={getProgressBarClass(progressBar.style)}
                                 style={{ 
                                   width: `${percentage}%`,
-                                  backgroundColor: progressBar.color 
+                                  backgroundColor: progressBar.style === 'gradient' 
+                                    ? undefined 
+                                    : progressBar.color,
+                                  backgroundImage: progressBar.style === 'gradient' 
+                                    ? `linear-gradient(45deg, ${progressBar.color}, ${progressBar.color}CC, ${progressBar.color})`
+                                    : undefined
                                 }}
                               />
                             </div>
                             
-                            <div className="mt-1 flex justify-between text-xs text-gray-500">
-                              <span>0</span>
-                              <span className="font-medium">{percentage.toFixed(1)}%</span>
-                              <span>{progressBar.max}</span>
+                            <div className="mt-2 flex justify-between items-center text-xs text-gray-500">
+                              <span>0%</span>
+                              <span className="font-medium px-2 py-1 bg-gray-100 rounded text-gray-700">
+                                {percentage.toFixed(1)}%
+                              </span>
+                              <span>100%</span>
                             </div>
                           </div>
                         );
                       })}
                     </div>
                   )}
+
+
 
                   {/* Footer */}
                   {(embedData.footerText || embedData.timestamp) && (
@@ -1342,6 +1482,47 @@ export function EmbedCreatorModal({ open, onOpenChange, onSave }: EmbedCreatorMo
                     </div>
                   )}
                 </div>
+
+                {/* Buttons Preview - Bottom (outside embed) */}
+                {embedData.buttons.filter(b => b.position === 'bottom').length > 0 && (
+                  <div className="mt-3">
+                    <div className="flex flex-wrap gap-2">
+                      {embedData.buttons.filter(b => b.position === 'bottom').map((button, index) => {
+                        const getButtonStyle = (style: string) => {
+                          switch (style) {
+                            case 'primary':
+                              return 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700';
+                            case 'secondary':
+                              return 'bg-gray-500 text-white border-gray-500 hover:bg-gray-600';
+                            case 'success':
+                              return 'bg-green-600 text-white border-green-600 hover:bg-green-700';
+                            case 'danger':
+                              return 'bg-red-600 text-white border-red-600 hover:bg-red-700';
+                            case 'link':
+                              return 'bg-transparent text-blue-600 border-blue-600 hover:bg-blue-50';
+                            default:
+                              return 'bg-blue-600 text-white border-blue-600 hover:bg-blue-700';
+                          }
+                        };
+
+                        return (
+                          <button
+                            key={button.id}
+                            className={`
+                              px-3 py-1.5 rounded border text-xs font-medium transition-colors cursor-pointer
+                              ${getButtonStyle(button.style)}
+                              ${button.disabled ? 'opacity-50 cursor-not-allowed' : ''}
+                            `}
+                            disabled={button.disabled}
+                          >
+                            {button.emoji && <span className="mr-1">{button.emoji}</span>}
+                            {button.label}
+                          </button>
+                        );
+                      })}
+                    </div>
+                  </div>
+                )}
               </motion.div>
             </div>
           </div>
