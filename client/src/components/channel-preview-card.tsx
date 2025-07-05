@@ -30,6 +30,7 @@ export function ChannelPreviewCard({ channel, children, delay = 300 }: ChannelPr
   const [showPreview, setShowPreview] = useState(false);
   const [hoverTimer, setHoverTimer] = useState<NodeJS.Timeout | null>(null);
   const [isTouched, setIsTouched] = useState(false);
+  const [longPressTimer, setLongPressTimer] = useState<NodeJS.Timeout | null>(null);
   const isMobile = useIsMobile();
 
   // Fetch recent messages for text channels
@@ -67,21 +68,56 @@ export function ChannelPreviewCard({ channel, children, delay = 300 }: ChannelPr
     }
   };
 
-  const handleTouchStart = () => {
+  const handleTouchStart = (e: React.TouchEvent) => {
+    if (isMobile) {
+      setIsTouched(true);
+      setIsHovered(true);
+      
+      // Timer para long press
+      const timer = setTimeout(() => {
+        setShowPreview(true);
+      }, 500); // Toque longo de 500ms
+      
+      setLongPressTimer(timer);
+    }
+  };
+
+  const handleTouchEnd = (e: React.TouchEvent) => {
+    if (isMobile) {
+      // Limpa o timer se o usuário soltar antes do tempo
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+        setLongPressTimer(null);
+      }
+      
+      // Se o preview já estava ativo, esconde após 3 segundos
+      if (showPreview) {
+        setTimeout(() => {
+          setIsTouched(false);
+          setIsHovered(false);
+          setShowPreview(false);
+        }, 3000);
+      } else {
+        // Reset imediato se não ativou o preview
+        setIsTouched(false);
+        setIsHovered(false);
+      }
+    }
+  };
+
+  // Função para clique duplo rápido no mobile
+  const handleDoubleTouch = () => {
     if (isMobile) {
       setIsTouched(true);
       setIsHovered(true);
       setShowPreview(true);
-    }
-  };
-
-  const handleTouchEnd = () => {
-    if (isMobile) {
+      
+      // Auto-esconde após 4 segundos
       setTimeout(() => {
         setIsTouched(false);
         setIsHovered(false);
         setShowPreview(false);
-      }, 2000); // Mostra preview por 2 segundos no mobile
+      }, 4000);
     }
   };
 
@@ -90,8 +126,11 @@ export function ChannelPreviewCard({ channel, children, delay = 300 }: ChannelPr
       if (hoverTimer) {
         clearTimeout(hoverTimer);
       }
+      if (longPressTimer) {
+        clearTimeout(longPressTimer);
+      }
     };
-  }, [hoverTimer]);
+  }, [hoverTimer, longPressTimer]);
 
   const getChannelIcon = () => {
     return channel.type === 'voice' ? (
@@ -228,6 +267,7 @@ export function ChannelPreviewCard({ channel, children, delay = 300 }: ChannelPr
         onMouseLeave={handleMouseLeave}
         onTouchStart={handleTouchStart}
         onTouchEnd={handleTouchEnd}
+        onDoubleClick={isMobile ? handleDoubleTouch : undefined}
         className="w-full"
       >
         {children}
@@ -240,12 +280,15 @@ export function ChannelPreviewCard({ channel, children, delay = 300 }: ChannelPr
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className={`absolute z-50 ${
+            className={`absolute ${
               isMobile 
-                ? "left-1/2 transform -translate-x-1/2 top-full mt-2 w-72" 
-                : "left-full ml-2 top-0 w-80"
+                ? "left-1/2 transform -translate-x-1/2 top-full mt-2 w-72 z-[9999]" 
+                : "left-full ml-2 top-0 w-80 z-50"
             }`}
-            style={{ pointerEvents: 'none' }}
+            style={{ 
+              pointerEvents: 'none',
+              zIndex: isMobile ? 9999 : 50
+            }}
           >
             <Card className="shadow-lg border bg-background/95 backdrop-blur-sm">
               <CardHeader className="pb-2">

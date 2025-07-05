@@ -11,6 +11,7 @@ import { ArrowLeft, Hash, Volume2, VolumeX, Headphones, Mic, MicOff, Settings, C
 import { CreateChannelModal } from "@/components/create-channel-modal";
 import { MessageList } from "@/components/message-list";
 import { MessageInput } from "@/components/message-input";
+import { ChannelPreviewCard } from "@/components/channel-preview-card";
 
 
 interface ServerViewProps {
@@ -464,40 +465,41 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
                 </div>
                 <div className="space-y-2">
                   {textChannels.map((channel, index) => (
-                    <motion.div
-                      key={channel.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: index * 0.05 }}
-                      whileHover={{ scale: 1.02, x: 6 }}
-                      onClick={() => setSelectedChannelId(channel.id)}
-                      className={`channel-item flex items-center space-x-3 p-2 rounded-lg cursor-pointer transition-all duration-200 group shadow-sm hover:shadow-md ${
-                        selectedChannelId === channel.id
-                          ? "bg-gradient-to-r from-blue-100 to-indigo-100 border border-blue-300"
-                          : "bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 hover:from-blue-50 hover:to-indigo-50 hover:border-blue-200"
-                      }`}
-                    >
-                      <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-blue-600 rounded-md flex items-center justify-center shadow-sm">
-                        <Hash className="h-3 w-3 text-white" />
-                      </div>
-                      <span className="text-sm font-medium text-gray-800 group-hover:text-blue-700 flex-1">
-                        {channel.name}
-                      </span>
-                      {isOwner && (
-                        <Button
-                          variant="ghost"
-                          size="sm"
-                          className="opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 p-0"
-                          onClick={(e) => {
-                            e.stopPropagation();
-                            handleDeleteChannel(channel.id);
-                          }}
-                        >
-                          <Trash2 className="h-3 w-3 text-red-500" />
-                        </Button>
-                      )}
-                      <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
-                    </motion.div>
+                    <ChannelPreviewCard key={channel.id} channel={channel} delay={300}>
+                      <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: index * 0.05 }}
+                        whileHover={{ scale: 1.02, x: 6 }}
+                        onClick={() => setSelectedChannelId(channel.id)}
+                        className={`channel-item flex items-center space-x-3 p-2 rounded-lg cursor-pointer transition-all duration-200 group shadow-sm hover:shadow-md ${
+                          selectedChannelId === channel.id
+                            ? "bg-gradient-to-r from-blue-100 to-indigo-100 border border-blue-300"
+                            : "bg-gradient-to-r from-gray-50 to-gray-100 border border-gray-200 hover:from-blue-50 hover:to-indigo-50 hover:border-blue-200"
+                        }`}
+                      >
+                        <div className="w-6 h-6 bg-gradient-to-br from-blue-500 to-blue-600 rounded-md flex items-center justify-center shadow-sm">
+                          <Hash className="h-3 w-3 text-white" />
+                        </div>
+                        <span className="text-sm font-medium text-gray-800 group-hover:text-blue-700 flex-1">
+                          {channel.name}
+                        </span>
+                        {isOwner && (
+                          <Button
+                            variant="ghost"
+                            size="sm"
+                            className="opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 p-0"
+                            onClick={(e) => {
+                              e.stopPropagation();
+                              handleDeleteChannel(channel.id);
+                            }}
+                          >
+                            <Trash2 className="h-3 w-3 text-red-500" />
+                          </Button>
+                        )}
+                        <div className="w-2 h-2 bg-green-500 rounded-full animate-pulse"></div>
+                      </motion.div>
+                    </ChannelPreviewCard>
                   ))}
                   
                   {isOwner && (
@@ -532,47 +534,48 @@ export default function ServerView({ serverId, onBack }: ServerViewProps) {
                 </div>
                 <div className="space-y-2">
                   {voiceChannels.map((channel, index) => (
-                    <motion.div
-                      key={channel.id}
-                      initial={{ opacity: 0, x: -20 }}
-                      animate={{ opacity: 1, x: 0 }}
-                      transition={{ delay: (textChannels.length + index) * 0.05 }}
-                      whileHover={{ scale: 1.02, x: 6 }}
-                      onClick={() => setSelectedChannelId(channel.id)}
-                      className="flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-all duration-200 group shadow-sm hover:shadow-md bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 hover:from-purple-100 hover:to-pink-100 hover:border-purple-300"
-                    >
-                      <div className="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm bg-gradient-to-br from-purple-500 to-purple-600">
-                        <Volume2 className="h-4 w-4 text-white" />
-                      </div>
-                      <div className="flex-1">
-                        <span className="text-sm font-semibold text-gray-800 group-hover:text-purple-700">
-                          {channel.name}
-                        </span>
-                        {channel.description && (
-                          <p className="text-xs text-gray-500 group-hover:text-purple-500">
-                            {channel.description}
-                          </p>
-                        )}
-                      </div>
-                      <div className="flex items-center space-x-2">
-                        {isOwner && (
-                          <Button
-                            variant="ghost"
-                            size="sm"
-                            className="opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 p-0"
-                            onClick={(e) => {
-                              e.stopPropagation();
-                              handleDeleteChannel(channel.id);
-                            }}
-                          >
-                            <Trash2 className="h-3 w-3 text-red-500" />
-                          </Button>
-                        )}
-                        <div className="text-sm text-gray-500 italic">
-                          Chat de voz (em desenvolvimento)
+                    <ChannelPreviewCard key={channel.id} channel={channel} delay={300}>
+                      <motion.div
+                        initial={{ opacity: 0, x: -20 }}
+                        animate={{ opacity: 1, x: 0 }}
+                        transition={{ delay: (textChannels.length + index) * 0.05 }}
+                        whileHover={{ scale: 1.02, x: 6 }}
+                        onClick={() => setSelectedChannelId(channel.id)}
+                        className="flex items-center space-x-3 p-3 rounded-xl cursor-pointer transition-all duration-200 group shadow-sm hover:shadow-md bg-gradient-to-r from-purple-50 to-pink-50 border border-purple-200 hover:from-purple-100 hover:to-pink-100 hover:border-purple-300"
+                      >
+                        <div className="w-8 h-8 rounded-lg flex items-center justify-center shadow-sm bg-gradient-to-br from-purple-500 to-purple-600">
+                          <Volume2 className="h-4 w-4 text-white" />
                         </div>
-                      </div>
-                    </motion.div>
+                        <div className="flex-1">
+                          <span className="text-sm font-semibold text-gray-800 group-hover:text-purple-700">
+                            {channel.name}
+                          </span>
+                          {channel.description && (
+                            <p className="text-xs text-gray-500 group-hover:text-purple-500">
+                              {channel.description}
+                            </p>
+                          )}
+                        </div>
+                        <div className="flex items-center space-x-2">
+                          {isOwner && (
+                            <Button
+                              variant="ghost"
+                              size="sm"
+                              className="opacity-0 group-hover:opacity-100 transition-opacity w-6 h-6 p-0"
+                              onClick={(e) => {
+                                e.stopPropagation();
+                                handleDeleteChannel(channel.id);
+                              }}
+                            >
+                              <Trash2 className="h-3 w-3 text-red-500" />
+                            </Button>
+                          )}
+                          <div className="text-sm text-gray-500 italic">
+                            Chat de voz (em desenvolvimento)
+                          </div>
+                        </div>
+                      </motion.div>
+                    </ChannelPreviewCard>
                   ))}
                 </div>
               </div>
