@@ -104,6 +104,7 @@ CommunityHub is a modern full-stack web application that provides a Discord-styl
 
 ## Recent Changes
 
+- **Preview de canais corrigido para mobile** (05/07/2025): Sistema de preview dos canais funcionando perfeitamente no mobile com toque longo (500ms), posicionamento fixo centralizado na tela, dimensionamento responsivo e z-index otimizado. Preview mostra mensagens recentes para canais de texto e usuários conectados para canais de voz
 - **Sistema de mensagens e embeds completamente restaurado no Replit** (01/07/2025): Removidas configurações Vercel, restaurado Replit OAuth, sistema de mensagens funcionando 100%, embeds com botões interativos e barras de progresso implementados, todas as abas do criador de embeds funcionais
 - **GitHub OAuth e roteamento da API no Vercel corrigidos** (25/06/2025): Sistema de autenticação GitHub OAuth real implementado com fallback inteligente para modo demo. Todas as rotas da API adicionadas (canais, mensagens, membros, join server). Logs detalhados para debugging e instruções claras de configuração
 - **Conexão PostgreSQL no Vercel otimizada para Supabase/Neon** (25/06/2025): Configuração SSL simplificada para funcionar com provedores de banco em nuvem, criação automática de canais padrão, logs detalhados de debugging, e fallback robusto para armazenamento em memória. Sistema funcionando tanto com DATABASE_URL configurada quanto sem banco

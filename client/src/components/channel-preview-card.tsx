@@ -261,7 +261,7 @@ export function ChannelPreviewCard({ channel, children, delay = 300 }: ChannelPr
   );
 
   return (
-    <div className="relative">
+    <div className="relative overflow-visible">
       <div
         onMouseEnter={handleMouseEnter}
         onMouseLeave={handleMouseLeave}
@@ -280,14 +280,15 @@ export function ChannelPreviewCard({ channel, children, delay = 300 }: ChannelPr
             animate={{ opacity: 1, scale: 1, y: 0 }}
             exit={{ opacity: 0, scale: 0.95, y: 10 }}
             transition={{ duration: 0.2, ease: "easeOut" }}
-            className={`absolute ${
+            className={`${
               isMobile 
-                ? "left-1/2 transform -translate-x-1/2 top-full mt-2 w-72 z-[9999]" 
-                : "left-full ml-2 top-0 w-80 z-50"
+                ? "fixed left-4 right-4 top-1/2 transform -translate-y-1/2 z-[9999]" 
+                : "absolute left-full ml-2 top-0 w-80 z-50"
             }`}
             style={{ 
               pointerEvents: 'none',
-              zIndex: isMobile ? 9999 : 50
+              zIndex: isMobile ? 9999 : 50,
+              maxWidth: isMobile ? 'calc(100vw - 2rem)' : undefined
             }}
           >
             <Card className="shadow-lg border bg-background/95 backdrop-blur-sm">
