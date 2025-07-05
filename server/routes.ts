@@ -371,6 +371,8 @@ export async function registerRoutes(app: Express): Promise<Server> {
         content: req.body.content || null,
         imageUrl: req.body.imageUrl || null,
         embedData: req.body.embedData ? JSON.stringify(req.body.embedData) : null,
+        audioUrl: req.body.audioUrl || null,
+        audioDuration: req.body.audioDuration || null,
         authorId: userId,
         channelId: channelId
       };

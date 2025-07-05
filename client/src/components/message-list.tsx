@@ -7,6 +7,7 @@ import { motion, AnimatePresence } from "framer-motion";
 import type { MessageWithAuthor } from "@shared/schema";
 import { TypingDots } from "./typing-dots";
 import { EmbedMessage } from "./embed-message";
+import { AudioMessage } from "./audio-message";
 
 interface MessageListProps {
   channelId: number;
@@ -233,6 +234,18 @@ export function MessageList({ channelId }: MessageListProps) {
                           console.error('Error loading image:', message.imageUrl);
                           e.currentTarget.style.display = 'none';
                         }}
+                      />
+                    </div>
+                  )}
+
+                  {/* Audio message */}
+                  {(message as any).audioUrl && (
+                    <div className="mt-2">
+                      <AudioMessage
+                        audioUrl={(message as any).audioUrl}
+                        duration={(message as any).audioDuration || 0}
+                        timestamp={message.createdAt.toString()}
+                        isOwn={message.author.id === user?.id}
                       />
                     </div>
                   )}

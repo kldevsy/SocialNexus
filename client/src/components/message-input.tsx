@@ -5,6 +5,7 @@ import { ImageIcon, Send } from "lucide-react";
 import { QuickActionsMenu } from "./quick-actions-menu";
 import { EmbedCreatorModal } from "./embed-creator-modal";
 import { TestEmbedModal } from "./test-embed-modal";
+import { AudioRecorder } from "./audio-recorder";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
@@ -37,6 +38,7 @@ export function MessageInput({
   const [embedModalOpen, setEmbedModalOpen] = useState(false);
   const [testModalOpen, setTestModalOpen] = useState(false);
   const [pendingEmbed, setPendingEmbed] = useState<any>(null);
+  const [audioRecorderOpen, setAudioRecorderOpen] = useState(false);
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -44,7 +46,7 @@ export function MessageInput({
   const queryClient = useQueryClient();
 
   const sendMessageMutation = useMutation({
-    mutationFn: async ({ content, imageUrl, embedData }: { content?: string; imageUrl?: string; embedData?: any }) => {
+    mutationFn: async ({ content, imageUrl, embedData, audioUrl, audioDuration }: { content?: string; imageUrl?: string; embedData?: any; audioUrl?: string; audioDuration?: number }) => {
       let finalImageUrl = null;
       
       if (selectedImage) {
@@ -78,6 +80,8 @@ export function MessageInput({
           content: content || null,
           imageUrl: finalImageUrl,
           embedData: embedData || null,
+          audioUrl: audioUrl || null,
+          audioDuration: audioDuration || null,
         }),
       });
     },
@@ -211,10 +215,7 @@ export function MessageInput({
 
   // Quick action handlers
   const handleMicrophoneSelect = () => {
-    toast({
-      title: "Gravação de áudio",
-      description: "Funcionalidade em desenvolvimento.",
-    });
+    setAudioRecorderOpen(true);
   };
 
   const handleFileSelect = () => {
@@ -272,6 +273,18 @@ export function MessageInput({
       e.preventDefault();
       handleSendMessage();
     }
+  };
+
+  const handleAudioSend = (audioData: string, duration: number) => {
+    sendMessageMutation.mutate({
+      audioUrl: audioData,
+      audioDuration: duration,
+    });
+    setAudioRecorderOpen(false);
+  };
+
+  const handleAudioCancel = () => {
+    setAudioRecorderOpen(false);
   };
 
   return (
@@ -363,6 +376,18 @@ export function MessageInput({
         onOpenChange={setEmbedModalOpen}
         onSave={handleEmbedSave}
       />
+
+      {/* Audio Recorder */}
+      {audioRecorderOpen && (
+        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+          <div className="bg-white rounded-lg max-w-md w-full">
+            <AudioRecorder
+              onSend={handleAudioSend}
+              onCancel={handleAudioCancel}
+            />
+          </div>
+        </div>
+      )}
     </div>
   );
 }

@@ -80,6 +80,8 @@ export const messages = pgTable("messages", {
   content: text("content"),
   imageUrl: text("image_url"),
   embedData: text("embed_data"), // JSON string for embed data
+  audioUrl: text("audio_url"), // URL or base64 string for audio data
+  audioDuration: integer("audio_duration"), // Duration in seconds
   authorId: varchar("author_id", { length: 255 }).notNull().references(() => users.id, { onDelete: "cascade" }),
   channelId: integer("channel_id").notNull().references(() => channels.id, { onDelete: "cascade" }),
   createdAt: timestamp("created_at").defaultNow().notNull(),
