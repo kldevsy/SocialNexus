@@ -186,16 +186,7 @@ export function MessageList({ channelId }: MessageListProps) {
         </div>
       ) : (
         <>
-          {[...messages].reverse().map((message: MessageWithAuthor, index: number) => {
-            console.log('🔍 Message data:', {
-              id: message.id,
-              content: message.content,
-              hasAudio: !!(message as any).audioUrl,
-              hasImage: !!message.imageUrl,
-              audioUrl: (message as any).audioUrl ? 'HAS_AUDIO' : 'NO_AUDIO',
-              audioDuration: (message as any).audioDuration
-            });
-            return (
+          {[...messages].reverse().map((message: MessageWithAuthor, index: number) => (
             <motion.div
               key={message.id}
               initial={{ opacity: 0, y: 20 }}
@@ -250,11 +241,6 @@ export function MessageList({ channelId }: MessageListProps) {
                   {/* Audio message */}
                   {(message as any).audioUrl && (
                     <div className="mt-2">
-                      {console.log('🎵 Rendering audio message:', {
-                        audioUrl: (message as any).audioUrl?.substring(0, 50) + '...',
-                        duration: (message as any).audioDuration,
-                        hasAudio: !!(message as any).audioUrl
-                      })}
                       <AudioMessage
                         audioUrl={(message as any).audioUrl}
                         duration={(message as any).audioDuration || 0}
@@ -277,7 +263,7 @@ export function MessageList({ channelId }: MessageListProps) {
                 </div>
               </div>
             </motion.div>
-          )})}
+          ))}
         </>
       )}
 

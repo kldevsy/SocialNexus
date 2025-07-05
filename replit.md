@@ -104,6 +104,7 @@ CommunityHub is a modern full-stack web application that provides a Discord-styl
 
 ## Recent Changes
 
+- **Estados de carregamento animados para mensagens de áudio** (05/07/2025): Sistema avançado de loading states implementado com skeleton loading durante carregamento inicial, animações de waveform em tempo real, indicadores de buffering, estados de erro com feedback visual, botões interativos com transições suaves e visualizações animadas que pulsam durante reprodução
 - **Sistema de envio de áudio implementado** (05/07/2025): Sistema completo de gravação e envio de mensagens de áudio implementado com componente AudioRecorder para gravação (incluindo permissões de microfone, controles de play/pause, visualização de duração), componente AudioMessage para reprodução com barra de progresso, integração completa com backend e WebSocket para tempo real
 - **Preview de canais corrigido para mobile** (05/07/2025): Sistema de preview dos canais funcionando perfeitamente no mobile com toque longo (500ms), posicionamento fixo centralizado na tela, dimensionamento responsivo e z-index otimizado. Preview mostra mensagens recentes para canais de texto e usuários conectados para canais de voz
 - **Sistema de mensagens e embeds completamente restaurado no Replit** (01/07/2025): Removidas configurações Vercel, restaurado Replit OAuth, sistema de mensagens funcionando 100%, embeds com botões interativos e barras de progresso implementados, todas as abas do criador de embeds funcionais
