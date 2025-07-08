@@ -186,26 +186,14 @@ export function MessageList({ channelId }: MessageListProps) {
         </div>
       ) : (
         <>
-          {[...messages].reverse().map((message: MessageWithAuthor, index: number) => {
-            // Debug log para cada mensagem
-            console.log('🔍 Message structure:', {
-              id: message.id,
-              content: message.content,
-              audioUrl: (message as any).audioUrl,
-              audioDuration: (message as any).audioDuration,
-              imageUrl: message.imageUrl,
-              embedData: (message as any).embedData,
-              allKeys: Object.keys(message)
-            });
-            
-            return (
-              <motion.div
-                key={message.id}
-                initial={{ opacity: 0, y: 20 }}
-                animate={{ opacity: 1, y: 0 }}
-                transition={{ delay: index * 0.05 }}
-                className="flex items-start space-x-3 group hover:bg-gray-50 p-2 rounded-lg transition-colors"
-              >
+          {[...messages].reverse().map((message: MessageWithAuthor, index: number) => (
+            <motion.div
+              key={message.id}
+              initial={{ opacity: 0, y: 20 }}
+              animate={{ opacity: 1, y: 0 }}
+              transition={{ delay: index * 0.05 }}
+              className="flex items-start space-x-3 group hover:bg-gray-50 p-2 rounded-lg transition-colors"
+            >
               <Avatar className="h-10 w-10 flex-shrink-0">
                 <AvatarImage 
                   src={message.author.profileImageUrl || `https://ui-avatars.com/api/?name=${encodeURIComponent(message.author.firstName || 'User')}&size=40&background=random`}
@@ -253,11 +241,6 @@ export function MessageList({ channelId }: MessageListProps) {
                   {/* Audio message */}
                   {(message as any).audioUrl && (
                     <div className="mt-2">
-                      {console.log('🎵 Rendering audio message:', { 
-                        audioUrl: (message as any).audioUrl?.substring(0, 50) + '...', 
-                        duration: (message as any).audioDuration,
-                        messageId: message.id 
-                      })}
                       <AudioMessage
                         audioUrl={(message as any).audioUrl}
                         duration={(message as any).audioDuration || 0}
@@ -280,8 +263,7 @@ export function MessageList({ channelId }: MessageListProps) {
                 </div>
               </div>
             </motion.div>
-            );
-          })}
+          ))}
         </>
       )}
 

@@ -22,14 +22,6 @@ export function AudioMessage({ audioUrl, duration, timestamp, isOwn = false }: A
   const [actualDuration, setActualDuration] = useState(duration);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
-  console.log('🎵 AudioMessage props:', { 
-    audioUrlLength: audioUrl?.length, 
-    duration, 
-    timestamp, 
-    isOwn,
-    audioUrlStart: audioUrl?.substring(0, 50) + '...'
-  });
-
   useEffect(() => {
     if (audioRef.current) {
       const audio = audioRef.current;
