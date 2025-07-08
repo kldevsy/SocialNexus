@@ -241,6 +241,11 @@ export function MessageList({ channelId }: MessageListProps) {
                   {/* Audio message */}
                   {(message as any).audioUrl && (
                     <div className="mt-2">
+                      {console.log('🎵 Rendering audio message:', { 
+                        audioUrl: (message as any).audioUrl?.substring(0, 50) + '...', 
+                        duration: (message as any).audioDuration,
+                        messageId: message.id 
+                      })}
                       <AudioMessage
                         audioUrl={(message as any).audioUrl}
                         duration={(message as any).audioDuration || 0}
