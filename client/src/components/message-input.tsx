@@ -6,9 +6,11 @@ import { QuickActionsMenu } from "./quick-actions-menu";
 import { EmbedCreatorModal } from "./embed-creator-modal";
 import { TestEmbedModal } from "./test-embed-modal";
 import { AudioRecorder } from "./audio-recorder";
+import { AudioRecorderModern } from "./audio-recorder-modern";
 import { useMutation, useQueryClient } from "@tanstack/react-query";
 import { apiRequest } from "@/lib/queryClient";
 import { useToast } from "@/hooks/use-toast";
+import { useVoiceSettings } from "@/hooks/useVoiceSettings";
 import type { MessageWithAuthor } from "@shared/schema";
 
 interface MessageInputProps {
@@ -39,6 +41,7 @@ export function MessageInput({
   const [testModalOpen, setTestModalOpen] = useState(false);
   const [pendingEmbed, setPendingEmbed] = useState<any>(null);
   const [audioRecorderOpen, setAudioRecorderOpen] = useState(false);
+  const { settings } = useVoiceSettings();
   const fileInputRef = useRef<HTMLInputElement>(null);
   const textareaRef = useRef<HTMLTextAreaElement>(null);
   const typingTimeoutRef = useRef<NodeJS.Timeout | null>(null);
@@ -379,14 +382,24 @@ export function MessageInput({
 
       {/* Audio Recorder */}
       {audioRecorderOpen && (
-        <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
-          <div className="bg-white rounded-lg max-w-md w-full">
-            <AudioRecorder
+        <>
+          {settings.useModernComponents ? (
+            <AudioRecorderModern
               onSend={handleAudioSend}
               onCancel={handleAudioCancel}
+              theme={settings.theme}
             />
-          </div>
-        </div>
+          ) : (
+            <div className="fixed inset-0 bg-black/50 z-50 flex items-center justify-center p-4">
+              <div className="bg-white rounded-lg max-w-md w-full">
+                <AudioRecorder
+                  onSend={handleAudioSend}
+                  onCancel={handleAudioCancel}
+                />
+              </div>
+            </div>
+          )}
+        </>
       )}
     </div>
   );

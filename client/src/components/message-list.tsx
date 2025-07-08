@@ -1,13 +1,18 @@
 import { useEffect, useRef, useState } from "react";
 import { useQuery, useQueryClient } from "@tanstack/react-query";
 import { Avatar, AvatarImage, AvatarFallback } from "@/components/ui/avatar";
+import { Button } from "@/components/ui/button";
 import { format } from "date-fns";
 import { ptBR } from "date-fns/locale";
 import { motion, AnimatePresence } from "framer-motion";
+import { Palette } from "lucide-react";
 import type { MessageWithAuthor } from "@shared/schema";
 import { TypingDots } from "./typing-dots";
 import { EmbedMessage } from "./embed-message";
 import { AudioMessage } from "./audio-message";
+import { AudioMessageModern } from "./audio-message-modern";
+import { VoiceThemeSelector } from "./voice-theme-selector";
+import { useVoiceSettings } from "@/hooks/useVoiceSettings";
 
 interface MessageListProps {
   channelId: number;
@@ -22,6 +27,8 @@ export function MessageList({ channelId }: MessageListProps) {
   const [editingMessage, setEditingMessage] = useState<MessageWithAuthor | null>(null);
   const [replyingTo, setReplyingTo] = useState<MessageWithAuthor | null>(null);
   const [typingUsers, setTypingUsers] = useState<string[]>([]);
+  const [showThemeSelector, setShowThemeSelector] = useState(false);
+  const { settings, updateTheme, addReaction, getReactions } = useVoiceSettings();
   
   // Get user for WebSocket authentication
   const { data: user } = useQuery({
@@ -37,6 +44,24 @@ export function MessageList({ channelId }: MessageListProps) {
   // Check if we're on Vercel for SSE vs WebSocket
   const isVercel = window.location.hostname.includes('vercel.app') || 
                    window.location.hostname.includes('.app');
+
+  // Funções para interações de áudio
+  const handleAudioReaction = (messageId: number, reaction: string) => {
+    addReaction(messageId, reaction);
+    console.log(`Reação ${reaction} adicionada à mensagem ${messageId}`);
+  };
+
+  const handleAudioReply = (message: MessageWithAuthor) => {
+    setReplyingTo(message);
+    console.log('Respondendo à mensagem de áudio:', message.id);
+  };
+
+  const handleAudioTranscribe = (messageId: number) => {
+    console.log('Transcrevendo mensagem de áudio:', messageId);
+    // Aqui você integraria com uma API de transcrição (ex: Whisper)
+    // Por enquanto retornamos uma transcrição simulada
+    return "Esta é uma transcrição simulada da mensagem de áudio.";
+  };
 
   // Real-time connection (SSE for Vercel, WebSocket for others)
   useEffect(() => {
@@ -179,7 +204,21 @@ export function MessageList({ channelId }: MessageListProps) {
   }
 
   return (
-    <div className="flex-1 overflow-y-auto p-4 space-y-4">
+    <>
+      {/* Botão flutuante para seletor de temas de voz */}
+      <div className="absolute top-4 right-4 z-10">
+        <Button
+          onClick={() => setShowThemeSelector(true)}
+          size="sm"
+          variant="outline"
+          className="bg-white/90 backdrop-blur-sm shadow-lg border-gray-200 hover:bg-white"
+        >
+          <Palette className="h-4 w-4 mr-2" />
+          Temas de Voz
+        </Button>
+      </div>
+
+      <div className="flex-1 overflow-y-auto p-4 space-y-4">
       {messages.length === 0 ? (
         <div className="text-center text-gray-500 py-8">
           <p>Seja o primeiro a enviar uma mensagem neste canal!</p>
@@ -241,12 +280,29 @@ export function MessageList({ channelId }: MessageListProps) {
                   {/* Audio message */}
                   {(message as any).audioUrl && (
                     <div className="mt-2">
-                      <AudioMessage
-                        audioUrl={(message as any).audioUrl}
-                        duration={(message as any).audioDuration || 0}
-                        timestamp={message.createdAt.toString()}
-                        isOwn={message.author.id === user?.id}
-                      />
+                      {settings.useModernComponents ? (
+                        <AudioMessageModern
+                          audioUrl={(message as any).audioUrl}
+                          duration={(message as any).audioDuration || 0}
+                          timestamp={message.createdAt.toString()}
+                          isOwn={message.author.id === user?.id}
+                          theme={settings.theme}
+                          onReact={(reaction) => handleAudioReaction(message.id, reaction)}
+                          onReply={() => handleAudioReply(message)}
+                          onTranscribe={() => handleAudioTranscribe(message.id)}
+                          reactions={getReactions(message.id)}
+                          transcription={
+                            settings.autoTranscribe ? handleAudioTranscribe(message.id) : undefined
+                          }
+                        />
+                      ) : (
+                        <AudioMessage
+                          audioUrl={(message as any).audioUrl}
+                          duration={(message as any).audioDuration || 0}
+                          timestamp={message.createdAt.toString()}
+                          isOwn={message.author.id === user?.id}
+                        />
+                      )}
                     </div>
                   )}
 
@@ -304,7 +360,16 @@ export function MessageList({ channelId }: MessageListProps) {
         </div>
       )}
 
-      <div ref={messagesEndRef} />
-    </div>
+        <div ref={messagesEndRef} />
+      </div>
+
+      {/* Seletor de temas de voz */}
+      <VoiceThemeSelector
+        open={showThemeSelector}
+        onOpenChange={setShowThemeSelector}
+        selectedTheme={settings.theme}
+        onThemeChange={updateTheme}
+      />
+    </>
   );
 }
