@@ -16,25 +16,19 @@ interface AudioMessageProps {
 export function AudioMessage({ audioUrl, duration, timestamp, isOwn = false }: AudioMessageProps) {
   const [isPlaying, setIsPlaying] = useState(false);
   const [currentTime, setCurrentTime] = useState(0);
-  const [isLoading, setIsLoading] = useState(true);
+  const [isLoading, setIsLoading] = useState(false);
   const [isBuffering, setIsBuffering] = useState(false);
   const [hasError, setHasError] = useState(false);
   const [actualDuration, setActualDuration] = useState(duration);
   const audioRef = useRef<HTMLAudioElement | null>(null);
 
   useEffect(() => {
+    // Força o componente a não ficar em loading, já que temos os dados
+    setIsLoading(false);
+    setActualDuration(duration || 1);
+    
     if (audioRef.current) {
       const audio = audioRef.current;
-      
-      // Timeout para forçar sair do loading se não carregar em 2 segundos
-      const loadingTimeout = setTimeout(() => {
-        console.log('Audio loading timeout - forcing out of loading state');
-        setIsLoading(false);
-        // Se o áudio não carregou, tenta definir uma duração padrão
-        if (actualDuration === 0) {
-          setActualDuration(duration || 1);
-        }
-      }, 2000);
       
       const handleTimeUpdate = () => {
         setCurrentTime(audio.currentTime);
@@ -47,22 +41,18 @@ export function AudioMessage({ audioUrl, duration, timestamp, isOwn = false }: A
       
       const handleLoadStart = () => {
         console.log('Audio loadstart event');
-        setIsLoading(true);
+        // Não vamos mais colocar em loading state
         setHasError(false);
       };
       
       const handleCanPlay = () => {
         console.log('Audio canplay event');
-        clearTimeout(loadingTimeout);
-        setIsLoading(false);
         setIsBuffering(false);
       };
       
       const handleLoadedMetadata = () => {
         console.log('Audio loadedmetadata event, duration:', audio.duration);
-        clearTimeout(loadingTimeout);
-        setActualDuration(audio.duration || duration);
-        setIsLoading(false);
+        setActualDuration(audio.duration || duration || 1);
       };
       
       const handleWaiting = () => {
@@ -75,8 +65,6 @@ export function AudioMessage({ audioUrl, duration, timestamp, isOwn = false }: A
       
       const handleError = (e: Event) => {
         console.error('Audio error event:', e);
-        clearTimeout(loadingTimeout);
-        setIsLoading(false);
         setIsBuffering(false);
         setHasError(true);
         setIsPlaying(false);
@@ -92,7 +80,6 @@ export function AudioMessage({ audioUrl, duration, timestamp, isOwn = false }: A
       audio.addEventListener('error', handleError);
       
       return () => {
-        clearTimeout(loadingTimeout);
         audio.removeEventListener('timeupdate', handleTimeUpdate);
         audio.removeEventListener('ended', handleEnded);
         audio.removeEventListener('loadstart', handleLoadStart);
