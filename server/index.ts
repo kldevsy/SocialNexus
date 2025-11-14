@@ -1,11 +1,33 @@
 import express, { type Request, Response, NextFunction } from "express";
 import { registerRoutes } from "./routes";
 import { setupVite, serveStatic, log } from "./vite";
-import { setupAuth } from "./replitAuth";
+import { setupGitHubAuth } from './githubAuth';
+import { setupAuth } from './replitAuth';
 
 const app = express();
-app.use(express.json({ limit: '10mb' }));
-app.use(express.urlencoded({ extended: false, limit: '10mb' }));
+app.use(express.json());
+app.use(express.urlencoded({ extended: true }));
+
+// Setup authentication based on environment
+if (process.env.REPLIT_DOMAINS) {
+  console.log('🔐 Using Replit Authentication');
+  console.log('REPLIT_DOMAINS:', process.env.REPLIT_DOMAINS);
+  await setupAuth(app);
+} else {
+  console.log('🔐 Using GitHub OAuth Authentication');
+  console.log('GitHub Client ID:', process.env.GITHUB_CLIENT_ID ? 'Configurado' : 'NÃO configurado');
+  setupGitHubAuth(app);
+}
+
+// Log todas as rotas registradas
+console.log('\n📋 Rotas de autenticação registradas:');
+app._router.stack.forEach((r: any) => {
+  if (r.route && r.route.path && r.route.path.includes('auth')) {
+    console.log(`  ${Object.keys(r.route.methods)[0].toUpperCase()} ${r.route.path}`);
+  }
+});
+console.log('');
+
 
 app.use((req, res, next) => {
   const start = Date.now();
@@ -40,7 +62,7 @@ app.use((req, res, next) => {
 (async () => {
   // Setup Replit authentication
   await setupAuth(app);
-  
+
   const server = await registerRoutes(app);
 
   app.use((err: any, _req: Request, res: Response, _next: NextFunction) => {

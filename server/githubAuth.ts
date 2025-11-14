@@ -90,18 +90,34 @@ export function setupGitHubAuth(app: Express) {
 
   // Get current user route
   app.get('/api/auth/user', (req, res) => {
+    console.log('📍 GET /api/auth/user - Verificando autenticação');
+    console.log('Cookies recebidos:', req.headers.cookie);
+    
     const authCookie = req.headers.cookie?.split(';').find(c => c.trim().startsWith('auth-token='));
     
     if (!authCookie) {
+      console.log('❌ Nenhum cookie de autenticação encontrado');
       return res.status(401).json({ message: 'Unauthorized' });
     }
 
     try {
-      const userData = JSON.parse(Buffer.from(authCookie.split('=')[1], 'base64').toString());
+      const token = authCookie.split('=')[1];
+      const userData = JSON.parse(Buffer.from(token, 'base64').toString());
+      console.log('✅ Usuário autenticado:', userData.username);
       res.json(userData);
     } catch (error) {
+      console.log('❌ Erro ao decodificar token:', error);
       res.status(401).json({ message: 'Invalid token' });
     }
+  });
+
+  // Debug endpoint
+  app.get('/api/auth/debug', (req, res) => {
+    res.json({
+      cookies: req.headers.cookie,
+      hasAuthToken: req.headers.cookie?.includes('auth-token='),
+      githubClientId: process.env.GITHUB_CLIENT_ID ? 'Configurado' : 'NÃO configurado',
+    });
   });
 }
 
